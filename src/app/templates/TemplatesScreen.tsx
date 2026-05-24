@@ -4,11 +4,21 @@ import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import {
   DocumentTemplate,
+  type DocumentPreviewMode,
   templateDefinitions
 } from "@/components/templates/DocumentTemplate";
 import { useProjectStore } from "@/stores/project-store";
 import type { ApplicationProject } from "@/types/project";
 import type { TemplateStyle } from "@/types/templates";
+
+const previewModes: Array<{
+  id: DocumentPreviewMode;
+  label: string;
+}> = [
+  { id: "both", label: "Both" },
+  { id: "cv", label: "CV" },
+  { id: "cover_letter", label: "Cover letter" }
+];
 
 const createId = (): string => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -26,6 +36,8 @@ export function TemplatesScreen() {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateStyle>(
     selectedProject?.designSettings?.template ?? "modern"
   );
+  const [previewMode, setPreviewMode] =
+    useState<DocumentPreviewMode>("both");
   const [savedMessage, setSavedMessage] = useState<string | undefined>();
 
   const handleSaveTemplate = async () => {
@@ -59,7 +71,7 @@ export function TemplatesScreen() {
     <AppShell
       metrics={[
         { label: "Project status", value: "Templates" },
-        { label: "Current task", value: "TASK-017" },
+        { label: "Current task", value: "TASK-018" },
         { label: "Template", value: selectedTemplate }
       ]}
       title="Templates"
@@ -94,6 +106,28 @@ export function TemplatesScreen() {
             })}
           </div>
 
+          <div className="mt-5 flex flex-wrap gap-2">
+            {previewModes.map((mode) => {
+              const isSelected = mode.id === previewMode;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`h-9 rounded-md border px-3 text-sm font-medium ${
+                    isSelected
+                      ? "border-action bg-blue-50 text-slate-950"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                  }`}
+                  key={mode.id}
+                  onClick={() => setPreviewMode(mode.id)}
+                  type="button"
+                >
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-600">
               Selection is stored with the current local project.
@@ -123,6 +157,7 @@ export function TemplatesScreen() {
         <DocumentTemplate
           coverLetter={selectedProject?.generatedDocuments?.coverLetter}
           cv={selectedProject?.generatedDocuments?.cv}
+          previewMode={previewMode}
           template={selectedTemplate}
         />
       </div>

@@ -6,6 +6,8 @@ import type {
 } from "@/types/documents";
 import type { TemplateDefinition, TemplateStyle } from "@/types/templates";
 
+export type DocumentPreviewMode = "both" | "cv" | "cover_letter";
+
 export const templateDefinitions: TemplateDefinition[] = [
   {
     id: "modern",
@@ -28,6 +30,7 @@ type DocumentTemplateProps = Readonly<{
   template: TemplateStyle;
   cv?: GeneratedCV;
   coverLetter?: GeneratedCoverLetter;
+  previewMode?: DocumentPreviewMode;
 }>;
 
 type TemplateClasses = {
@@ -199,12 +202,16 @@ function CoverLetterPreview({
 export function DocumentTemplate({
   template,
   cv,
-  coverLetter
+  coverLetter,
+  previewMode = "both"
 }: DocumentTemplateProps) {
   const definition =
     templateDefinitions.find((currentTemplate) => currentTemplate.id === template) ??
     templateDefinitions[0];
   const classes = templateClassMap[definition.id];
+  const showCV = previewMode === "both" || previewMode === "cv";
+  const showCoverLetter =
+    previewMode === "both" || previewMode === "cover_letter";
 
   return (
     <section
@@ -221,9 +228,15 @@ export function DocumentTemplate({
         <p className="mt-1 text-sm text-slate-600">{definition.description}</p>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <CVPreview classes={classes} cv={cv} />
-        <CoverLetterPreview classes={classes} coverLetter={coverLetter} />
+      <div
+        className={`grid gap-5 ${
+          previewMode === "both" ? "xl:grid-cols-2" : ""
+        }`}
+      >
+        {showCV ? <CVPreview classes={classes} cv={cv} /> : null}
+        {showCoverLetter ? (
+          <CoverLetterPreview classes={classes} coverLetter={coverLetter} />
+        ) : null}
       </div>
     </section>
   );

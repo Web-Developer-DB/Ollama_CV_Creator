@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-017 completed. The app now has a template system with Modern, Classic and Minimal renderers, resilient handling for missing document fields, and a templates screen that previews CV and cover letter content from the selected local project.
+TASK-018 completed. The templates screen now has a live document preview: changing the selected template immediately updates the preview, and CV, cover letter or combined preview modes can be toggled without leaving the page.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-018: Live Preview
+TASK-019: PDF Export
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for templates UI/store: passed
+- sensitive log scan for live preview UI/store: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-017 template system.
+2026-05-24: Completed TASK-018 live preview.
