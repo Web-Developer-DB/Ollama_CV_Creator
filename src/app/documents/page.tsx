@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../shell";
+import { DocumentsScreen } from "./DocumentsScreen";
 
 export default function DocumentsPage() {
-  return <PlaceholderScreen title="Documents" />;
+  return <DocumentsScreen />;
 }
