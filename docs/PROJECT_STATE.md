@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-013 completed. The app now has a job match analysis screen that displays the current project's match score, strengths, gaps, and recommendations from local job analysis data.
+TASK-014 completed. The app now has a CV generation API route that validates candidate, job and analysis input, builds a no-hallucination Ollama prompt, validates GeneratedCV output, and rejects generated employers or skills that are not present in the candidate profile.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-014: CV Generator API
+TASK-015: Cover Letter Generator API
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for analysis UI/store: passed
+- sensitive log scan for CV generation API/AI/config: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-013 job match analysis UI.
+2026-05-24: Completed TASK-014 CV generator API.
