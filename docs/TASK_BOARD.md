@@ -2,8 +2,6 @@
 
 ## BACKLOG
 
-- TASK-012: Job Analysis API
-- TASK-013: Job Match Analysis UI
 - TASK-014: CV Generator API
 - TASK-015: Cover Letter Generator API
 - TASK-016: Documents Editor
@@ -18,7 +16,7 @@
 
 ## READY
 
-- TASK-011: Job Import Screen
+- TASK-013: Job Match Analysis UI
 
 ## IN_PROGRESS
 
@@ -40,6 +38,8 @@ _None_
 - TASK-008: Ollama Client
 - TASK-009: AI Extract Profile API
 - TASK-010: Profile Review UI
+- TASK-011: Job Import Screen
+- TASK-012: Job Analysis API
 
 ## BLOCKED
 
