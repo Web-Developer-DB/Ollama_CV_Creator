@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-009 completed. The app now has a validated profile extraction API route that builds a prompt, calls the backend-side Ollama client, validates AI output against the CandidateProfile schema, and returns standard API responses.
+TASK-010 completed. The app now has an editable profile review screen for personal information, the primary extracted experience, skill lists, and extraction uncertainty/warnings. Reviewed profiles are saved locally to the selected project.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-010: Profile Review UI
+TASK-011: Job Import Screen
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for API/AI/config: passed
+- sensitive log scan for profile UI/store: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-009 AI extract profile API.
+2026-05-24: Completed TASK-010 profile review UI.
