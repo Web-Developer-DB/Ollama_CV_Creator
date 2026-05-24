@@ -67,8 +67,29 @@ describe("TemplatesScreen", () => {
 
     render(<TemplatesScreen />);
 
+    expect(screen.getByTestId("template-modern")).toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: "Minimal" }));
 
     expect(screen.getByTestId("template-minimal")).toBeInTheDocument();
+    expect(screen.queryByTestId("template-modern")).not.toBeInTheDocument();
+  });
+
+  it("toggles between CV and cover letter previews", async () => {
+    const user = userEvent.setup();
+
+    render(<TemplatesScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Cover letter" }));
+
+    expect(screen.queryByText("CV preview")).not.toBeInTheDocument();
+    expect(screen.getByText("Cover letter preview")).toBeInTheDocument();
+    expect(screen.getByText("Application for Frontend Engineer")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "CV" }));
+
+    expect(screen.getByText("CV preview")).toBeInTheDocument();
+    expect(screen.queryByText("Cover letter preview")).not.toBeInTheDocument();
+    expect(screen.getByText("Frontend Engineer CV")).toBeInTheDocument();
   });
 });
