@@ -2,7 +2,6 @@
 
 ## BACKLOG
 
-- TASK-014: CV Generator API
 - TASK-015: Cover Letter Generator API
 - TASK-016: Documents Editor
 - TASK-017: Template System
@@ -16,7 +15,7 @@
 
 ## READY
 
-- TASK-013: Job Match Analysis UI
+- TASK-014: CV Generator API
 
 ## IN_PROGRESS
 
@@ -40,6 +39,7 @@ _None_
 - TASK-010: Profile Review UI
 - TASK-011: Job Import Screen
 - TASK-012: Job Analysis API
+- TASK-013: Job Match Analysis UI
 
 ## BLOCKED
 

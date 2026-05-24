@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../shell";
+import { AnalysisScreen } from "./AnalysisScreen";
 
 export default function AnalysisPage() {
-  return <PlaceholderScreen title="Analysis" />;
+  return <AnalysisScreen />;
 }
