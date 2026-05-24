@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-014 completed. The app now has a CV generation API route that validates candidate, job and analysis input, builds a no-hallucination Ollama prompt, validates GeneratedCV output, and rejects generated employers or skills that are not present in the candidate profile.
+TASK-015 completed. The app now has a cover letter generation API route that validates candidate, job and analysis input, builds a no-hallucination Ollama prompt, validates GeneratedCoverLetter output, requires target company/role usage when present, rejects unsupported facts, and enforces a concise length.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-015: Cover Letter Generator API
+TASK-016: Documents Editor
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for CV generation API/AI/config: passed
+- sensitive log scan for cover letter generation API/AI/config: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-014 CV generator API.
+2026-05-24: Completed TASK-015 cover letter generator API.
