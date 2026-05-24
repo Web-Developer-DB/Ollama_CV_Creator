@@ -2,8 +2,6 @@
 
 ## BACKLOG
 
-- TASK-007: Import Screen
-- TASK-008: Ollama Client
 - TASK-009: AI Extract Profile API
 - TASK-010: Profile Review UI
 - TASK-011: Job Import Screen
@@ -23,12 +21,7 @@
 
 ## READY
 
-- TASK-001: Project Setup
-- TASK-002: Base Types
-- TASK-003: Zod Schemas
-- TASK-004: Storage Layer
-- TASK-005: Early Frontend Shell
-- TASK-006: App Layout
+- TASK-008: Ollama Client
 
 ## IN_PROGRESS
 
@@ -40,7 +33,13 @@ _None_
 
 ## DONE
 
-_None_
+- TASK-001: Project Setup
+- TASK-002: Base Types
+- TASK-003: Zod Schemas
+- TASK-004: Storage Layer
+- TASK-005: Early Frontend Shell
+- TASK-006: App Layout
+- TASK-007: Import Screen
 
 ## BLOCKED
 

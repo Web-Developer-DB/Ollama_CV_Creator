@@ -6,11 +6,11 @@ Ollama CV Creator PWA
 
 ## Current Phase
 
-Planning completed. Implementation not started.
+Implementation started.
 
 ## Current Stable State
 
-No application code exists yet. This repository currently contains the agent handoff package.
+TASK-007 completed. The app now has a working import screen that accepts raw candidate text, selects language/source, and saves raw input locally through the project store.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-001: Project Setup
+TASK-008: Ollama Client
 
 ## Known Risks
 
@@ -74,8 +74,11 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Test Results
 
-No tests executed yet.
+- npm run typecheck: passed
+- npm run test: passed
+- npm run build: passed
+- npm audit: 0 vulnerabilities
 
 ## Last Update
 
-Agent Pack v4 created with full planning documentation.
+2026-05-24: Completed TASK-007 import screen.
