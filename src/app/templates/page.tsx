@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../shell";
+import { TemplatesScreen } from "./TemplatesScreen";
 
 export default function TemplatesPage() {
-  return <PlaceholderScreen title="Templates" />;
+  return <TemplatesScreen />;
 }

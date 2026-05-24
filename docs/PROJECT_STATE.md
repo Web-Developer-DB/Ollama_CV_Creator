@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-016 completed. The app now has a documents editor screen that loads generated CV and cover letter drafts from the selected local project, lets both drafts be edited, and persists document changes back to local storage.
+TASK-017 completed. The app now has a template system with Modern, Classic and Minimal renderers, resilient handling for missing document fields, and a templates screen that previews CV and cover letter content from the selected local project.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-017: Template System
+TASK-018: Live Preview
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for documents UI/store: passed
+- sensitive log scan for templates UI/store: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-016 documents editor.
+2026-05-24: Completed TASK-017 template system.
