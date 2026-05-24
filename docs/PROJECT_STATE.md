@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-007 completed. The app now has a working import screen that accepts raw candidate text, selects language/source, and saves raw input locally through the project store.
+TASK-008 completed. The app now has a backend-side Ollama client with local runtime configuration, timeout handling, unavailable-runtime handling, and JSON response parsing helpers.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-008: Ollama Client
+TASK-009: AI Extract Profile API
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- npm audit: 0 vulnerabilities
+- sensitive log scan for AI client/config: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-007 import screen.
+2026-05-24: Completed TASK-008 Ollama client.
