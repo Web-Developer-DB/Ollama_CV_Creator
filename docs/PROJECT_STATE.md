@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-010 completed. The app now has an editable profile review screen for personal information, the primary extracted experience, skill lists, and extraction uncertainty/warnings. Reviewed profiles are saved locally to the selected project.
+TASK-012 completed. The app now has a job analysis API route that validates job descriptions, builds a prompt-injection-resistant Ollama prompt, validates AI output against the JobAnalysis schema, and returns standard API responses.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-011: Job Import Screen
+TASK-013: Job Match Analysis UI
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for profile UI/store: passed
+- sensitive log scan for job analysis API/AI/config: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-010 profile review UI.
+2026-05-24: Completed TASK-012 job analysis API.

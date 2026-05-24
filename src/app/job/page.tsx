@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../shell";
+import { JobScreen } from "./JobScreen";
 
 export default function JobPage() {
-  return <PlaceholderScreen title="Job" />;
+  return <JobScreen />;
 }
