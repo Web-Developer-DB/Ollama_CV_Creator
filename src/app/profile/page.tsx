@@ -1,5 +1,5 @@
-import { PlaceholderScreen } from "../shell";
+import { ProfileScreen } from "./ProfileScreen";
 
 export default function ProfilePage() {
-  return <PlaceholderScreen title="Profile" />;
+  return <ProfileScreen />;
 }
