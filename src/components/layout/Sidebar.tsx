@@ -13,6 +13,7 @@ export const routeItems: RouteItem[] = [
   { href: "/analysis", label: "Analysis" },
   { href: "/documents", label: "Documents" },
   { href: "/templates", label: "Templates" },
+  { href: "/ai", label: "AI Status" },
   { href: "/export", label: "Export" }
 ];
 

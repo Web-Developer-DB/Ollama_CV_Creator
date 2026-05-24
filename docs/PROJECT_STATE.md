@@ -12,6 +12,8 @@ Implementation started.
 
 TASK-018 completed. The templates screen now has a live document preview: changing the selected template immediately updates the preview, and CV, cover letter or combined preview modes can be toggled without leaving the page.
 
+Ad-hoc Ollama status/settings feature completed. The app now has an AI Status navigation item with an Ollama connection check, local connect/disconnect UI state, installed model discovery through `/api/ai/status`, local model selection, and selected model readiness metadata.
+
 ## Architecture Summary
 
 - Next.js App Router fullstack app
@@ -77,8 +79,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for live preview UI/store: passed
+- sensitive log scan for AI status UI/API/layout: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-018 live preview.
+2026-05-24: Added ad-hoc Ollama status/settings page after TASK-018. Next recommended task remains TASK-019 PDF Export.
