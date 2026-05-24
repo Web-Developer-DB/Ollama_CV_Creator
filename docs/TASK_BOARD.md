@@ -2,7 +2,6 @@
 
 ## BACKLOG
 
-- TASK-018: Live Preview
 - TASK-019: PDF Export
 - TASK-020: JSON Project Export
 - TASK-021: PWA Setup
@@ -12,7 +11,7 @@
 
 ## READY
 
-- TASK-017: Template System
+- TASK-018: Live Preview
 
 ## IN_PROGRESS
 
@@ -40,6 +39,7 @@ _None_
 - TASK-014: CV Generator API
 - TASK-015: Cover Letter Generator API
 - TASK-016: Documents Editor
+- TASK-017: Template System
 
 ## BLOCKED
 
