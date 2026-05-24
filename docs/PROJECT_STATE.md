@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-008 completed. The app now has a backend-side Ollama client with local runtime configuration, timeout handling, unavailable-runtime handling, and JSON response parsing helpers.
+TASK-009 completed. The app now has a validated profile extraction API route that builds a prompt, calls the backend-side Ollama client, validates AI output against the CandidateProfile schema, and returns standard API responses.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-009: AI Extract Profile API
+TASK-010: Profile Review UI
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for AI client/config: passed
+- sensitive log scan for API/AI/config: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-008 Ollama client.
+2026-05-24: Completed TASK-009 AI extract profile API.
