@@ -2,7 +2,6 @@
 
 ## BACKLOG
 
-- TASK-010: Profile Review UI
 - TASK-011: Job Import Screen
 - TASK-012: Job Analysis API
 - TASK-013: Job Match Analysis UI
@@ -20,7 +19,7 @@
 
 ## READY
 
-- TASK-009: AI Extract Profile API
+- TASK-010: Profile Review UI
 
 ## IN_PROGRESS
 
@@ -40,6 +39,7 @@ _None_
 - TASK-006: App Layout
 - TASK-007: Import Screen
 - TASK-008: Ollama Client
+- TASK-009: AI Extract Profile API
 
 ## BLOCKED
 
