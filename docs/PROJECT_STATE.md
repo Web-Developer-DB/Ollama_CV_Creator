@@ -10,7 +10,7 @@ Implementation started.
 
 ## Current Stable State
 
-TASK-012 completed. The app now has a job analysis API route that validates job descriptions, builds a prompt-injection-resistant Ollama prompt, validates AI output against the JobAnalysis schema, and returns standard API responses.
+TASK-013 completed. The app now has a job match analysis screen that displays the current project's match score, strengths, gaps, and recommendations from local job analysis data.
 
 ## Architecture Summary
 
@@ -57,7 +57,7 @@ None
 
 ## Next Recommended Task
 
-TASK-013: Job Match Analysis UI
+TASK-014: CV Generator API
 
 ## Known Risks
 
@@ -77,8 +77,8 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed
 - npm run build: passed
-- sensitive log scan for job analysis API/AI/config: passed
+- sensitive log scan for analysis UI/store: passed
 
 ## Last Update
 
-2026-05-24: Completed TASK-012 job analysis API.
+2026-05-24: Completed TASK-013 job match analysis UI.
