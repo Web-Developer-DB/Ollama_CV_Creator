@@ -6,7 +6,7 @@ export type AiConfig = {
 
 export const DEFAULT_AI_CONFIG: AiConfig = {
   baseUrl: "http://127.0.0.1:11434",
-  model: "qwen2.5:14b",
+  model: "qwen3.5:4b",
   timeoutMs: 60_000
 };
 
