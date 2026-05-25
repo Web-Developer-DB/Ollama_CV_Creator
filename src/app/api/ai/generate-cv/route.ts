@@ -29,6 +29,7 @@ const generateCVRequestSchema = z.object({
 const errorStatusByCode: Record<ApiErrorCode, number> = {
   INVALID_INPUT: 400,
   OLLAMA_UNAVAILABLE: 503,
+  AI_MODEL_NOT_READY: 409,
   AI_TIMEOUT: 504,
   INVALID_AI_JSON: 502,
   SCHEMA_VALIDATION_FAILED: 502,

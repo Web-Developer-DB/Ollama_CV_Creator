@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { OllamaClientError } from "@/lib/ai/ollama-client";
 import type { JobAnalysis } from "@/types/job";
 import { POST } from "./route";
 
@@ -122,6 +123,32 @@ describe("POST /api/ai/analyze-job", () => {
       success: false,
       error: {
         code: "SCHEMA_VALIDATION_FAILED"
+      }
+    });
+  });
+
+  it("returns a clear error when the configured model is not loaded", async () => {
+    generateOllamaJson.mockRejectedValue(
+      new OllamaClientError(
+        "AI_MODEL_NOT_READY",
+        "Ollama model qwen3.5:4b is installed but not loaded. Open AI Status."
+      )
+    );
+
+    const response = await POST(
+      createRequest({
+        jobDescription: "We need React and TypeScript experience.",
+        language: "en"
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({
+      success: false,
+      error: {
+        code: "AI_MODEL_NOT_READY",
+        message: expect.stringContaining("Open AI Status")
       }
     });
   });

@@ -9,6 +9,7 @@ import type { TemplateStyle } from "./templates";
 export type ApiErrorCode =
   | "INVALID_INPUT"
   | "OLLAMA_UNAVAILABLE"
+  | "AI_MODEL_NOT_READY"
   | "AI_TIMEOUT"
   | "INVALID_AI_JSON"
   | "SCHEMA_VALIDATION_FAILED"

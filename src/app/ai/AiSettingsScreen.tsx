@@ -11,6 +11,17 @@ type OllamaModelStatus = {
   modifiedAt?: string;
   parameterSize?: string;
   quantizationLevel?: string;
+  loaded: boolean;
+};
+
+type OllamaLoadedModelStatus = {
+  name: string;
+  size?: number;
+  sizeVram?: number;
+  digest?: string;
+  expiresAt?: string;
+  parameterSize?: string;
+  quantizationLevel?: string;
 };
 
 type OllamaStatus = {
@@ -18,8 +29,10 @@ type OllamaStatus = {
   configuredModel: string;
   reachable: boolean;
   selectedModelAvailable: boolean;
+  selectedModelLoaded: boolean;
   checkedAt: string;
   models: OllamaModelStatus[];
+  loadedModels: OllamaLoadedModelStatus[];
   error?: string;
 };
 
@@ -112,12 +125,18 @@ export function AiSettingsScreen() {
     () => status?.models.find((model) => model.name === selectedModel),
     [selectedModel, status?.models]
   );
-  const modelIsReady = isConnected && Boolean(selectedModelDetails);
+  const installedModelCount = status?.models.length ?? 0;
+  const loadedModelCount = status?.loadedModels.length ?? 0;
+  const modelIsReady = isConnected && Boolean(selectedModelDetails?.loaded);
   const connectionStatus = !isConnected
     ? "Disconnected"
     : modelIsReady
       ? "Connected"
-      : "No model loaded";
+      : installedModelCount === 0
+        ? "No model installed"
+        : loadedModelCount === 0
+          ? "No model loaded"
+          : "Selected model not loaded";
   const connectionStatusClassName = modelIsReady
     ? "text-emerald-700"
     : isConnected
@@ -139,7 +158,10 @@ export function AiSettingsScreen() {
       metrics={[
         { label: "Project status", value: "AI status" },
         { label: "Ollama", value: isConnected ? "Reachable" : "Offline" },
-        { label: "Models", value: String(status?.models.length ?? 0) }
+        {
+          label: "Models",
+          value: `${loadedModelCount}/${installedModelCount} loaded`
+        }
       ]}
       title="AI Status"
     >
@@ -178,11 +200,11 @@ export function AiSettingsScreen() {
             </div>
           </div>
 
-          <dl className="mt-6 grid gap-4 sm:grid-cols-3">
+          <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <dt className="text-sm font-medium text-slate-500">Model</dt>
               <dd className="mt-1 text-base font-semibold text-slate-950">
-                {modelIsReady ? "Available" : "Unavailable"}
+                {modelIsReady ? "Loaded" : "Not loaded"}
               </dd>
             </div>
             <div>
@@ -190,7 +212,15 @@ export function AiSettingsScreen() {
                 Installed models
               </dt>
               <dd className="mt-1 text-base font-semibold text-slate-950">
-                {status?.models.length ?? 0}
+                {installedModelCount}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-slate-500">
+                Loaded models
+              </dt>
+              <dd className="mt-1 text-base font-semibold text-slate-950">
+                {loadedModelCount}
               </dd>
             </div>
             <div>

@@ -1,11 +1,31 @@
 import { deleteDB } from "idb";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useProjectStore } from "@/stores/project-store";
 import { ImportScreen } from "./ImportScreen";
 
+const createReadyAiStatusResponse = (): Response =>
+  new Response(
+    JSON.stringify({
+      success: true,
+      data: {
+        baseUrl: "http://127.0.0.1:11434",
+        configuredModel: "qwen3.5:4b",
+        reachable: true,
+        selectedModelAvailable: true,
+        selectedModelLoaded: true,
+        checkedAt: "2026-05-25T12:00:00.000Z",
+        models: [{ name: "qwen3.5:4b", loaded: true }],
+        loadedModels: [{ name: "qwen3.5:4b" }]
+      }
+    }),
+    { status: 200 }
+  );
+
 describe("ImportScreen", () => {
+  const originalFetch = global.fetch;
+
   beforeEach(async () => {
     await deleteDB("ollama-cv-creator");
     useProjectStore.setState({
@@ -16,12 +36,28 @@ describe("ImportScreen", () => {
     });
   });
 
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("starts with demo candidate context for first-time users", () => {
+    render(<ImportScreen />);
+
+    expect(
+      (screen.getByLabelText("Candidate context") as HTMLTextAreaElement).value
+    ).toContain("Nora Stein");
+    expect(
+      screen.getByRole("button", { name: "Extract profile" })
+    ).toBeEnabled();
+  });
+
   it("accepts raw text entry", async () => {
     const user = userEvent.setup();
 
     render(<ImportScreen />);
 
-    const textArea = screen.getByLabelText("Raw candidate text");
+    const textArea = screen.getByLabelText("Candidate context");
+    await user.clear(textArea);
     await user.type(textArea, "Ada writes TypeScript and React applications.");
 
     expect(textArea).toHaveValue("Ada writes TypeScript and React applications.");
@@ -43,12 +79,13 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
+    await user.clear(screen.getByLabelText("Candidate context"));
     await user.type(
-      screen.getByLabelText("Raw candidate text"),
+      screen.getByLabelText("Candidate context"),
       "Ada Lovelace, Software Engineer, TypeScript, Berlin"
     );
     await user.selectOptions(screen.getByLabelText("Language"), "en");
-    await user.click(screen.getByRole("button", { name: "Save import" }));
+    await user.click(screen.getByRole("button", { name: "Save context" }));
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;
@@ -62,5 +99,105 @@ describe("ImportScreen", () => {
         }
       });
     });
+  });
+
+  it("extracts a candidate profile from the current context", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(createReadyAiStatusResponse())
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              personalInfo: {
+                fullName: "Nora Stein",
+                email: "nora.stein@example.com",
+                location: "Berlin"
+              },
+              summary: "Frontend engineer focused on design systems.",
+              experiences: [
+                {
+                  id: "exp-1",
+                  role: "Senior Frontend Engineer",
+                  company: "Acme Health GmbH",
+                  responsibilities: ["Built accessible React components"],
+                  achievements: []
+                }
+              ],
+              education: [],
+              skills: {
+                technical: ["TypeScript", "React"],
+                soft: ["Communication"],
+                tools: ["Figma"],
+                languages: ["German", "English"],
+                methods: ["Design systems"]
+              },
+              projects: [],
+              languages: [],
+              certificates: [],
+              extractionMeta: {
+                language: "de",
+                uncertainFields: []
+              }
+            }
+          }),
+          { status: 200 }
+        )
+      );
+
+    render(<ImportScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+
+    await waitFor(() => {
+      const [project] = useProjectStore.getState().projects;
+
+      expect(project).toMatchObject({
+        status: "profile_extracted",
+        candidateProfile: {
+          personalInfo: {
+            fullName: "Nora Stein"
+          }
+        }
+      });
+    });
+    expect(screen.getByText(/Profile extracted/)).toBeInTheDocument();
+  });
+
+  it("stops extraction and links to AI Status when the model is not loaded", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            baseUrl: "http://127.0.0.1:11434",
+            configuredModel: "qwen3.5:4b",
+            reachable: true,
+            selectedModelAvailable: true,
+            selectedModelLoaded: false,
+            checkedAt: "2026-05-25T12:00:00.000Z",
+            models: [{ name: "qwen3.5:4b", loaded: false }],
+            loadedModels: []
+          }
+        }),
+        { status: 200 }
+      )
+    );
+
+    render(<ImportScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+
+    expect(
+      await screen.findByText(/installed but not loaded/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open AI Status" })).toHaveAttribute(
+      "href",
+      "/ai"
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });

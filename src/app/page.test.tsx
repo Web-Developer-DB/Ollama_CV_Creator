@@ -8,7 +8,7 @@ describe("Home", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "Dashboard"
+        name: "Overview"
       })
     ).toBeInTheDocument();
     expect(screen.getAllByText("Ollama CV Creator")).not.toHaveLength(0);

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { AppShell } from "./AppShell";
 import { Header } from "./Header";
-import { routeItems, Sidebar } from "./Sidebar";
+import { navigationGroups, routeItems, Sidebar } from "./Sidebar";
 
 describe("layout components", () => {
   it("renders the app shell with header, sidebar, and content", () => {
@@ -37,6 +37,10 @@ describe("layout components", () => {
 
   it("renders sidebar links for every route", () => {
     render(<Sidebar />);
+
+    for (const group of navigationGroups) {
+      expect(screen.getByText(group.label)).toBeInTheDocument();
+    }
 
     for (const routeItem of routeItems) {
       expect(

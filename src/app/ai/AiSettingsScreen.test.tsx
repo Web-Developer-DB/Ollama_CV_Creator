@@ -10,10 +10,20 @@ const reachableStatus = {
     configuredModel: "qwen3.5:4b",
     reachable: true,
     selectedModelAvailable: true,
+    selectedModelLoaded: true,
     checkedAt: "2026-05-24T00:00:00.000Z",
+    loadedModels: [
+      {
+        name: "qwen3.5:4b",
+        size: 3_400_000_000,
+        sizeVram: 3_100_000_000,
+        expiresAt: "2026-05-24T00:05:00.000Z"
+      }
+    ],
     models: [
       {
         name: "qwen3.5:4b",
+        loaded: true,
         size: 3_400_000_000,
         modifiedAt: "2026-05-22T12:00:00Z",
         parameterSize: "4B",
@@ -21,6 +31,7 @@ const reachableStatus = {
       },
       {
         name: "llama3.2:3b",
+        loaded: false,
         size: 2_000_000_000,
         modifiedAt: "2026-05-20T12:00:00Z"
       }
@@ -35,8 +46,33 @@ const reachableWithoutModelsStatus = {
     configuredModel: "qwen3.5:4b",
     reachable: true,
     selectedModelAvailable: false,
+    selectedModelLoaded: false,
     checkedAt: "2026-05-24T00:00:00.000Z",
+    loadedModels: [],
     models: []
+  }
+};
+
+const reachableWithInstalledButUnloadedStatus = {
+  success: true,
+  data: {
+    baseUrl: "http://127.0.0.1:11434",
+    configuredModel: "qwen3.5:4b",
+    reachable: true,
+    selectedModelAvailable: true,
+    selectedModelLoaded: false,
+    checkedAt: "2026-05-24T00:00:00.000Z",
+    loadedModels: [],
+    models: [
+      {
+        name: "qwen3.5:4b",
+        loaded: false,
+        size: 3_400_000_000,
+        modifiedAt: "2026-05-22T12:00:00Z",
+        parameterSize: "4B",
+        quantizationLevel: "Q4_K_M"
+      }
+    ]
   }
 };
 
@@ -90,9 +126,9 @@ describe("AiSettingsScreen", () => {
     expect(screen.getByText("Selected locally")).toBeInTheDocument();
   });
 
-  it("does not show connected when Ollama is reachable but no model is available", async () => {
+  it("does not show connected when Ollama is reachable but no model is loaded", async () => {
     global.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(reachableWithoutModelsStatus), {
+      new Response(JSON.stringify(reachableWithInstalledButUnloadedStatus), {
         status: 200
       })
     );
@@ -103,5 +139,18 @@ describe("AiSettingsScreen", () => {
     expect(screen.queryByText("Connected")).not.toBeInTheDocument();
     expect(screen.getByText("Reachable")).toBeInTheDocument();
     expect(screen.getByText("Not ready")).toBeInTheDocument();
+  });
+
+  it("shows when no model is installed", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(reachableWithoutModelsStatus), {
+        status: 200
+      })
+    );
+
+    render(<AiSettingsScreen />);
+
+    expect(await screen.findByText("No model installed")).toBeInTheDocument();
+    expect(screen.queryByText("Connected")).not.toBeInTheDocument();
   });
 });
