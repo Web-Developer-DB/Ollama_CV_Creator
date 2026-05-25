@@ -113,7 +113,16 @@ export function AiSettingsScreen() {
     [selectedModel, status?.models]
   );
   const modelIsReady = isConnected && Boolean(selectedModelDetails);
-  const connectionStatus = isConnected ? "Connected" : "Disconnected";
+  const connectionStatus = !isConnected
+    ? "Disconnected"
+    : modelIsReady
+      ? "Connected"
+      : "No model loaded";
+  const connectionStatusClassName = modelIsReady
+    ? "text-emerald-700"
+    : isConnected
+      ? "text-amber-700"
+      : "text-slate-950";
   const modelStatus = modelIsReady ? "Ready" : "Not ready";
 
   const handleSelectModel = (model: string) => {
@@ -129,7 +138,7 @@ export function AiSettingsScreen() {
     <AppShell
       metrics={[
         { label: "Project status", value: "AI status" },
-        { label: "Ollama", value: isConnected ? "Online" : "Offline" },
+        { label: "Ollama", value: isConnected ? "Reachable" : "Offline" },
         { label: "Models", value: String(status?.models.length ?? 0) }
       ]}
       title="AI Status"
@@ -140,9 +149,7 @@ export function AiSettingsScreen() {
             <div>
               <p className="text-sm font-medium text-slate-500">Connection</p>
               <p
-                className={`mt-2 text-2xl font-semibold ${
-                  isConnected ? "text-emerald-700" : "text-slate-950"
-                }`}
+                className={`mt-2 text-2xl font-semibold ${connectionStatusClassName}`}
               >
                 {connectionStatus}
               </p>

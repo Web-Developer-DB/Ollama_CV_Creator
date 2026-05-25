@@ -12,7 +12,7 @@ Implementation started.
 
 TASK-018 completed. The templates screen now has a live document preview: changing the selected template immediately updates the preview, and CV, cover letter or combined preview modes can be toggled without leaving the page.
 
-Ad-hoc Ollama status/settings feature completed. The app now has an AI Status navigation item with an Ollama connection check, local connect/disconnect UI state, installed model discovery through `/api/ai/status`, local model selection, and selected model readiness metadata.
+Ad-hoc Ollama status/settings feature completed. The app now has an AI Status navigation item with an Ollama connection check, local connect/disconnect UI state, installed model discovery through `/api/ai/status`, local model selection, and selected model readiness metadata. The UI distinguishes Ollama reachability from LLM readiness, so an empty model list is shown as no model loaded instead of connected.
 
 ## Architecture Summary
 
@@ -83,4 +83,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-24: Added ad-hoc Ollama status/settings page after TASK-018. Next recommended task remains TASK-019 PDF Export.
+2026-05-25: Fixed AI Status display so Ollama reachable without an available model no longer shows Connected. Next recommended task remains TASK-019 PDF Export.
