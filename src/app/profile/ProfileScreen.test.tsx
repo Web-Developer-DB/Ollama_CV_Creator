@@ -90,6 +90,8 @@ describe("ProfileScreen", () => {
     render(<ProfileScreen />);
 
     const technicalSkillsInput = screen.getByLabelText("Technical skills");
+    expect(technicalSkillsInput.tagName).toBe("TEXTAREA");
+
     await user.clear(technicalSkillsInput);
     await user.type(technicalSkillsInput, "TypeScript, React");
 
@@ -103,5 +105,31 @@ describe("ProfileScreen", () => {
     expect(screen.getByText("experiences.0.startDate")).toBeInTheDocument();
     expect(screen.getByText("skills.tools")).toBeInTheDocument();
     expect(screen.getByText("Some dates were missing")).toBeInTheDocument();
+  });
+
+  it("shows a neutral extraction state when no uncertain fields exist", () => {
+    useProjectStore.setState({
+      projects: [
+        {
+          ...projectWithProfile,
+          candidateProfile: {
+            ...projectWithProfile.candidateProfile!,
+            extractionMeta: {
+              language: "en",
+              uncertainFields: []
+            }
+          }
+        }
+      ],
+      selectedProjectId: projectWithProfile.id
+    });
+
+    render(<ProfileScreen />);
+
+    const neutralStatus = screen.getByText("No uncertain fields were reported.");
+    const statusSection = neutralStatus.closest("section");
+
+    expect(statusSection).toHaveClass("border-slate-200");
+    expect(statusSection).not.toHaveClass("bg-amber-50");
   });
 });

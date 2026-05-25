@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { OllamaClientError } from "@/lib/ai/ollama-client";
 import type { GenerateCoverLetterRequest } from "@/types/api";
 import type { GeneratedCoverLetter } from "@/types/documents";
 import { POST } from "./route";
@@ -175,6 +176,27 @@ describe("POST /api/ai/generate-cover-letter", () => {
       success: false,
       error: {
         code: "BUSINESS_RULE_FAILED"
+      }
+    });
+  });
+
+  it("returns a clear error when the configured model is not loaded", async () => {
+    generateOllamaJson.mockRejectedValue(
+      new OllamaClientError(
+        "AI_MODEL_NOT_READY",
+        "Ollama model qwen3.5:4b is installed but not loaded. Open AI Status."
+      )
+    );
+
+    const response = await POST(createRequest(requestBody));
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({
+      success: false,
+      error: {
+        code: "AI_MODEL_NOT_READY",
+        message: expect.stringContaining("Open AI Status")
       }
     });
   });

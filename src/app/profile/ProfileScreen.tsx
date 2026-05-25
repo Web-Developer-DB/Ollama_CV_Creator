@@ -111,6 +111,8 @@ export function ProfileScreen() {
   const editableExperience = getEditableExperience(profile.experiences);
   const uncertainFields = profile.extractionMeta?.uncertainFields ?? [];
   const warnings = profile.extractionMeta?.warnings ?? [];
+  const hasExtractionConcerns =
+    uncertainFields.length > 0 || warnings.length > 0;
 
   const updatePersonalInfo = (field: PersonalInfoField, value: string) => {
     setProfile((currentProfile) => ({
@@ -407,11 +409,11 @@ export function ProfileScreen() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Technical skills
-              <input
-                className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
+              <textarea
+                className="min-h-24 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
                   updateSkillField(
                     "technical",
@@ -425,8 +427,8 @@ export function ProfileScreen() {
 
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Soft skills
-              <input
-                className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
+              <textarea
+                className="min-h-24 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
                   updateSkillField("soft", event.target.value, setSoftSkills)
                 }
@@ -436,8 +438,8 @@ export function ProfileScreen() {
 
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Tools
-              <input
-                className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
+              <textarea
+                className="min-h-24 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
                   updateSkillField("tools", event.target.value, setToolSkills)
                 }
@@ -447,8 +449,18 @@ export function ProfileScreen() {
           </div>
         </section>
 
-        <section className="rounded-md border border-amber-200 bg-amber-50 p-5">
-          <h2 className="text-base font-semibold text-amber-950">
+        <section
+          className={`rounded-md border p-5 ${
+            hasExtractionConcerns
+              ? "border-amber-200 bg-amber-50"
+              : "border-slate-200 bg-white"
+          }`}
+        >
+          <h2
+            className={`text-base font-semibold ${
+              hasExtractionConcerns ? "text-amber-950" : "text-slate-950"
+            }`}
+          >
             Uncertain fields
           </h2>
 
@@ -464,7 +476,7 @@ export function ProfileScreen() {
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-amber-900">
+            <p className="mt-3 text-sm text-slate-600">
               No uncertain fields were reported.
             </p>
           )}

@@ -347,6 +347,7 @@ export const applicationProjectSchema: z.ZodType<ApplicationProject> = z.object(
 export const apiErrorCodeSchema: z.ZodType<ApiErrorCode> = z.enum([
   "INVALID_INPUT",
   "OLLAMA_UNAVAILABLE",
+  "AI_MODEL_NOT_READY",
   "AI_TIMEOUT",
   "INVALID_AI_JSON",
   "SCHEMA_VALIDATION_FAILED",

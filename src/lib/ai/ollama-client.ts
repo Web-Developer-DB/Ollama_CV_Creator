@@ -1,4 +1,5 @@
 import { getAiConfig, type AiConfig } from "@/config/ai-config";
+import { checkOllamaReadiness } from "@/lib/ai/ollama-readiness";
 import type { ApiErrorCode } from "@/types/api";
 
 type OllamaGenerateRequest = {
@@ -6,11 +7,15 @@ type OllamaGenerateRequest = {
   system: string;
   model?: string;
   temperature?: number;
+  think?: boolean;
+  numCtx?: number;
+  numPredict?: number;
   format?: "json";
 };
 
 type OllamaGenerateResponse = {
   response?: unknown;
+  thinking?: unknown;
   done?: unknown;
 };
 
@@ -46,20 +51,26 @@ const isAbortError = (error: unknown): boolean =>
 const createRequestBody = (
   request: OllamaGenerateRequest,
   config: AiConfig
-): string =>
-  JSON.stringify({
+): string => {
+  const options = {
+    temperature: request.temperature,
+    num_ctx: request.numCtx,
+    num_predict: request.numPredict
+  };
+  const hasOptions = Object.values(options).some(
+    (value) => value !== undefined
+  );
+
+  return JSON.stringify({
     model: request.model ?? config.model,
     prompt: request.prompt,
     system: request.system,
     stream: false,
     format: request.format,
-    options:
-      request.temperature === undefined
-        ? undefined
-        : {
-            temperature: request.temperature
-          }
+    think: request.think,
+    options: hasOptions ? options : undefined
   });
+};
 
 const requestOllama = async (
   request: OllamaGenerateRequest,
@@ -71,6 +82,11 @@ const requestOllama = async (
     ...options,
     baseUrl: (options.baseUrl ?? runtimeConfig.baseUrl).replace(/\/+$/, "")
   };
+  const readiness = await checkOllamaReadiness(config);
+
+  if (!readiness.ready) {
+    throw new OllamaClientError(readiness.code, readiness.message);
+  }
 
   let response: Response;
   const timeoutController = createTimeoutController(config.timeoutMs);
@@ -133,6 +149,14 @@ export const generateOllamaText = async (
 ): Promise<string> => {
   const response = await requestOllama(request, options);
 
+  if (typeof response.response === "string" && response.response.trim()) {
+    return response.response;
+  }
+
+  if (typeof response.thinking === "string" && response.thinking.trim()) {
+    return response.thinking;
+  }
+
   if (typeof response.response !== "string") {
     throw new OllamaClientError(
       "INVALID_AI_JSON",
@@ -140,7 +164,109 @@ export const generateOllamaText = async (
     );
   }
 
-  return response.response;
+  throw new OllamaClientError(
+    "INVALID_AI_JSON",
+    "Ollama response text is empty"
+  );
+};
+
+const stripJsonFences = (value: string): string =>
+  value
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+const normalizeGeneratedJsonText = (value: string): string =>
+  stripJsonFences(value.replace(/<think>[\s\S]*?<\/think>/gi, ""));
+
+const findBalancedJsonCandidate = (
+  value: string,
+  startIndex: number
+): string | undefined => {
+  const matchingBrace: Record<string, string> = {
+    "{": "}",
+    "[": "]"
+  };
+  const stack: string[] = [];
+  let isInsideString = false;
+  let isEscaped = false;
+
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index];
+
+    if (isInsideString) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (character === "\\") {
+        isEscaped = true;
+      } else if (character === "\"") {
+        isInsideString = false;
+      }
+
+      continue;
+    }
+
+    if (character === "\"") {
+      isInsideString = true;
+      continue;
+    }
+
+    if (character === "{" || character === "[") {
+      stack.push(matchingBrace[character]);
+      continue;
+    }
+
+    if (character === "}" || character === "]") {
+      if (stack.at(-1) !== character) {
+        return undefined;
+      }
+
+      stack.pop();
+
+      if (stack.length === 0) {
+        return value.slice(startIndex, index + 1);
+      }
+    }
+  }
+
+  return undefined;
+};
+
+const collectJsonCandidates = (value: string): string[] => {
+  const candidates = [value];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+
+    if (character !== "{" && character !== "[") {
+      continue;
+    }
+
+    const candidate = findBalancedJsonCandidate(value, index);
+    if (candidate && !candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  }
+
+  return candidates;
+};
+
+const parseGeneratedJson = <T>(value: string): T => {
+  const normalizedValue = normalizeGeneratedJsonText(value);
+
+  for (const candidate of collectJsonCandidates(normalizedValue)) {
+    try {
+      return JSON.parse(stripJsonFences(candidate)) as T;
+    } catch {
+      // Try the next balanced JSON candidate before failing the AI response.
+    }
+  }
+
+  throw new OllamaClientError(
+    "INVALID_AI_JSON",
+    "Ollama generated invalid JSON"
+  );
 };
 
 export const generateOllamaJson = async <T>(
@@ -150,17 +276,11 @@ export const generateOllamaJson = async <T>(
   const text = await generateOllamaText(
     {
       ...request,
+      think: request.think ?? false,
       format: "json"
     },
     options
   );
 
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new OllamaClientError(
-      "INVALID_AI_JSON",
-      "Ollama generated invalid JSON"
-    );
-  }
+  return parseGeneratedJson<T>(text);
 };

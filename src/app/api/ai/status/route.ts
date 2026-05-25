@@ -5,11 +5,26 @@ type OllamaTagsResponse = {
   models?: unknown;
 };
 
+type OllamaPsResponse = {
+  models?: unknown;
+};
+
 type OllamaModelStatus = {
   name: string;
   size?: number;
   digest?: string;
   modifiedAt?: string;
+  parameterSize?: string;
+  quantizationLevel?: string;
+  loaded: boolean;
+};
+
+type OllamaLoadedModelStatus = {
+  name: string;
+  size?: number;
+  sizeVram?: number;
+  digest?: string;
+  expiresAt?: string;
   parameterSize?: string;
   quantizationLevel?: string;
 };
@@ -19,8 +34,10 @@ type OllamaStatus = {
   configuredModel: string;
   reachable: boolean;
   selectedModelAvailable: boolean;
+  selectedModelLoaded: boolean;
   checkedAt: string;
   models: OllamaModelStatus[];
+  loadedModels: OllamaLoadedModelStatus[];
   error?: string;
 };
 
@@ -63,6 +80,32 @@ const normalizeModel = (value: unknown): OllamaModelStatus | undefined => {
     digest: readString(value.digest),
     modifiedAt: readString(value.modified_at),
     parameterSize: readString(details.parameter_size),
+    quantizationLevel: readString(details.quantization_level),
+    loaded: false
+  };
+};
+
+const normalizeLoadedModel = (
+  value: unknown
+): OllamaLoadedModelStatus | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const name = readString(value.name) ?? readString(value.model);
+  if (!name) {
+    return undefined;
+  }
+
+  const details = isRecord(value.details) ? value.details : {};
+
+  return {
+    name,
+    size: readNumber(value.size),
+    sizeVram: readNumber(value.size_vram),
+    digest: readString(value.digest),
+    expiresAt: readString(value.expires_at),
+    parameterSize: readString(details.parameter_size),
     quantizationLevel: readString(details.quantization_level)
   };
 };
@@ -84,7 +127,9 @@ const createUnavailableStatus = (
     ...baseStatus,
     reachable: false,
     selectedModelAvailable: false,
+    selectedModelLoaded: false,
     models: [],
+    loadedModels: [],
     error
   });
 
@@ -96,42 +141,77 @@ export async function GET(): Promise<Response> {
     configuredModel: config.model,
     reachable: false,
     selectedModelAvailable: false,
+    selectedModelLoaded: false,
     checkedAt: new Date().toISOString(),
-    models: []
+    models: [],
+    loadedModels: []
   };
   const timeoutController = createTimeoutController(config.timeoutMs);
 
   try {
-    const response = await fetch(`${baseUrl}/api/tags`, {
+    const tagsResponse = await fetch(`${baseUrl}/api/tags`, {
       method: "GET",
       cache: "no-store",
       signal: timeoutController.signal
     });
 
-    if (!response.ok) {
+    if (!tagsResponse.ok) {
       return createUnavailableStatus(
         baseStatus,
-        `Ollama returned HTTP ${response.status}`
+        `Ollama returned HTTP ${tagsResponse.status}`
       );
     }
 
-    const body = (await response.json()) as OllamaTagsResponse;
-    const rawModels = isRecord(body) && Array.isArray(body.models)
-      ? body.models
+    const tagsBody = (await tagsResponse.json()) as OllamaTagsResponse;
+    const rawModels = isRecord(tagsBody) && Array.isArray(tagsBody.models)
+      ? tagsBody.models
       : [];
-    const models = rawModels.flatMap((model) => {
+    const installedModels = rawModels.flatMap((model) => {
       const normalizedModel = normalizeModel(model);
 
       return normalizedModel ? [normalizedModel] : [];
     });
+    const selectedModelAvailable = installedModels.some(
+      (model) => model.name === config.model
+    );
+
+    const psResponse = await fetch(`${baseUrl}/api/ps`, {
+      method: "GET",
+      cache: "no-store",
+      signal: timeoutController.signal
+    });
+
+    if (!psResponse.ok) {
+      return createStatusResponse({
+        ...baseStatus,
+        reachable: true,
+        selectedModelAvailable,
+        error: `Ollama loaded model status returned HTTP ${psResponse.status}`,
+        models: installedModels
+      });
+    }
+
+    const psBody = (await psResponse.json()) as OllamaPsResponse;
+    const rawLoadedModels =
+      isRecord(psBody) && Array.isArray(psBody.models) ? psBody.models : [];
+    const loadedModels = rawLoadedModels.flatMap((model) => {
+      const normalizedModel = normalizeLoadedModel(model);
+
+      return normalizedModel ? [normalizedModel] : [];
+    });
+    const loadedModelNames = new Set(loadedModels.map((model) => model.name));
+    const models = installedModels.map((model) => ({
+      ...model,
+      loaded: loadedModelNames.has(model.name)
+    }));
 
     return createStatusResponse({
       ...baseStatus,
       reachable: true,
-      selectedModelAvailable: models.some(
-        (model) => model.name === config.model
-      ),
-      models
+      selectedModelAvailable,
+      selectedModelLoaded: loadedModelNames.has(config.model),
+      models,
+      loadedModels
     });
   } catch {
     return createUnavailableStatus(baseStatus, "Ollama is unavailable");

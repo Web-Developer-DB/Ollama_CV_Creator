@@ -6,6 +6,24 @@ import {
   OllamaClientError
 } from "./ollama-client";
 
+const createJsonResponse = (body: unknown, status = 200): Response =>
+  new Response(JSON.stringify(body), { status });
+
+const createReadyGenerateFetchMock = (generatedBody: unknown) =>
+  vi
+    .fn()
+    .mockResolvedValueOnce(
+      createJsonResponse({
+        models: [{ name: DEFAULT_AI_CONFIG.model }]
+      })
+    )
+    .mockResolvedValueOnce(
+      createJsonResponse({
+        models: [{ model: DEFAULT_AI_CONFIG.model }]
+      })
+    )
+    .mockResolvedValueOnce(createJsonResponse(generatedBody));
+
 describe("Ollama client", () => {
   const originalFetch = global.fetch;
 
@@ -31,15 +49,10 @@ describe("Ollama client", () => {
   });
 
   it("parses a successful text response", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          response: "Generated text",
-          done: true
-        }),
-        { status: 200 }
-      )
-    );
+    const fetchMock = createReadyGenerateFetchMock({
+      response: "Generated text",
+      done: true
+    });
     global.fetch = fetchMock;
 
     await expect(
@@ -48,7 +61,8 @@ describe("Ollama client", () => {
         system: "Return valid JSON only"
       })
     ).resolves.toBe("Generated text");
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
       "http://127.0.0.1:11434/api/generate",
       expect.objectContaining({
         method: "POST"
@@ -56,16 +70,86 @@ describe("Ollama client", () => {
     );
   });
 
-  it("parses a JSON response", async () => {
-    global.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          response: "{\"ok\":true}",
-          done: true
-        }),
-        { status: 200 }
-      )
+  it("passes Ollama generation budgets through request options", async () => {
+    const fetchMock = createReadyGenerateFetchMock({
+      response: "Generated text",
+      done: true
+    });
+    global.fetch = fetchMock;
+
+    await generateOllamaText({
+      prompt: "Return JSON",
+      system: "Return valid JSON only",
+      temperature: 0.1,
+      think: false,
+      numCtx: 8192,
+      numPredict: 4096
+    });
+    const requestBody = JSON.parse(
+      fetchMock.mock.calls[2]?.[1]?.body as string
     );
+
+    expect(requestBody.options).toEqual({
+      temperature: 0.1,
+      num_ctx: 8192,
+      num_predict: 4096
+    });
+    expect(requestBody.think).toBe(false);
+  });
+
+  it("parses a JSON response", async () => {
+    const fetchMock = createReadyGenerateFetchMock({
+      response: "{\"ok\":true}",
+      done: true
+    });
+    global.fetch = fetchMock;
+
+    await expect(
+      generateOllamaJson<{ ok: boolean }>({
+        prompt: "Return JSON",
+        system: "Return valid JSON only"
+      })
+    ).resolves.toEqual({ ok: true });
+    expect(JSON.parse(fetchMock.mock.calls[2]?.[1]?.body as string)).toMatchObject({
+      format: "json",
+      think: false
+    });
+  });
+
+  it("parses JSON wrapped in thinking text and markdown fences", async () => {
+    global.fetch = createReadyGenerateFetchMock({
+      response: "<think>Checking the schema.</think>\n```json\n{\"ok\":true}\n```",
+      done: true
+    });
+
+    await expect(
+      generateOllamaJson<{ ok: boolean }>({
+        prompt: "Return JSON",
+        system: "Return valid JSON only"
+      })
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it("extracts balanced JSON from surrounding model text", async () => {
+    global.fetch = createReadyGenerateFetchMock({
+      response: "Here is the JSON:\n{\"ok\":true}\nDone.",
+      done: true
+    });
+
+    await expect(
+      generateOllamaJson<{ ok: boolean }>({
+        prompt: "Return JSON",
+        system: "Return valid JSON only"
+      })
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it("uses Ollama thinking text when reasoning models return an empty response", async () => {
+    global.fetch = createReadyGenerateFetchMock({
+      response: "",
+      thinking: "{\n  \"ok\": true\n}",
+      done: true
+    });
 
     await expect(
       generateOllamaJson<{ ok: boolean }>({
@@ -86,6 +170,33 @@ describe("Ollama client", () => {
     ).rejects.toMatchObject({
       code: "OLLAMA_UNAVAILABLE"
     });
+  });
+
+  it("rejects generation when the configured model is not loaded", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          models: [{ name: DEFAULT_AI_CONFIG.model }]
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          models: []
+        })
+      );
+    global.fetch = fetchMock;
+
+    await expect(
+      generateOllamaText({
+        prompt: "Return JSON",
+        system: "Return valid JSON only"
+      })
+    ).rejects.toMatchObject({
+      code: "AI_MODEL_NOT_READY",
+      message: expect.stringContaining("not loaded")
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("handles timeouts", async () => {

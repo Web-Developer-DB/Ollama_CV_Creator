@@ -12,11 +12,23 @@ describe("early frontend shell", () => {
     render(<DashboardScreen />);
 
     expect(
-      screen.getByRole("heading", { name: "Dashboard" })
+      screen.getByRole("heading", { name: "Overview" })
     ).toBeInTheDocument();
     expect(screen.getAllByText("Ollama CV Creator")).not.toHaveLength(0);
-    expect(screen.getAllByText("Project status")).not.toHaveLength(0);
-    expect(screen.getAllByText("TASK-006")).not.toHaveLength(0);
+    expect(
+      screen.getByRole("heading", { name: "Start here" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "CV creation workflow" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Job matching" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Import candidate context")).toBeInTheDocument();
+    expect(screen.getByText("Requires candidate context")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Start with candidate context" })
+    ).toHaveAttribute("href", "/import");
   });
 
   it("renders navigation links for all MVP routes", () => {

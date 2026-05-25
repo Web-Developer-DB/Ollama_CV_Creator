@@ -2,15 +2,18 @@
 
 ## BACKLOG
 
-- TASK-020: JSON Project Export
-- TASK-021: PWA Setup
-- TASK-022: Security Review
-- TASK-023: MVP E2E Flow
-- TASK-024: Final MVP Cleanup
+- TASK-023: Template Pack
+- TASK-024: Template Selection UX
+- TASK-025: Styled PDF Export
+- TASK-026: JSON Project Export
+- TASK-027: PWA Setup
+- TASK-028: Security Review
+- TASK-029: MVP E2E Flow
+- TASK-030: Final MVP Cleanup
 
 ## READY
 
-- TASK-019: PDF Export
+- TASK-022: Document Renderer v2
 
 ## IN_PROGRESS
 
@@ -40,6 +43,11 @@ _None_
 - TASK-016: Documents Editor
 - TASK-017: Template System
 - TASK-018: Live Preview
+- TASK-019: Design System Foundation
+- TASK-020: App UX Polish
+- TASK-021: Candidate Intake and Profile Extraction UX
+- TASK-031: AI Model Readiness Guards
+- TASK-032: Comprehensive Demo Candidate Context
 
 ## BLOCKED
 
