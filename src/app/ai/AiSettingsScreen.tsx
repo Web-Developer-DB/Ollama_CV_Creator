@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { readStoredModel, storeSelectedModel } from "@/lib/ai/selected-model";
 import type { ApiResponse } from "@/types/api";
 
 type OllamaModelStatus = {
@@ -34,24 +35,6 @@ type OllamaStatus = {
   models: OllamaModelStatus[];
   loadedModels: OllamaLoadedModelStatus[];
   error?: string;
-};
-
-const selectedModelStorageKey = "ollama-cv-selected-model";
-
-const readStoredModel = (): string | undefined => {
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  return window.localStorage.getItem(selectedModelStorageKey) ?? undefined;
-};
-
-const storeSelectedModel = (model: string): void => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(selectedModelStorageKey, model);
 };
 
 const formatSize = (size: number | undefined): string =>

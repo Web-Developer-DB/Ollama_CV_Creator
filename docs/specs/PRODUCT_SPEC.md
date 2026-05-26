@@ -2,11 +2,11 @@
 
 ## Product Name
 
-Ollama CV Creator PWA
+Ollama CV Creator Desktop
 
 ## Goal
 
-Create a local-first PWA that turns raw candidate text into professional application documents.
+Create a local-first desktop app that turns raw candidate text into professional application documents using local Ollama models.
 
 ## Main Workflow
 
@@ -40,7 +40,7 @@ Create a local-first PWA that turns raw candidate text into professional applica
 - PDF export
 - JSON project export
 - Local storage
-- PWA installability
+- Desktop installability
 
 ## Out of Scope for MVP
 

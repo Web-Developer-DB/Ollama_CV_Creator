@@ -2,17 +2,22 @@
 
 ## BACKLOG
 
+- TASK-034: Extract Next.js API Logic into Services
+- TASK-035: Electron IPC Bridge for AI and Storage
+- TASK-036: Desktop Storage Migration
+- TASK-037: Desktop Export Flow
 - TASK-023: Template Pack
 - TASK-024: Template Selection UX
 - TASK-025: Styled PDF Export
 - TASK-026: JSON Project Export
-- TASK-027: PWA Setup
+- TASK-027: Desktop Packaging
 - TASK-028: Security Review
 - TASK-029: MVP E2E Flow
 - TASK-030: Final MVP Cleanup
 
 ## READY
 
+- TASK-033: Electron Migration Plan and Shell
 - TASK-022: Document Renderer v2
 
 ## IN_PROGRESS

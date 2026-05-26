@@ -299,4 +299,24 @@ describe("POST /api/ai/extract-profile", () => {
       })
     );
   });
+
+  it("passes a selected model to Ollama generation", async () => {
+    generateOllamaJson.mockResolvedValue(validProfile);
+
+    const response = await POST(
+      createRequest({
+        text: "Ada writes TypeScript.",
+        language: "en",
+        model: "granite4.1:3b-q6_K"
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(generateOllamaJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        temperature: 0.1
+      }),
+      { model: "granite4.1:3b-q6_K" }
+    );
+  });
 });

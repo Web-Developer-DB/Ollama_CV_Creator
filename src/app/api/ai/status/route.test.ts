@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./route";
 
+const createRequest = (query = ""): Request =>
+  new Request(`http://localhost/api/ai/status${query}`);
+
 describe("GET /api/ai/status", () => {
   const originalFetch = global.fetch;
 
@@ -52,7 +55,7 @@ describe("GET /api/ai/status", () => {
         )
       );
 
-    const response = await GET();
+    const response = await GET(createRequest());
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -109,7 +112,7 @@ describe("GET /api/ai/status", () => {
         )
       );
 
-    const response = await GET();
+    const response = await GET(createRequest());
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -131,10 +134,49 @@ describe("GET /api/ai/status", () => {
     });
   });
 
+  it("checks a model selected by query parameter", async () => {
+    vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            models: [
+              { name: "qwen3.5:4b" },
+              { name: "granite4.1:3b-q6_K" }
+            ]
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            models: [{ name: "granite4.1:3b-q6_K" }]
+          }),
+          { status: 200 }
+        )
+      );
+
+    const response = await GET(
+      createRequest("?model=granite4.1%3A3b-q6_K")
+    );
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        configuredModel: "granite4.1:3b-q6_K",
+        selectedModelAvailable: true,
+        selectedModelLoaded: true
+      }
+    });
+  });
+
   it("reports unavailable Ollama without failing the status endpoint", async () => {
     global.fetch = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
 
-    const response = await GET();
+    const response = await GET(createRequest());
     const payload = await response.json();
 
     expect(response.status).toBe(200);

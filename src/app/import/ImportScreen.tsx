@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
+import { readStoredModel } from "@/lib/ai/selected-model";
 import { sampleCandidateContext } from "@/lib/demo/sample-candidate-context";
 import { useProjectStore } from "@/stores/project-store";
 import type { ApiResponse } from "@/types/api";
@@ -24,6 +25,7 @@ type OllamaStatusSummary = {
 type AiReadinessCheck =
   | {
       ready: true;
+      model?: string;
     }
   | {
       ready: false;
@@ -37,7 +39,11 @@ const isAiAvailabilityErrorCode = (code: string | undefined): boolean =>
 
 const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
   try {
-    const response = await fetch("/api/ai/status", {
+    const selectedModel = readStoredModel();
+    const statusUrl = selectedModel
+      ? `/api/ai/status?model=${encodeURIComponent(selectedModel)}`
+      : "/api/ai/status";
+    const response = await fetch(statusUrl, {
       cache: "no-store"
     });
     const payload = (await response.json()) as ApiResponse<OllamaStatusSummary>;
@@ -52,7 +58,8 @@ const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
     }
 
     const status = payload.data;
-    const model = status.configuredModel || "the selected model";
+    const model = selectedModel ?? status.configuredModel;
+    const modelLabel = model || "the selected model";
 
     if (!status.reachable) {
       return {
@@ -65,18 +72,18 @@ const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
     if (!status.selectedModelAvailable) {
       return {
         ready: false,
-        message: `Ollama model ${model} is not installed. Open AI Status, install or select an available model, then try extraction again.`
+        message: `Ollama model ${modelLabel} is not installed. Open AI Status, install or select an available model, then try extraction again.`
       };
     }
 
     if (!status.selectedModelLoaded) {
       return {
         ready: false,
-        message: `Ollama model ${model} is installed but not loaded. Open AI Status, load the model in Ollama, then try extraction again.`
+        message: `Ollama model ${modelLabel} is installed but not loaded. Open AI Status, load the model in Ollama, then try extraction again.`
       };
     }
 
-    return { ready: true };
+    return { ready: true, model };
   } catch {
     return {
       ready: false,
@@ -209,7 +216,8 @@ export function ImportScreen() {
         },
         body: JSON.stringify({
           text: trimmedText,
-          language
+          language,
+          model: readiness.model
         })
       });
       const payload = (await response.json()) as ApiResponse<CandidateProfile>;
