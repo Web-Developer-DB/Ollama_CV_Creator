@@ -26,7 +26,7 @@ describe("JobScreen", () => {
       screen.getByLabelText("Job description"),
       "Build accessible React applications."
     );
-    await user.click(screen.getByRole("button", { name: "Save job" }));
+    await user.click(screen.getByRole("button", { name: "Save target role" }));
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;
@@ -47,7 +47,7 @@ describe("JobScreen", () => {
       screen.getByLabelText("Job description"),
       "Build accessible React applications."
     );
-    await user.click(screen.getByRole("button", { name: "Save job" }));
+    await user.click(screen.getByRole("button", { name: "Save target role" }));
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;
@@ -67,7 +67,7 @@ describe("JobScreen", () => {
       screen.getByLabelText("Job description"),
       "Own UI architecture and collaborate with product teams."
     );
-    await user.click(screen.getByRole("button", { name: "Save job" }));
+    await user.click(screen.getByRole("button", { name: "Save target role" }));
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;
@@ -89,7 +89,7 @@ describe("JobScreen", () => {
       "Build accessible React applications."
     );
     await user.selectOptions(screen.getByLabelText("Tone"), "confident");
-    await user.click(screen.getByRole("button", { name: "Save job" }));
+    await user.click(screen.getByRole("button", { name: "Save target role" }));
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;

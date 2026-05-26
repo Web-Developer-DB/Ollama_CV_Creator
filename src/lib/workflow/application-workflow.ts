@@ -15,72 +15,74 @@ export type NavigationGroup = {
 export const overviewRoute: WorkflowRoute = {
   href: "/dashboard",
   label: "Dashboard",
-  title: "Overview",
+  title: "Create application documents",
   dependency: "Project workspace",
-  outcome: "Next action visible"
+  outcome: "Guided next action"
 };
 
 export const cvWorkflowSteps: WorkflowRoute[] = [
   {
     href: "/import",
-    label: "Import",
+    label: "Candidate",
     step: "1",
-    title: "Import candidate context",
+    title: "Collect candidate context",
     dependency: "Start here",
-    outcome: "Candidate source saved"
+    outcome: "Raw experience saved"
   },
   {
     href: "/profile",
     label: "Profile",
     step: "2",
-    title: "Extract and review profile",
+    title: "Review structured profile",
     dependency: "Requires candidate context",
-    outcome: "Editable candidate profile"
+    outcome: "Verified profile facts"
   },
   {
     href: "/documents",
-    label: "Documents",
+    label: "Write",
     step: "3",
-    title: "Generate CV draft",
+    title: "Write CV and cover letter",
     dependency: "Requires reviewed profile",
-    outcome: "CV draft ready"
+    outcome: "Editable documents"
   },
   {
     href: "/templates",
-    label: "Templates",
+    label: "Design",
     step: "4",
-    title: "Choose CV design",
-    dependency: "Requires CV draft",
-    outcome: "Styled CV preview"
+    title: "Choose document design",
+    dependency: "Requires document drafts",
+    outcome: "Professional preview"
   },
   {
     href: "/export",
     label: "Export",
     step: "5",
-    title: "Export CV package",
+    title: "Export application package",
     dependency: "Requires selected design",
-    outcome: "Final files ready"
+    outcome: "PDF and project files"
   }
 ];
 
-export const jobMatchingSteps: WorkflowRoute[] = [
+export const tailoringSteps: WorkflowRoute[] = [
   {
     href: "/job",
-    label: "Job",
-    step: "J1",
+    label: "Target role",
+    step: "T1",
     title: "Add target job",
     dependency: "Optional after profile",
-    outcome: "Role target saved"
+    outcome: "Tailoring context"
   },
   {
     href: "/analysis",
-    label: "Analysis",
-    step: "J2",
-    title: "Analyze match",
+    label: "Tailoring",
+    step: "T2",
+    title: "Find positioning cues",
     dependency: "Requires target job",
-    outcome: "Strengths and gaps visible"
+    outcome: "Relevant emphasis"
   }
 ];
+
+export const jobMatchingSteps = tailoringSteps;
 
 export const workflowSteps = cvWorkflowSteps;
 
@@ -100,7 +102,7 @@ export const navigationGroups: NavigationGroup[] = [
     items: [overviewRoute]
   },
   {
-    label: "CV creation",
+    label: "Document creation",
     items: cvWorkflowSteps.slice(0, 3)
   },
   {
@@ -108,8 +110,8 @@ export const navigationGroups: NavigationGroup[] = [
     items: cvWorkflowSteps.slice(3)
   },
   {
-    label: "Job matching",
-    items: jobMatchingSteps
+    label: "Role tailoring",
+    items: tailoringSteps
   },
   {
     label: "System",

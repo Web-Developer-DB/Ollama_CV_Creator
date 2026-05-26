@@ -37,6 +37,26 @@ const validProfile: CandidateProfile = {
   certificates: []
 };
 
+const emptyProfile: CandidateProfile = {
+  personalInfo: {},
+  experiences: [],
+  education: [],
+  skills: {
+    technical: [],
+    soft: [],
+    tools: [],
+    languages: [],
+    methods: []
+  },
+  projects: [],
+  languages: [],
+  certificates: [],
+  extractionMeta: {
+    language: "en",
+    uncertainFields: ["personalInfo.fullName"]
+  }
+};
+
 const createRequest = (body: unknown): Request =>
   new Request("http://localhost/api/ai/extract-profile", {
     method: "POST",
@@ -124,6 +144,141 @@ describe("POST /api/ai/extract-profile", () => {
         code: "SCHEMA_VALIDATION_FAILED"
       }
     });
+  });
+
+  it("rejects an empty candidate profile returned by the model", async () => {
+    generateOllamaJson.mockResolvedValue(emptyProfile);
+
+    const response = await POST(
+      createRequest({ text: "Ada writes TypeScript.", language: "en" })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(422);
+    expect(payload).toMatchObject({
+      success: false,
+      error: {
+        code: "BUSINESS_RULE_FAILED",
+        message: expect.stringContaining("usable candidate profile data")
+      }
+    });
+    expect(generateOllamaJson).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries once when the model returns an empty profile first", async () => {
+    generateOllamaJson
+      .mockResolvedValueOnce(emptyProfile)
+      .mockResolvedValueOnce(validProfile);
+
+    const response = await POST(
+      createRequest({ text: "Ada writes TypeScript.", language: "en" })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({
+      success: true,
+      data: validProfile
+    });
+    expect(generateOllamaJson).toHaveBeenCalledTimes(2);
+    expect(generateOllamaJson).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        prompt: expect.stringContaining("Recovery attempt")
+      }),
+      { timeoutMs: 120_000 }
+    );
+  });
+
+  it("backfills clear labeled facts from source text when the model omits them", async () => {
+    generateOllamaJson.mockResolvedValue({
+      personalInfo: {
+        email: "nora.stein@example.com"
+      },
+      experiences: [],
+      education: [
+        {
+          id: "education-1",
+          details: []
+        }
+      ],
+      skills: {
+        technical: [],
+        soft: [],
+        tools: [],
+        languages: [],
+        methods: []
+      },
+      projects: [],
+      languages: [],
+      certificates: []
+    });
+
+    const response = await POST(
+      createRequest({
+        language: "en",
+        text: `Demo candidate context: Nora Stein
+
+School education:
+2010-2013 Max-Planck-Gymnasium, Berlin
+- Abitur with advanced courses in mathematics and English.
+
+Continuing education and certifications:
+2019 Professional Scrum Master I, Scrum.org: Scrum roles and delivery flow.
+
+Skills:
+Technical skills: TypeScript, React
+Tools: Figma, GitHub Actions
+Methods: Accessibility, component testing
+Soft skills: mentoring, stakeholder communication
+
+Languages:
+German native
+English fluent`
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.data).toMatchObject({
+      personalInfo: {
+        fullName: "Nora Stein",
+        email: "nora.stein@example.com"
+      },
+      education: [
+        {
+          institution: "Max-Planck-Gymnasium",
+          location: "Berlin",
+          startDate: "2010",
+          endDate: "2013",
+          details: ["Abitur with advanced courses in mathematics and English."]
+        }
+      ],
+      skills: {
+        technical: ["TypeScript", "React"],
+        tools: ["Figma", "GitHub Actions"],
+        methods: ["Accessibility", "component testing"],
+        soft: ["mentoring", "stakeholder communication"]
+      },
+      languages: [
+        {
+          language: "German",
+          proficiency: "native"
+        },
+        {
+          language: "English",
+          proficiency: "fluent"
+        }
+      ],
+      certificates: [
+        {
+          name: "Professional Scrum Master I",
+          issuer: "Scrum.org",
+          issueDate: "2019"
+        }
+      ]
+    });
+    expect(generateOllamaJson).toHaveBeenCalledTimes(1);
   });
 
   it("normalizes nullable optional fields from local LLM output", async () => {
@@ -292,11 +447,12 @@ describe("POST /api/ai/extract-profile", () => {
     });
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.objectContaining({
-        numCtx: 4096,
-        numPredict: 2048,
+        numCtx: 8192,
+        numPredict: 4096,
         think: false,
         temperature: 0.1
-      })
+      }),
+      { timeoutMs: 120_000 }
     );
   });
 
@@ -316,7 +472,7 @@ describe("POST /api/ai/extract-profile", () => {
       expect.objectContaining({
         temperature: 0.1
       }),
-      { model: "granite4.1:3b-q6_K" }
+      { model: "granite4.1:3b-q6_K", timeoutMs: 120_000 }
     );
   });
 });

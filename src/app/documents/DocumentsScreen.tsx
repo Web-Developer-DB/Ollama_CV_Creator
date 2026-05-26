@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { Panel } from "@/components/ui/Panel";
 import { useProjectStore } from "@/stores/project-store";
 import type {
   GeneratedCoverLetter,
@@ -173,13 +174,45 @@ export function DocumentsScreen() {
   return (
     <AppShell
       metrics={[
-        { label: "Project status", value: "Documents" },
-        { label: "Current task", value: "TASK-016" },
+        { label: "Project status", value: "Writing" },
+        { label: "Document set", value: "CV + letter" },
         { label: "Storage", value: "Local only" }
       ]}
-      title="Documents"
+      title="Write Documents"
     >
       <form className="grid gap-6" onSubmit={handleSubmit}>
+        <Panel
+          description="Edit the generated wording before choosing the final visual design. Keep facts accurate; use the target role only to decide emphasis and tone."
+          title="Professional application drafts"
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Source
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">
+                Verified profile data
+              </p>
+            </div>
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Optional focus
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">
+                Target role tailoring
+              </p>
+            </div>
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Next step
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">
+                Choose visual design
+              </p>
+            </div>
+          </div>
+        </Panel>
+
         <div className="grid gap-6 lg:grid-cols-2">
           <label className="grid gap-2 rounded-md border border-slate-200 bg-white p-5 text-sm font-medium text-slate-700">
             CV draft

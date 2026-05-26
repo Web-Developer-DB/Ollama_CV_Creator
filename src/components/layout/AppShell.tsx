@@ -10,8 +10,8 @@ type AppShellProps = Readonly<{
 
 const defaultMetrics: HeaderMetric[] = [
   { label: "Project status", value: "No project loaded" },
-  { label: "Current task", value: "TASK-006" },
-  { label: "Progress", value: "App layout" }
+  { label: "Focus", value: "Application documents" },
+  { label: "Runtime", value: "Local first" }
 ];
 
 export function AppShell({

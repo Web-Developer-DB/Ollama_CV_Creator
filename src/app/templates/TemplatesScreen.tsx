@@ -70,14 +70,25 @@ export function TemplatesScreen() {
   return (
     <AppShell
       metrics={[
-        { label: "Project status", value: "Templates" },
-        { label: "Current task", value: "TASK-018" },
+        { label: "Project status", value: "Design" },
+        { label: "Document look", value: "Live preview" },
         { label: "Template", value: selectedTemplate }
       ]}
-      title="Templates"
+      title="Document Design"
     >
       <div className="grid gap-6">
         <section className="rounded-md border border-slate-200 bg-white p-5">
+          <div className="mb-5 max-w-3xl">
+            <h2 className="text-base font-semibold text-slate-950">
+              Choose a professional presentation
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              The same verified content can feel different depending on layout,
+              typography, and density. Pick the design that fits the role and
+              review both documents before export.
+            </p>
+          </div>
+
           <div className="grid gap-3 md:grid-cols-3">
             {templateDefinitions.map((template) => {
               const isSelected = template.id === selectedTemplate;

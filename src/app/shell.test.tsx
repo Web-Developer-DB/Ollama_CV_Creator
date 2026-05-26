@@ -12,22 +12,24 @@ describe("early frontend shell", () => {
     render(<DashboardScreen />);
 
     expect(
-      screen.getByRole("heading", { name: "Overview" })
+      screen.getByRole("heading", { name: "Application documents" })
     ).toBeInTheDocument();
     expect(screen.getAllByText("Ollama CV Creator")).not.toHaveLength(0);
     expect(
-      screen.getByRole("heading", { name: "Start here" })
+      screen.getByRole("heading", {
+        name: "Build a professional CV and cover letter from real experience"
+      })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "CV creation workflow" })
+      screen.getByRole("heading", { name: "Document creation workflow" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Job matching" })
+      screen.getByRole("heading", { name: "Role tailoring" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Import candidate context")).toBeInTheDocument();
+    expect(screen.getByText("Collect candidate context")).toBeInTheDocument();
     expect(screen.getByText("Requires candidate context")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Start with candidate context" })
+      screen.getByRole("link", { name: "Start with experience" })
     ).toHaveAttribute("href", "/import");
   });
 

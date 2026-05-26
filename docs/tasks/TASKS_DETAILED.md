@@ -178,10 +178,10 @@ Tests:
 - prompt injection ignored
 - schema validated
 
-## TASK-013: Job Match Analysis UI
+## TASK-013: Role Tailoring Guidance UI
 
 Goal:
-Show match score, strengths, gaps and recommendations.
+Show role relevance, strengths, gaps and document emphasis recommendations.
 
 Tests:
 - score renders
@@ -376,3 +376,20 @@ Requirements:
 - validated project JSON export
 - PDF generated from the same document renderer used in preview
 - clear export error states
+
+## TASK-038: Professional CV and Cover Letter Design System
+
+Goal:
+Create a high-quality document design system for professional CVs and cover letters.
+
+Principles:
+- The app creates polished application documents, not matching reports.
+- Job descriptions guide role-specific positioning and emphasis.
+- Generated documents must use only verified candidate profile data.
+- Visual design, typography, spacing, section hierarchy, and export fidelity are first-class product concerns.
+
+Acceptance:
+- CV and cover letter previews look professionally designed
+- templates support role-specific emphasis without inventing facts
+- document editing remains ergonomic before export
+- PDF output matches preview closely

@@ -1,5 +1,5 @@
 import { deleteDB } from "idb";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useProjectStore } from "@/stores/project-store";
@@ -70,6 +70,34 @@ describe("ProfileScreen", () => {
     await user.type(fullNameInput, "Ada Byron");
 
     expect(fullNameInput).toHaveValue("Ada Byron");
+  });
+
+  it("syncs the form when an extracted profile arrives after mount", async () => {
+    useProjectStore.setState({
+      projects: [],
+      selectedProjectId: undefined,
+      isLoading: false,
+      error: undefined
+    });
+
+    render(<ProfileScreen />);
+
+    expect(screen.getByLabelText("Full name")).toHaveValue("");
+
+    act(() => {
+      useProjectStore.setState({
+        projects: [projectWithProfile],
+        selectedProjectId: projectWithProfile.id,
+        isLoading: false,
+        error: undefined
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Full name")).toHaveValue("Ada Lovelace");
+    });
+    expect(screen.getByLabelText("Technical skills")).toHaveValue("TypeScript");
+    expect(screen.getByLabelText("Responsibilities")).toHaveValue("Built tools");
   });
 
   it("makes experiences editable", async () => {

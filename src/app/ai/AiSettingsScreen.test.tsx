@@ -76,6 +76,19 @@ const reachableWithInstalledButUnloadedStatus = {
   }
 };
 
+const reachableAfterUnloadStatus = {
+  success: true,
+  data: {
+    ...reachableStatus.data,
+    selectedModelLoaded: false,
+    loadedModels: [],
+    models: reachableStatus.data.models.map((model) => ({
+      ...model,
+      loaded: false
+    }))
+  }
+};
+
 describe("AiSettingsScreen", () => {
   const originalFetch = global.fetch;
 
@@ -97,18 +110,92 @@ describe("AiSettingsScreen", () => {
     expect(screen.getByText("4B")).toBeInTheDocument();
   });
 
-  it("disconnects locally", async () => {
+  it("unloads the selected model", async () => {
     const user = userEvent.setup();
-    global.fetch = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(reachableStatus), { status: 200 })
-    );
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(reachableStatus), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              action: "unload",
+              model: "qwen3.5:4b"
+            }
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(reachableAfterUnloadStatus), { status: 200 })
+      );
 
     render(<AiSettingsScreen />);
 
     await screen.findByText("Connected");
     await user.click(screen.getByRole("button", { name: "Disconnect" }));
 
-    expect(screen.getByText("Disconnected")).toBeInTheDocument();
+    expect(await screen.findByText("Model is unloaded")).toBeInTheDocument();
+    expect(screen.getByText("No model loaded")).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/ai/model-control",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          action: "unload",
+          model: "qwen3.5:4b"
+        })
+      })
+    );
+  });
+
+  it("loads the selected model", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(reachableWithInstalledButUnloadedStatus), {
+          status: 200
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              action: "load",
+              model: "qwen3.5:4b"
+            }
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(reachableStatus), { status: 200 })
+      );
+
+    render(<AiSettingsScreen />);
+
+    await screen.findByText("No model loaded");
+    await user.click(screen.getByRole("button", { name: "Connect" }));
+
+    expect(await screen.findByText("Model is loaded")).toBeInTheDocument();
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/ai/model-control",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          action: "load",
+          model: "qwen3.5:4b"
+        })
+      })
+    );
   });
 
   it("allows selecting another installed model", async () => {

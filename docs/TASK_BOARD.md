@@ -8,6 +8,7 @@
 - TASK-037: Desktop Export Flow
 - TASK-023: Template Pack
 - TASK-024: Template Selection UX
+- TASK-038: Professional CV and Cover Letter Design System
 - TASK-025: Styled PDF Export
 - TASK-026: JSON Project Export
 - TASK-027: Desktop Packaging
@@ -17,7 +18,6 @@
 
 ## READY
 
-- TASK-033: Electron Migration Plan and Shell
 - TASK-022: Document Renderer v2
 
 ## IN_PROGRESS
@@ -26,7 +26,7 @@ _None_
 
 ## REVIEW
 
-_None_
+- TASK-033: Electron Migration Plan and Shell
 
 ## DONE
 
@@ -42,7 +42,7 @@ _None_
 - TASK-010: Profile Review UI
 - TASK-011: Job Import Screen
 - TASK-012: Job Analysis API
-- TASK-013: Job Match Analysis UI
+- TASK-013: Role Tailoring Guidance UI
 - TASK-014: CV Generator API
 - TASK-015: Cover Letter Generator API
 - TASK-016: Documents Editor
