@@ -260,16 +260,16 @@ Tests:
 - project export valid JSON
 - imported project validates schema
 
-## TASK-021: PWA Setup
+## TASK-021: Desktop Packaging
 
 Goal:
-Installable PWA.
+Installable desktop app.
 
 Tests:
-- manifest exists
 - app name correct
 - icons referenced
-- offline shell prepared
+- desktop package builds
+- app launches from packaged output
 
 ## TASK-022: Security Review
 
@@ -300,3 +300,79 @@ Checks:
 - README updated
 - no dead files
 - tests pass
+
+## TASK-033: Electron Migration Plan and Shell
+
+Goal:
+Add an Electron desktop shell around the existing React experience without changing product behavior.
+
+Files:
+- electron/main/
+- electron/preload/
+- package.json
+- vite/electron build config if selected
+
+Tests/Checks:
+- desktop window opens locally
+- renderer loads current app shell
+- no direct Node.js access from renderer
+- TypeScript passes
+
+Acceptance:
+- App can be started as a desktop app in development
+- Existing web tests still pass or have a documented migration path
+
+## TASK-034: Extract Next.js API Logic into Services
+
+Goal:
+Move AI route logic into framework-independent service modules that can be called by Electron IPC handlers.
+
+Files:
+- src/lib/ai/
+- src/lib/services/
+- src/app/api/ai/*/route.ts
+
+Tests:
+- service tests cover extract profile, analyze job, generate CV, and generate cover letter
+- API route tests become thin adapter tests or are replaced by service tests
+
+## TASK-035: Electron IPC Bridge for AI and Storage
+
+Goal:
+Expose a narrow typed preload API for renderer calls.
+
+Requirements:
+- `ai.status`
+- `ai.extractProfile`
+- `ai.analyzeJob`
+- `ai.generateCv`
+- `ai.generateCoverLetter`
+- `storage.listProjects`
+- `storage.saveProject`
+- `storage.deleteProject`
+
+Acceptance:
+- Renderer uses typed bridge calls instead of direct API route fetches
+- Main process validates all incoming payloads
+
+## TASK-036: Desktop Storage Migration
+
+Goal:
+Replace browser-only IndexedDB persistence with desktop-owned local storage.
+
+Requirements:
+- deterministic project location
+- JSON project import/export path
+- migration note for existing IndexedDB data
+- tests for save/load/list/delete
+
+## TASK-037: Desktop Export Flow
+
+Goal:
+Implement desktop-friendly PDF and project export.
+
+Requirements:
+- native save dialog
+- validated project JSON export
+- PDF generated from the same document renderer used in preview
+- clear export error states

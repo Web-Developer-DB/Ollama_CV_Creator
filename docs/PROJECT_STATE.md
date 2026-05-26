@@ -2,11 +2,11 @@
 
 ## Project
 
-Ollama CV Creator PWA
+Ollama CV Creator Desktop
 
 ## Current Phase
 
-Design and document presentation phase.
+Desktop migration planning phase.
 
 ## Current Stable State
 
@@ -32,17 +32,20 @@ Ad-hoc profile review UI polish completed. Skill lists now use multi-line textar
 
 Ad-hoc comprehensive demo context completed. The first-run import context now includes detailed school education, college preparation, vocational training, university education, continuing education, certifications, multiple companies, selected projects, long skill lists, and languages. The extract-profile prompt and normalizer were updated to preserve many education, training, certification, project, and work-history entries as structured arrays. JSON generation now sends `think: false` by default so Qwen/Ollama returns schema JSON in `response` instead of spending time in reasoning output.
 
+Architecture direction update accepted: the project should migrate from a browser-first Next.js PWA to an Electron desktop application because the app is local-first, depends on local Ollama models, handles sensitive CV data, and benefits from controlled local filesystem/export capabilities.
+
 ## Architecture Summary
 
-- Next.js App Router fullstack app
+- Electron desktop app target
+- React renderer
 - TypeScript strict mode
 - Tailwind CSS UI
 - Zustand state management
 - React Hook Form + Zod validation
-- IndexedDB local storage
-- Ollama via backend API routes
-- Playwright PDF export
-- PWA installability
+- Desktop-owned local storage target
+- Ollama via Electron main-process services
+- PDF export through desktop export service
+- Desktop installability
 
 ## Core Principles
 
@@ -73,11 +76,11 @@ Ad-hoc comprehensive demo context completed. The first-run import context now in
 
 ## In Progress
 
-None
+Electron migration planning.
 
 ## Next Recommended Task
 
-TASK-022: Document Renderer v2
+TASK-033: Electron Migration Plan and Shell
 
 ## Known Risks
 
@@ -86,7 +89,8 @@ TASK-022: Document Renderer v2
 - Prompt injection may appear in user-provided text
 - PDF rendering may differ from preview
 - Sensitive data must never be logged
-- UI development may drift without early frontend shell
+- Renderer/main-process boundaries must stay narrow and typed
+- Storage migration must avoid losing existing browser IndexedDB project data
 
 ## Manual Testing Requirement
 
@@ -105,4 +109,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-25: Completed TASK-032 Comprehensive Demo Candidate Context and set JSON generation to disable Qwen reasoning by default. Native Linux testing is still pending outside the WSL2 agent shell. Next recommended task is TASK-022 Document Renderer v2.
+2026-05-26: Accepted Electron desktop runtime direction. Next recommended task is TASK-033 Electron Migration Plan and Shell.

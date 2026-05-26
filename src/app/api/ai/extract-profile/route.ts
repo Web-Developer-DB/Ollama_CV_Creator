@@ -10,7 +10,8 @@ import type { CandidateProfile } from "@/types/profile";
 
 const extractProfileRequestSchema = z.object({
   text: z.string().trim().min(1),
-  language: z.enum(["de", "en"])
+  language: z.enum(["de", "en"]),
+  model: z.string().trim().min(1).optional()
 });
 
 const errorStatusByCode: Record<ApiErrorCode, number> = {
@@ -176,7 +177,11 @@ export async function POST(request: Request): Promise<Response> {
   const prompt = buildExtractProfilePrompt(parsedRequest.data);
 
   try {
-    const aiProfile = await generateOllamaJson<unknown>(prompt);
+    const aiProfile = parsedRequest.data.model
+      ? await generateOllamaJson<unknown>(prompt, {
+          model: parsedRequest.data.model
+        })
+      : await generateOllamaJson<unknown>(prompt);
     const parsedProfile = candidateProfileSchema.safeParse(
       normalizeCandidateProfile(aiProfile)
     );

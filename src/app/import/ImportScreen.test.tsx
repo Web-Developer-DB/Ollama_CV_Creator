@@ -38,6 +38,7 @@ describe("ImportScreen", () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    window.localStorage.clear();
   });
 
   it("starts with demo candidate context for first-time users", () => {
@@ -164,6 +165,78 @@ describe("ImportScreen", () => {
       });
     });
     expect(screen.getByText(/Profile extracted/)).toBeInTheDocument();
+  });
+
+  it("uses the locally selected Ollama model for readiness and extraction", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      "ollama-cv-selected-model",
+      "granite4.1:3b-q6_K"
+    );
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              baseUrl: "http://127.0.0.1:11434",
+              configuredModel: "granite4.1:3b-q6_K",
+              reachable: true,
+              selectedModelAvailable: true,
+              selectedModelLoaded: true,
+              checkedAt: "2026-05-25T12:00:00.000Z",
+              models: [{ name: "granite4.1:3b-q6_K", loaded: true }],
+              loadedModels: [{ name: "granite4.1:3b-q6_K" }]
+            }
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              personalInfo: {
+                fullName: "Nora Stein"
+              },
+              experiences: [],
+              education: [],
+              skills: {
+                technical: [],
+                soft: [],
+                tools: [],
+                languages: [],
+                methods: []
+              },
+              projects: [],
+              languages: [],
+              certificates: []
+            }
+          }),
+          { status: 200 }
+        )
+      );
+
+    render(<ImportScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      1,
+      "/api/ai/status?model=granite4.1%3A3b-q6_K",
+      { cache: "no-store" }
+    );
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    const extractionRequest = fetchMock.mock.calls[1][1] as RequestInit;
+
+    expect(JSON.parse(extractionRequest.body as string)).toMatchObject({
+      model: "granite4.1:3b-q6_K"
+    });
   });
 
   it("stops extraction and links to AI Status when the model is not loaded", async () => {

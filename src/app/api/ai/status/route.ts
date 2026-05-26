@@ -133,8 +133,14 @@ const createUnavailableStatus = (
     error
   });
 
-export async function GET(): Promise<Response> {
-  const config = getAiConfig();
+export async function GET(request: Request): Promise<Response> {
+  const runtimeConfig = getAiConfig();
+  const requestedModel = new URL(request.url).searchParams.get("model")?.trim();
+  const selectedModel = requestedModel || runtimeConfig.model;
+  const config = {
+    ...runtimeConfig,
+    model: selectedModel
+  };
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
   const baseStatus: Omit<OllamaStatus, "error"> = {
     baseUrl,
