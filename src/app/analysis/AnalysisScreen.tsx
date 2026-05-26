@@ -54,11 +54,11 @@ export function AnalysisScreen() {
   return (
     <AppShell
       metrics={[
-        { label: "Project status", value: "Job analysis" },
-        { label: "Current task", value: "TASK-013" },
+        { label: "Project status", value: "Tailoring" },
+        { label: "Purpose", value: "Position documents" },
         { label: "Source", value: "Local project" }
       ]}
-      title="Analysis"
+      title="Tailoring Guidance"
     >
       {analysis ? (
         <div className="grid gap-6">
@@ -66,7 +66,7 @@ export function AnalysisScreen() {
             <div className="grid gap-5 md:grid-cols-[180px_1fr] md:items-center">
               <div className="rounded-md border border-blue-200 bg-blue-50 p-4">
                 <p className="text-sm font-medium text-blue-900">
-                  Match score
+                  Relevance score
                 </p>
                 <p className="mt-2 text-4xl font-semibold text-blue-950">
                   {formatScore(analysis.matchScore)}
@@ -75,7 +75,7 @@ export function AnalysisScreen() {
 
               <div>
                 <p className="text-sm font-medium text-slate-500">
-                  Target role
+                  Target role context
                 </p>
                 <h2 className="mt-1 text-xl font-semibold text-slate-950">
                   {jobTarget?.title ?? selectedProject.title}
@@ -85,6 +85,11 @@ export function AnalysisScreen() {
                     {jobTarget.company}
                   </p>
                 ) : null}
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                  Use these cues to decide what the CV and cover letter should
+                  emphasize. They are guidance for document creation, not a
+                  pass/fail matching result.
+                </p>
               </div>
             </div>
           </section>
@@ -106,17 +111,18 @@ export function AnalysisScreen() {
               accentClassName="bg-blue-500"
               emptyText="No recommendations recorded."
               items={analysis.recommendations}
-              title="Recommendations"
+              title="Document emphasis"
             />
           </div>
         </div>
       ) : (
         <section className="rounded-md border border-slate-200 bg-white p-5">
           <h2 className="text-base font-semibold text-slate-950">
-            No analysis available
+            No tailoring guidance yet
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            Import and analyze a job before reviewing match details.
+            Add a target role first. The app will use it to help position the CV
+            and cover letter for that opportunity.
           </p>
         </section>
       )}

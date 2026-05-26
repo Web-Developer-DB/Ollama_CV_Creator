@@ -11,6 +11,7 @@ It should show:
 - navigation
 - placeholder routes
 - current development status
+- clear next action for a first-time user
 
 ## Main Screens
 
@@ -24,7 +25,8 @@ It should show:
 
 - raw text area
 - language selector
-- analyze button
+- extract profile button
+- visible model/extraction status
 
 ### Profile
 
@@ -41,14 +43,15 @@ It should show:
 - company
 - tone
 - language
+- used as tailoring context for documents
 
 ### Analysis
 
-- match score
+- relevance score
 - keywords
 - strengths
 - gaps
-- recommendations
+- document emphasis recommendations
 
 ### Documents
 
@@ -56,6 +59,7 @@ It should show:
 - cover letter tab
 - generate buttons
 - manual editor
+- verified candidate facts remain the source of truth
 
 ### Templates
 
@@ -78,3 +82,4 @@ It should show:
 - calm
 - trustworthy
 - readable
+- focused on polished CV and cover letter output, not matching reports

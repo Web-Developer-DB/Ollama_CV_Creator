@@ -15,6 +15,7 @@ describe("extract profile prompt", () => {
     );
     expect(prompt.prompt).toContain("<candidate_text>");
     expect(prompt.prompt).toContain("</candidate_text>");
+    expect(prompt.prompt).toContain("Do not return an empty profile");
     expect(prompt.prompt).toContain('"experiences"');
     expect(prompt.prompt).toContain('"education"');
     expect(prompt.prompt).toContain('"certificates"');
@@ -23,8 +24,19 @@ describe("extract profile prompt", () => {
     );
     expect(prompt.system).toContain("Keep the output complete but compact");
     expect(prompt.think).toBe(false);
-    expect(prompt.numCtx).toBe(4096);
-    expect(prompt.numPredict).toBe(2048);
+    expect(prompt.numCtx).toBe(8192);
+    expect(prompt.numPredict).toBe(4096);
     expect(prompt.temperature).toBe(0.1);
+  });
+
+  it("can build a recovery prompt for empty model output", () => {
+    const prompt = buildExtractProfilePrompt({
+      text: "Ada Lovelace, Engineer, TypeScript",
+      language: "en",
+      recovery: true
+    });
+
+    expect(prompt.prompt).toContain("Recovery attempt");
+    expect(prompt.prompt).toContain("Ada Lovelace");
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useProjectStore } from "@/stores/project-store";
 import type {
@@ -114,6 +114,19 @@ export function ProfileScreen() {
   const hasExtractionConcerns =
     uncertainFields.length > 0 || warnings.length > 0;
 
+  useEffect(() => {
+    const nextProfile =
+      selectedProject?.candidateProfile ?? createEmptyProfile();
+
+    setProfile(nextProfile);
+    setTechnicalSkills(joinList(nextProfile.skills.technical));
+    setSoftSkills(joinList(nextProfile.skills.soft));
+    setToolSkills(joinList(nextProfile.skills.tools));
+    setResponsibilities(
+      getEditableExperience(nextProfile.experiences).responsibilities.join("\n")
+    );
+  }, [selectedProject?.candidateProfile, selectedProject?.id]);
+
   const updatePersonalInfo = (field: PersonalInfoField, value: string) => {
     setProfile((currentProfile) => ({
       ...currentProfile,
@@ -209,10 +222,10 @@ export function ProfileScreen() {
     <AppShell
       metrics={[
         { label: "Project status", value: "Profile review" },
-        { label: "Current task", value: "TASK-010" },
+        { label: "Purpose", value: "Verify facts" },
         { label: "Storage", value: "Local only" }
       ]}
-      title="Profile"
+      title="Candidate Profile"
     >
       <form className="grid gap-6" onSubmit={handleSubmit}>
         <section className="rounded-md border border-slate-200 bg-white p-5">
@@ -405,7 +418,8 @@ export function ProfileScreen() {
           <div className="flex flex-col gap-1 border-b border-slate-200 pb-4">
             <h2 className="text-base font-semibold text-slate-950">Skills</h2>
             <p className="text-sm text-slate-600">
-              Keep comma-separated skill lists ready for matching and generation.
+              Keep comma-separated skill lists ready for CV and cover letter
+              writing.
             </p>
           </div>
 

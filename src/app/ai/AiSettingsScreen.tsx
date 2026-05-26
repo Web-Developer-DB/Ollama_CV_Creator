@@ -37,6 +37,8 @@ type OllamaStatus = {
   error?: string;
 };
 
+type ModelControlAction = "load" | "unload";
+
 const formatSize = (size: number | undefined): string =>
   size === undefined ? "Unknown" : `${(size / 1_000_000_000).toFixed(1)} GB`;
 
@@ -48,6 +50,22 @@ const formatDate = (value: string | undefined): string => {
   const date = new Date(value);
 
   return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
+};
+
+const formatLoadedUntil = (value: string | undefined): string => {
+  if (!value) {
+    return "Not loaded";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
+
+  return date.getTime() > Date.now() + 365 * 24 * 60 * 60 * 1000
+    ? "Kept loaded"
+    : date.toLocaleString();
 };
 
 const pickSelectedModel = (status: OllamaStatus): string => {
@@ -71,13 +89,19 @@ export function AiSettingsScreen() {
   const [isChecking, setIsChecking] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [requestError, setRequestError] = useState<string>();
+  const [controlAction, setControlAction] = useState<ModelControlAction>();
+  const [controlMessage, setControlMessage] = useState<string>();
 
   const refreshStatus = useCallback(async () => {
     setIsChecking(true);
     setRequestError(undefined);
 
     try {
-      const response = await fetch("/api/ai/status");
+      const storedModel = readStoredModel();
+      const statusUrl = storedModel
+        ? `/api/ai/status?model=${encodeURIComponent(storedModel)}`
+        : "/api/ai/status";
+      const response = await fetch(statusUrl);
       const payload = (await response.json()) as ApiResponse<OllamaStatus>;
 
       if (!payload.success || !payload.data) {
@@ -108,6 +132,10 @@ export function AiSettingsScreen() {
     () => status?.models.find((model) => model.name === selectedModel),
     [selectedModel, status?.models]
   );
+  const selectedLoadedModelDetails = useMemo(
+    () => status?.loadedModels.find((model) => model.name === selectedModel),
+    [selectedModel, status?.loadedModels]
+  );
   const installedModelCount = status?.models.length ?? 0;
   const loadedModelCount = status?.loadedModels.length ?? 0;
   const modelIsReady = isConnected && Boolean(selectedModelDetails?.loaded);
@@ -126,14 +154,62 @@ export function AiSettingsScreen() {
       ? "text-amber-700"
       : "text-slate-950";
   const modelStatus = modelIsReady ? "Ready" : "Not ready";
+  const isControllingModel = Boolean(controlAction);
 
   const handleSelectModel = (model: string) => {
     setSelectedModel(model);
     storeSelectedModel(model);
+    setControlMessage(undefined);
   };
 
-  const handleDisconnect = () => {
-    setIsConnected(false);
+  const handleModelControl = async (action: ModelControlAction) => {
+    if (!selectedModel) {
+      return;
+    }
+
+    setControlAction(action);
+    setRequestError(undefined);
+    setControlMessage(
+      action === "load" ? "Loading selected model" : "Unloading selected model"
+    );
+
+    try {
+      const response = await fetch("/api/ai/model-control", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action,
+          model: selectedModel
+        })
+      });
+      const payload = (await response.json()) as ApiResponse<{
+        action: ModelControlAction;
+        model: string;
+      }>;
+
+      if (!response.ok || !payload.success) {
+        throw new Error(
+          payload.error?.message ??
+            `Could not ${action === "load" ? "load" : "unload"} model`
+        );
+      }
+
+      await refreshStatus();
+      setControlMessage(
+        action === "load" ? "Model is loaded" : "Model is unloaded"
+      );
+    } catch (error) {
+      setRequestError(
+        error instanceof Error
+          ? error.message
+          : `Could not ${action === "load" ? "load" : "unload"} model`
+      );
+      setControlMessage(undefined);
+    } finally {
+      setControlAction(undefined);
+    }
   };
 
   return (
@@ -166,19 +242,46 @@ export function AiSettingsScreen() {
             <div className="flex flex-wrap gap-2">
               <button
                 className="h-10 rounded-md bg-action px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                disabled={isChecking}
-                onClick={refreshStatus}
+                disabled={
+                  isChecking ||
+                  isControllingModel ||
+                  !isConnected ||
+                  !selectedModel ||
+                  modelIsReady
+                }
+                onClick={() => void handleModelControl("load")}
                 type="button"
               >
-                {isChecking ? "Checking" : "Connect"}
+                {controlAction === "load" ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    Loading
+                  </span>
+                ) : (
+                  "Connect"
+                )}
               </button>
               <button
                 className="h-10 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
-                disabled={!isConnected}
-                onClick={handleDisconnect}
+                disabled={
+                  isChecking ||
+                  isControllingModel ||
+                  !isConnected ||
+                  !selectedModel ||
+                  !selectedLoadedModelDetails
+                }
+                onClick={() => void handleModelControl("unload")}
                 type="button"
               >
-                Disconnect
+                {controlAction === "unload" ? "Unloading" : "Disconnect"}
+              </button>
+              <button
+                className="h-10 rounded-md border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
+                disabled={isChecking || isControllingModel}
+                onClick={() => void refreshStatus()}
+                type="button"
+              >
+                {isChecking ? "Checking" : "Refresh"}
               </button>
             </div>
           </div>
@@ -224,6 +327,14 @@ export function AiSettingsScreen() {
           {requestError ? (
             <p className="mt-5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-900">
               {requestError}
+            </p>
+          ) : null}
+          {controlMessage ? (
+            <p className="mt-5 inline-flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-950">
+              {isControllingModel ? (
+                <span className="size-4 animate-spin rounded-full border-2 border-blue-200 border-t-action" />
+              ) : null}
+              {controlMessage}
             </p>
           ) : null}
         </section>
@@ -288,6 +399,42 @@ export function AiSettingsScreen() {
               </dd>
             </div>
           </dl>
+
+          <div className="mt-6 border-t border-slate-200 pt-5">
+            <p className="text-sm font-medium text-slate-500">
+              Runtime statistics
+            </p>
+            <dl className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-sm font-medium text-slate-500">Memory</dt>
+                <dd className="mt-1 text-base font-semibold text-slate-950">
+                  {formatSize(selectedLoadedModelDetails?.size)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-slate-500">VRAM</dt>
+                <dd className="mt-1 text-base font-semibold text-slate-950">
+                  {formatSize(selectedLoadedModelDetails?.sizeVram)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-slate-500">
+                  Keep alive
+                </dt>
+                <dd className="mt-1 text-base font-semibold text-slate-950">
+                  {formatLoadedUntil(selectedLoadedModelDetails?.expiresAt)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-slate-500">Digest</dt>
+                <dd className="mt-1 truncate text-base font-semibold text-slate-950">
+                  {selectedLoadedModelDetails?.digest ??
+                    selectedModelDetails?.digest ??
+                    "Unknown"}
+                </dd>
+              </div>
+            </dl>
+          </div>
         </section>
       </div>
     </AppShell>

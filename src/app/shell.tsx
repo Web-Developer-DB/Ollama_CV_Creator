@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Panel } from "@/components/ui/Panel";
 import { routeItems } from "@/components/layout/Sidebar";
 import {
-  jobMatchingSteps,
+  tailoringSteps,
   workflowSteps
 } from "@/lib/workflow/application-workflow";
 import type { HeaderMetric } from "@/components/layout/Header";
@@ -32,40 +32,41 @@ export function DashboardScreen() {
   return (
     <ShellFrame
       metrics={[
-        { label: "Project status", value: "Ready to start" },
-        { label: "Current stage", value: "Import" },
-        { label: "AI readiness", value: "Check model" }
+        { label: "Project status", value: "Ready to create" },
+        { label: "First step", value: "Candidate context" },
+        { label: "AI model", value: "Local Ollama" }
       ]}
-      title="Overview"
+      title="Application documents"
     >
       <div className="grid gap-6">
         <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
             <div>
-              <Badge tone="info">Guided workflow</Badge>
+              <Badge tone="info">Local document assistant</Badge>
               <h2 className="mt-3 text-xl font-semibold text-slate-950">
-                Start here
+                Build a professional CV and cover letter from real experience
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Every step depends on the previous one: candidate text becomes a
-                profile, the reviewed profile becomes a CV, and the final draft
-                inherits the selected design. Job matching is available as a
-                separate optional path.
+                Start with unstructured notes, CV text, LinkedIn content, or
+                project history. The local model turns it into verified profile
+                facts, then the app helps write, design, and export polished
+                application documents. A job description is optional context for
+                tailoring, not the final product.
               </p>
             </div>
             <Link
               className="inline-flex h-10 items-center justify-center rounded-md bg-action px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
               href={firstStep.href}
             >
-              Start with candidate context
+              Start with experience
             </Link>
           </div>
         </section>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <Panel
-            description="Each row shows what must exist before the step is useful and what the step produces."
-            title="CV creation workflow"
+            description="Follow these steps when creating the main application package."
+            title="Document creation workflow"
           >
             <ol className="grid gap-3">
               {workflowSteps.map((step) => (
@@ -118,7 +119,7 @@ export function DashboardScreen() {
             <dl className="grid gap-3">
               <ReadinessItem label="Candidate text" value="Required first" />
               <ReadinessItem label="Profile" value="Created from import" />
-              <ReadinessItem label="Target job" value="Needed for match" />
+              <ReadinessItem label="Target job" value="Optional tailoring" />
               <ReadinessItem label="LLM model" value="Check AI Status" />
               <ReadinessItem label="Design" value="Selected before export" />
             </dl>
@@ -126,11 +127,11 @@ export function DashboardScreen() {
         </div>
 
         <Panel
-          description="Use this branch when a CV should be tailored to a specific role. It does not block the base CV creation flow."
-          title="Job matching"
+          description="Use this branch when the CV and cover letter should speak directly to a specific role. It supports document writing; it is not the end product."
+          title="Role tailoring"
         >
           <div className="grid gap-3 md:grid-cols-2">
-            {jobMatchingSteps.map((step) => (
+            {tailoringSteps.map((step) => (
               <Link
                 className="rounded-md border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
                 href={step.href}

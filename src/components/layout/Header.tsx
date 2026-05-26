@@ -18,6 +18,10 @@ export function Header({ title, metrics }: HeaderProps) {
         <h1 className="mt-2 text-3xl font-semibold leading-tight text-slate-950">
           {title}
         </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          Turn verified experience into polished CVs and cover letters tailored
+          for a target role.
+        </p>
       </div>
       <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
         {metrics.map((metric) => (

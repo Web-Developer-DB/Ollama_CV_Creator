@@ -22,7 +22,7 @@ AI Status bugfix completed. The status endpoint now checks Ollama `/api/ps` in a
 
 TASK-020 completed. The app now uses a clearer information architecture: grouped navigation, an overview dashboard with a visible start point, workflow dependencies, expected outputs for each step, and readiness checks for the data and AI model needed before document generation/export.
 
-TASK-021 completed. CV creation and optional job matching are now separated in the workflow. Import is now candidate intake with demo candidate context, local context saving, and an Extract profile action that calls `/api/ai/extract-profile` and stores an editable candidate profile before CV generation.
+TASK-021 completed. CV creation and optional role tailoring are now separated in the workflow. Import is now candidate intake with demo candidate context, local context saving, and an Extract profile action that calls `/api/ai/extract-profile` and stores an editable candidate profile before CV generation.
 
 Ad-hoc AI readiness guard completed. The Ollama client now checks `/api/tags` and `/api/ps` before every generation call and fails with `AI_MODEL_NOT_READY` when the configured model is installed but not loaded. Candidate profile extraction also checks `/api/ai/status` before calling the extraction route and links users to AI Status when the model is not ready.
 
@@ -33,6 +33,18 @@ Ad-hoc profile review UI polish completed. Skill lists now use multi-line textar
 Ad-hoc comprehensive demo context completed. The first-run import context now includes detailed school education, college preparation, vocational training, university education, continuing education, certifications, multiple companies, selected projects, long skill lists, and languages. The extract-profile prompt and normalizer were updated to preserve many education, training, certification, project, and work-history entries as structured arrays. JSON generation now sends `think: false` by default so Qwen/Ollama returns schema JSON in `response` instead of spending time in reasoning output.
 
 Architecture direction update accepted: the project should migrate from a browser-first Next.js PWA to an Electron desktop application because the app is local-first, depends on local Ollama models, handles sensitive CV data, and benefits from controlled local filesystem/export capabilities.
+
+TASK-033 implementation is in review. The project now has a minimal Electron main process, preload bridge, development launcher, Electron dependency, and a typed `window.desktopApi` runtime surface. The shell loads the existing Next.js renderer during development so the UI can migrate before API and storage services are moved into the main process.
+
+Ad-hoc Ollama model management completed. AI Status now provides model load/unload controls for the selected local model, visible loading/unloading feedback, automatic status refresh after model control actions, and runtime statistics from Ollama's loaded-model status such as memory, VRAM, keep-alive expiry, and digest.
+
+Ad-hoc Candidate Intake interaction polish completed. The import screen now presents extraction as a candidate-profile creation workflow, shows whether the app is ready, checking the local model, extracting with the model, finished, or blocked by an error, and links directly to Profile after a successful extraction.
+
+Product goal clarification accepted. The app's primary purpose is to create professional CVs and cover letters. Job descriptions are supporting context for tailoring those documents to a target role; matching analysis is not the end product. Future CV creation work should prioritize strong document design, visual presentation, editable content, and role-specific positioning based only on verified candidate data.
+
+Ad-hoc full-app product audit completed. Navigation, dashboard, target-role workflow, tailoring guidance, document writing, design selection, export readiness, README, and frontend docs were adjusted toward the app goal: a modern local desktop assistant for creating polished CVs and cover letters from verified candidate data, optionally tailored to a target role.
+
+Ad-hoc document preview polish completed. Template previews now render more like printable application pages, with stronger hierarchy, page-like white surfaces, clearer empty states, recipient display for cover letters, and template descriptions that explain the role fit of each design.
 
 ## Architecture Summary
 
@@ -55,6 +67,7 @@ Architecture direction update accepted: the project should migrate from a browse
 - Test-first development
 - Schema-first AI
 - No hallucinated facts
+- Document creation over matching
 - Small Kanban tasks
 - Early manual frontend shell
 
@@ -69,6 +82,7 @@ Architecture direction update accepted: the project should migrate from a browse
 - API structure
 - Frontend structure
 - Template system
+- Professional document design direction
 - PDF export plan
 - Security plan
 - Testing strategy
@@ -76,11 +90,11 @@ Architecture direction update accepted: the project should migrate from a browse
 
 ## In Progress
 
-Electron migration planning.
+None
 
 ## Next Recommended Task
 
-TASK-033: Electron Migration Plan and Shell
+Review TASK-033, then continue with TASK-034: Extract Next.js API Logic into Services
 
 ## Known Risks
 
@@ -99,7 +113,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 103 tests
+- npm run test: passed, 110 tests
 - npm run build: passed
 - sensitive log scan for app/components/lib: passed
 - frontend styling constraint scan for letter spacing and arbitrary text sizing: passed
@@ -109,4 +123,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-26: Accepted Electron desktop runtime direction. Next recommended task is TASK-033 Electron Migration Plan and Shell.
+2026-05-26: Completed full-app product audit, UI orientation pass, and document preview polish after adding the Electron shell. Next recommended task after TASK-033 review is TASK-034 Extract Next.js API Logic into Services.

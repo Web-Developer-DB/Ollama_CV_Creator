@@ -90,7 +90,9 @@ describe("DocumentTemplate", () => {
     );
 
     expect(screen.getByText("Untitled CV")).toBeInTheDocument();
-    expect(screen.getByText("No CV sections yet.")).toBeInTheDocument();
+    expect(
+      screen.getByText("CV preview is waiting for content")
+    ).toBeInTheDocument();
     expect(screen.getByText("Opening only.")).toBeInTheDocument();
   });
 

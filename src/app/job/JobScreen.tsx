@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { Panel } from "@/components/ui/Panel";
 import { useProjectStore } from "@/stores/project-store";
 import type { JobLanguage, JobTone } from "@/types/job";
 import type { ApplicationProject } from "@/types/project";
@@ -112,107 +113,119 @@ export function JobScreen() {
   return (
     <AppShell
       metrics={[
-        { label: "Project status", value: "Job import" },
-        { label: "Current task", value: "TASK-011" },
+        { label: "Project status", value: "Target role" },
+        { label: "Purpose", value: "Tailor documents" },
         { label: "Storage", value: "Local only" }
       ]}
-      title="Job"
+      title="Target Role"
     >
-      <form
-        className="grid gap-5 rounded-md border border-slate-200 bg-white p-5"
-        onSubmit={handleSubmit}
-      >
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
-            Job title
-            <input
-              className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
-              onChange={(event) => setJobTitle(event.target.value)}
-              value={jobTitle}
-            />
-          </label>
-
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
-            Company
-            <input
-              className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
-              onChange={(event) => setCompany(event.target.value)}
-              value={company}
-            />
-          </label>
-
-          <label className="grid gap-2 text-sm font-medium text-slate-700">
-            Location
-            <input
-              className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
-              onChange={(event) => setLocation(event.target.value)}
-              value={location}
-            />
-          </label>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Language
-              <select
-                className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
-                onChange={(event) =>
-                  setLanguage(event.target.value as JobLanguage)
-                }
-                value={language}
-              >
-                <option value="de">German</option>
-                <option value="en">English</option>
-              </select>
-            </label>
-
-            <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Tone
-              <select
-                className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
-                onChange={(event) => setTone(event.target.value as JobTone)}
-                value={tone}
-              >
-                <option value="professional">Professional</option>
-                <option value="modern">Modern</option>
-                <option value="conservative">Conservative</option>
-                <option value="confident">Confident</option>
-              </select>
-            </label>
+      <form className="grid gap-6" onSubmit={handleSubmit}>
+        <Panel
+          description="Paste the job description when you want the CV and cover letter to emphasize the most relevant verified experience."
+          title="Role context for tailoring"
+        >
+          <div className="mb-5 grid gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3 text-sm leading-6 text-blue-950">
+            <p className="font-semibold">What this step does</p>
+            <p>
+              The job text is used to identify priorities, language, and role
+              signals for the documents. It does not replace the candidate
+              profile and it must not introduce facts the candidate did not
+              provide.
+            </p>
           </div>
-        </div>
 
-        <label className="grid gap-2 text-sm font-medium text-slate-700">
-          Job description
-          <textarea
-            className="min-h-72 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
-            onChange={(event) => setJobDescription(event.target.value)}
-            value={jobDescription}
-          />
-        </label>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Job title
+              <input
+                className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
+                onChange={(event) => setJobTitle(event.target.value)}
+                value={jobTitle}
+              />
+            </label>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-600">
-            Job details are kept with the current local project.
-          </p>
-          <button
-            className="h-10 rounded-md bg-action px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-            disabled={isLoading || jobDescription.trim().length === 0}
-            type="submit"
-          >
-            Save job
-          </button>
-        </div>
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Company
+              <input
+                className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
+                onChange={(event) => setCompany(event.target.value)}
+                value={company}
+              />
+            </label>
 
-        {savedMessage ? (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
-            {savedMessage}
-          </p>
-        ) : null}
-        {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-900">
-            Save failed
-          </p>
-        ) : null}
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Location
+              <input
+                className="h-10 rounded-md border border-slate-300 px-3 text-sm text-slate-950 outline-none focus:border-action"
+                onChange={(event) => setLocation(event.target.value)}
+                value={location}
+              />
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Language
+                <select
+                  className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
+                  onChange={(event) =>
+                    setLanguage(event.target.value as JobLanguage)
+                  }
+                  value={language}
+                >
+                  <option value="de">German</option>
+                  <option value="en">English</option>
+                </select>
+              </label>
+
+              <label className="grid gap-2 text-sm font-medium text-slate-700">
+                Tone
+                <select
+                  className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
+                  onChange={(event) => setTone(event.target.value as JobTone)}
+                  value={tone}
+                >
+                  <option value="professional">Professional</option>
+                  <option value="modern">Modern</option>
+                  <option value="conservative">Conservative</option>
+                  <option value="confident">Confident</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">
+            Job description
+            <textarea
+              className="min-h-72 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+              onChange={(event) => setJobDescription(event.target.value)}
+              value={jobDescription}
+            />
+          </label>
+
+          <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-6 text-slate-600">
+              Output: local tailoring context for the CV and cover letter.
+            </p>
+            <button
+              className="h-10 rounded-md bg-action px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+              disabled={isLoading || jobDescription.trim().length === 0}
+              type="submit"
+            >
+              Save target role
+            </button>
+          </div>
+
+          {savedMessage ? (
+            <p className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
+              {savedMessage}
+            </p>
+          ) : null}
+          {error ? (
+            <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-900">
+              Save failed
+            </p>
+          ) : null}
+        </Panel>
       </form>
     </AppShell>
   );

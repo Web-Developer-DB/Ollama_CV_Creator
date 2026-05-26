@@ -13,6 +13,13 @@ import type { CandidateProfile } from "@/types/profile";
 import type { ApplicationProject, RawInputSourceType } from "@/types/project";
 
 type ImportLanguage = "de" | "en";
+type ExtractionPhase =
+  | "idle"
+  | "saved"
+  | "checking_model"
+  | "extracting_profile"
+  | "profile_ready"
+  | "error";
 
 type OllamaStatusSummary = {
   configuredModel: string;
@@ -120,6 +127,24 @@ const createProjectTitle = (
   return firstLine.length > 48 ? `${firstLine.slice(0, 48)}...` : firstLine;
 };
 
+const extractionPhaseLabel: Record<ExtractionPhase, string> = {
+  idle: "Ready for candidate context",
+  saved: "Context saved",
+  checking_model: "Checking local model",
+  extracting_profile: "Model is structuring the profile",
+  profile_ready: "Structured profile ready",
+  error: "Action needed"
+};
+
+const extractionPhaseDescription: Record<ExtractionPhase, string> = {
+  idle: "Paste CV notes, work history, education, skills, projects, certificates, or other candidate material.",
+  saved: "The raw candidate context is stored locally and can be extracted when the model is ready.",
+  checking_model: "Ollama readiness is being checked before profile extraction starts.",
+  extracting_profile: "The selected model is turning the unstructured context into editable profile data.",
+  profile_ready: "The structured candidate profile was saved and can be reviewed on the Profile page.",
+  error: "Resolve the message below, then run extraction again."
+};
+
 export function ImportScreen() {
   const { error, isLoading, projects, saveProject, selectedProjectId } =
     useProjectStore();
@@ -139,6 +164,8 @@ export function ImportScreen() {
   const [extractError, setExtractError] = useState<string | undefined>();
   const [showAiStatusLink, setShowAiStatusLink] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionPhase, setExtractionPhase] =
+    useState<ExtractionPhase>("idle");
 
   const createProject = (
     trimmedText: string,
@@ -184,6 +211,7 @@ export function ImportScreen() {
     setExtractError(undefined);
     setShowAiStatusLink(false);
     setSavedMessage("Candidate context saved locally");
+    setExtractionPhase("saved");
   };
 
   const handleExtractProfile = async () => {
@@ -192,6 +220,7 @@ export function ImportScreen() {
       setSavedMessage(undefined);
       setExtractError("Candidate context is required");
       setShowAiStatusLink(false);
+      setExtractionPhase("error");
       return;
     }
 
@@ -199,6 +228,7 @@ export function ImportScreen() {
     setSavedMessage(undefined);
     setExtractError(undefined);
     setShowAiStatusLink(false);
+    setExtractionPhase("checking_model");
 
     try {
       const readiness = await checkAiReadiness();
@@ -206,9 +236,11 @@ export function ImportScreen() {
       if (!readiness.ready) {
         setExtractError(readiness.message);
         setShowAiStatusLink(true);
+        setExtractionPhase("error");
         return;
       }
 
+      setExtractionPhase("extracting_profile");
       const response = await fetch("/api/ai/extract-profile", {
         method: "POST",
         headers: {
@@ -241,12 +273,14 @@ export function ImportScreen() {
       await saveProject(project);
       setSavedMessage("Profile extracted and saved locally");
       setShowAiStatusLink(false);
+      setExtractionPhase("profile_ready");
     } catch (extractProfileError) {
       setExtractError(
         extractProfileError instanceof Error
           ? extractProfileError.message
           : "Profile extraction failed"
       );
+      setExtractionPhase("error");
     } finally {
       setIsExtracting(false);
     }
@@ -259,6 +293,7 @@ export function ImportScreen() {
     setSavedMessage(undefined);
     setExtractError(undefined);
     setShowAiStatusLink(false);
+    setExtractionPhase("idle");
   };
 
   const actionDisabled = isLoading || isExtracting || rawText.trim().length === 0;
@@ -279,9 +314,40 @@ export function ImportScreen() {
               Load demo
             </Button>
           }
-          description="Paste an existing CV, LinkedIn text, notes, or project context. The extraction step creates an editable candidate profile for CV generation; job matching stays separate."
+          description="Unstructured candidate material becomes an editable profile dataset for CV and cover letter generation. Role tailoring stays separate."
           title="Candidate context"
         >
+          <div className="mb-5 grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+            <div>
+              <p className="text-sm font-semibold text-slate-950">
+                Candidate profile extraction
+              </p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                {extractionPhaseDescription[extractionPhase]}
+              </p>
+            </div>
+            <div
+              className={`rounded-md border px-3 py-2 ${
+                extractionPhase === "error"
+                  ? "border-red-200 bg-red-50"
+                  : extractionPhase === "profile_ready" ||
+                      extractionPhase === "saved"
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-blue-200 bg-blue-50"
+              }`}
+            >
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Extraction status
+              </p>
+              <p className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-slate-950">
+                {isExtracting ? (
+                  <span className="size-4 animate-spin rounded-full border-2 border-blue-200 border-t-action" />
+                ) : null}
+                {extractionPhaseLabel[extractionPhase]}
+              </p>
+            </div>
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Language
@@ -325,8 +391,7 @@ export function ImportScreen() {
 
           <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-6 text-slate-600">
-              Use the demo text or replace it. Extracting creates a profile that
-              can be reviewed and edited on the Profile page.
+              Output: candidate profile for CV and cover letter generation.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button disabled={actionDisabled} type="submit" variant="secondary">
@@ -337,7 +402,14 @@ export function ImportScreen() {
                 onClick={handleExtractProfile}
                 type="button"
               >
-                {isExtracting ? "Extracting" : "Extract profile"}
+                {isExtracting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    Extracting
+                  </span>
+                ) : (
+                  "Extract profile"
+                )}
               </Button>
             </div>
           </div>
@@ -346,6 +418,14 @@ export function ImportScreen() {
             <p className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
               {savedMessage}
             </p>
+          ) : null}
+          {extractionPhase === "profile_ready" ? (
+            <Link
+              className="mt-3 inline-flex text-sm font-semibold text-action underline underline-offset-4"
+              href="/profile"
+            >
+              Open Profile
+            </Link>
           ) : null}
           {extractError ? (
             <div
