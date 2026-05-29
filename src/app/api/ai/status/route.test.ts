@@ -13,7 +13,6 @@ describe("GET /api/ai/status", () => {
   });
 
   it("reports reachable Ollama and loaded selected model", async () => {
-    vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");
     global.fetch = vi
       .fn()
       .mockResolvedValueOnce(
@@ -55,7 +54,7 @@ describe("GET /api/ai/status", () => {
         )
       );
 
-    const response = await GET(createRequest());
+    const response = await GET(createRequest("?model=qwen3.5%3A4b"));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -86,7 +85,6 @@ describe("GET /api/ai/status", () => {
   });
 
   it("reports installed models as not loaded when Ollama has no running model", async () => {
-    vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");
     global.fetch = vi
       .fn()
       .mockResolvedValueOnce(
@@ -135,7 +133,6 @@ describe("GET /api/ai/status", () => {
   });
 
   it("checks a model selected by query parameter", async () => {
-    vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");
     global.fetch = vi
       .fn()
       .mockResolvedValueOnce(
@@ -174,7 +171,6 @@ describe("GET /api/ai/status", () => {
   });
 
   it("defaults to the loaded model when no query model is provided", async () => {
-    vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");
     global.fetch = vi
       .fn()
       .mockResolvedValueOnce(

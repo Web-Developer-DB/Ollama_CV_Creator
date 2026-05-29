@@ -17,6 +17,8 @@ const { generateOllamaJson } = vi.mocked(
   await import("@/lib/ai/ollama-client")
 );
 
+const selectedModel = "installed-selected-model:latest";
+
 const validAnalysis: JobAnalysis = {
   requiredSkills: ["React", "TypeScript"],
   optionalSkills: ["Next.js"],
@@ -51,7 +53,8 @@ describe("POST /api/ai/analyze-job", () => {
     const response = await POST(
       createRequest({
         jobDescription: "We need React and TypeScript experience.",
-        language: "en"
+        language: "en",
+        model: selectedModel
       })
     );
     const payload = await readJson(response);
@@ -61,7 +64,8 @@ describe("POST /api/ai/analyze-job", () => {
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.objectContaining({
         temperature: 0.1
-      })
+      }),
+      { model: selectedModel }
     );
   });
 

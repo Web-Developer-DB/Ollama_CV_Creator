@@ -14,7 +14,8 @@ import type { JobAnalysis } from "@/types/job";
 
 const analyzeJobRequestSchema = z.object({
   jobDescription: z.string().trim().min(1),
-  language: z.enum(["de", "en"])
+  language: z.enum(["de", "en"]),
+  model: z.string().trim().min(1).optional()
 });
 
 export const analyzeJob = async (
@@ -32,7 +33,10 @@ export const analyzeJob = async (
   const prompt = buildAnalyzeJobPrompt(request);
 
   try {
-    const aiAnalysis = await generateOllamaJson<unknown>(prompt);
+    const aiAnalysis = await generateOllamaJson<unknown>(
+      prompt,
+      request.model ? { model: request.model } : undefined
+    );
     const parsedAnalysis = jobAnalysisSchema.safeParse(aiAnalysis);
 
     if (!parsedAnalysis.success) {

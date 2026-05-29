@@ -68,7 +68,8 @@ const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
 
     const status = payload.data;
     const loadedModel =
-      status.loadedModels[0]?.name ??
+      status.configuredModel ||
+      status.loadedModels[0]?.name ||
       status.models.find((model) => model.loaded)?.name;
 
     if (!status.reachable) {
@@ -90,7 +91,7 @@ const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
     if (!status.selectedModelAvailable || !status.selectedModelLoaded) {
       return {
         ready: false,
-        message: `Ollama model ${loadedModel} could not be verified as ready. Open AI Status, verify the loaded model, then try extraction again.`
+        message: `Ollama model ${loadedModel} is not ready. Open AI Status, select an installed model, load it, then try extraction again.`
       };
     }
 

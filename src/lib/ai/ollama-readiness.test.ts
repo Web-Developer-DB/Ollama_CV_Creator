@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_AI_CONFIG } from "@/config/ai-config";
 import { checkOllamaReadiness } from "./ollama-readiness";
 
 const createJsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status });
+
+const selectedModel = "selected-model:latest";
+const loadedModel = "nemotron-3-nano:4b-q8_0";
 
 describe("Ollama readiness", () => {
   const originalFetch = global.fetch;
@@ -18,19 +20,21 @@ describe("Ollama readiness", () => {
       .fn()
       .mockResolvedValueOnce(
         createJsonResponse({
-          models: [{ name: DEFAULT_AI_CONFIG.model }]
+          models: [{ name: selectedModel }]
         })
       )
       .mockResolvedValueOnce(
         createJsonResponse({
-          models: [{ model: DEFAULT_AI_CONFIG.model }]
+          models: [{ model: selectedModel }]
         })
       );
 
-    await expect(checkOllamaReadiness()).resolves.toMatchObject({
+    await expect(
+      checkOllamaReadiness({ model: selectedModel })
+    ).resolves.toMatchObject({
       ready: true,
-      model: DEFAULT_AI_CONFIG.model,
-      loadedModels: [DEFAULT_AI_CONFIG.model]
+      model: selectedModel,
+      loadedModels: [selectedModel]
     });
   });
 
@@ -39,7 +43,7 @@ describe("Ollama readiness", () => {
       .fn()
       .mockResolvedValueOnce(
         createJsonResponse({
-          models: [{ name: DEFAULT_AI_CONFIG.model }]
+          models: [{ name: selectedModel }]
         })
       )
       .mockResolvedValueOnce(
@@ -48,10 +52,12 @@ describe("Ollama readiness", () => {
         })
       );
 
-    await expect(checkOllamaReadiness()).resolves.toMatchObject({
+    await expect(
+      checkOllamaReadiness({ model: selectedModel })
+    ).resolves.toMatchObject({
       ready: false,
       code: "AI_MODEL_NOT_READY",
-      model: DEFAULT_AI_CONFIG.model,
+      model: selectedModel,
       message: expect.stringContaining("not loaded")
     });
   });
@@ -70,57 +76,61 @@ describe("Ollama readiness", () => {
         })
       );
 
-    await expect(checkOllamaReadiness()).resolves.toMatchObject({
+    await expect(
+      checkOllamaReadiness({ model: selectedModel })
+    ).resolves.toMatchObject({
       ready: false,
       code: "AI_MODEL_NOT_READY",
-      model: DEFAULT_AI_CONFIG.model,
+      model: selectedModel,
       message: expect.stringContaining("not installed")
     });
   });
 
-  it("chooses a loaded model instead of the default model", async () => {
+  it("chooses a loaded model when no model is requested", async () => {
     global.fetch = vi
       .fn()
       .mockResolvedValueOnce(
         createJsonResponse({
           models: [
-            { name: DEFAULT_AI_CONFIG.model },
-            { name: "nemotron-3-nano:4b-q8_0" }
+            { name: selectedModel },
+            { name: loadedModel }
           ]
         })
       )
       .mockResolvedValueOnce(
         createJsonResponse({
-          models: [{ model: "nemotron-3-nano:4b-q8_0" }]
+          models: [{ model: loadedModel }]
         })
       );
 
     await expect(checkOllamaReadiness()).resolves.toMatchObject({
       ready: true,
-      model: "nemotron-3-nano:4b-q8_0",
-      loadedModels: ["nemotron-3-nano:4b-q8_0"]
+      model: loadedModel,
+      loadedModels: [loadedModel]
     });
   });
 
-  it("falls back to the loaded model when a requested model is stale", async () => {
+  it("does not fall back when the requested model is stale", async () => {
     global.fetch = vi
       .fn()
       .mockResolvedValueOnce(
         createJsonResponse({
-          models: [{ name: "nemotron-3-nano:4b-q8_0" }]
+          models: [{ name: loadedModel }]
         })
       )
       .mockResolvedValueOnce(
         createJsonResponse({
-          models: [{ model: "nemotron-3-nano:4b-q8_0" }]
+          models: [{ model: loadedModel }]
         })
       );
 
     await expect(
-      checkOllamaReadiness({ model: "qwen3.5:4b" })
+      checkOllamaReadiness({ model: selectedModel })
     ).resolves.toMatchObject({
-      ready: true,
-      model: "nemotron-3-nano:4b-q8_0"
+      ready: false,
+      code: "AI_MODEL_NOT_READY",
+      model: selectedModel,
+      message: expect.stringContaining("not installed")
     });
   });
 

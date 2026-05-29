@@ -31,6 +31,7 @@ const generateCoverLetterRequestSchema = z.object({
   candidateProfile: candidateProfileSchema,
   jobTarget: jobTargetSchema,
   jobAnalysis: jobAnalysisSchema,
+  model: z.string().trim().min(1).optional(),
   options: z.object({
     language: z.enum(["de", "en"]),
     tone: jobToneSchema
@@ -156,7 +157,10 @@ export const generateCoverLetter = async (
   const prompt = buildGenerateCoverLetterPrompt(request);
 
   try {
-    const aiCoverLetter = await generateOllamaJson<unknown>(prompt);
+    const aiCoverLetter = await generateOllamaJson<unknown>(
+      prompt,
+      request.model ? { model: request.model } : undefined
+    );
     const parsedCoverLetter =
       generatedCoverLetterSchema.safeParse(aiCoverLetter);
 

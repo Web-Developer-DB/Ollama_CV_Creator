@@ -169,9 +169,11 @@ describe("ImportScreen", () => {
 
   it("uses the loaded Ollama model for readiness and extraction", async () => {
     const user = userEvent.setup();
+    const selectedModel = "nemotron-3-nano:4b-q8_0";
+
     window.localStorage.setItem(
       "ollama-cv-selected-model",
-      "qwen3.5:4b"
+      selectedModel
     );
     global.fetch = vi
       .fn()
@@ -181,16 +183,16 @@ describe("ImportScreen", () => {
             success: true,
             data: {
               baseUrl: "http://127.0.0.1:11434",
-              configuredModel: "nemotron-3-nano:4b-q8_0",
+              configuredModel: selectedModel,
               reachable: true,
               selectedModelAvailable: true,
               selectedModelLoaded: true,
               checkedAt: "2026-05-25T12:00:00.000Z",
               models: [
                 { name: "qwen3.5:4b", loaded: false },
-                { name: "nemotron-3-nano:4b-q8_0", loaded: true }
+                { name: selectedModel, loaded: true }
               ],
-              loadedModels: [{ name: "nemotron-3-nano:4b-q8_0" }]
+              loadedModels: [{ name: selectedModel }]
             }
           }),
           { status: 200 }
@@ -231,14 +233,14 @@ describe("ImportScreen", () => {
     });
     expect(global.fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/ai/status",
+      `/api/ai/status?model=${encodeURIComponent(selectedModel)}`,
       { cache: "no-store" }
     );
     const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
     const extractionRequest = fetchMock.mock.calls[1][1] as RequestInit;
 
     expect(JSON.parse(extractionRequest.body as string)).toMatchObject({
-      model: "nemotron-3-nano:4b-q8_0"
+      model: selectedModel
     });
   });
 
@@ -267,7 +269,7 @@ describe("ImportScreen", () => {
 
     await user.click(screen.getByRole("button", { name: "Extract profile" }));
 
-    expect(await screen.findByText(/no ollama model is loaded/i)).toBeInTheDocument();
+    expect(await screen.findByText(/is not ready/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open AI Status" })).toHaveAttribute(
       "href",
       "/ai"

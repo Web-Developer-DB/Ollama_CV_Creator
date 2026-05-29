@@ -21,6 +21,8 @@ const { generateOllamaJson } = vi.mocked(
   await import("@/lib/ai/ollama-client")
 );
 
+const selectedModel = "installed-selected-model:latest";
+
 const candidateProfile: CandidateProfile = {
   personalInfo: {
     fullName: "Ada Lovelace",
@@ -143,7 +145,7 @@ describe("AI services", () => {
     const payload = await extractProfile({
       text: "Ada writes TypeScript.",
       language: "en",
-      model: "granite4.1:3b-q6_K"
+      model: selectedModel
     });
 
     expect(payload).toEqual({
@@ -154,7 +156,7 @@ describe("AI services", () => {
       expect.objectContaining({
         temperature: 0.1
       }),
-      { model: "granite4.1:3b-q6_K", timeoutMs: 120_000 }
+      { model: selectedModel, timeoutMs: 120_000 }
     );
   });
 
@@ -166,7 +168,8 @@ describe("AI services", () => {
 
     const payload = await analyzeJob({
       jobDescription: "Frontend role focused on React.",
-      language: "en"
+      language: "en",
+      model: selectedModel
     });
 
     expect(payload).toMatchObject({
@@ -175,12 +178,19 @@ describe("AI services", () => {
         code: "SCHEMA_VALIDATION_FAILED"
       }
     });
+    expect(generateOllamaJson).toHaveBeenCalledWith(
+      expect.any(Object),
+      { model: selectedModel }
+    );
   });
 
   it("guards generated CVs against unsupported skills", async () => {
     generateOllamaJson.mockResolvedValue(generatedCv);
 
-    const payload = await generateCv(cvRequest);
+    const payload = await generateCv({
+      ...cvRequest,
+      model: selectedModel
+    });
 
     expect(payload).toMatchObject({
       success: false,
@@ -188,12 +198,19 @@ describe("AI services", () => {
         code: "HALLUCINATION_DETECTED"
       }
     });
+    expect(generateOllamaJson).toHaveBeenCalledWith(
+      expect.any(Object),
+      { model: selectedModel }
+    );
   });
 
   it("guards cover letters against unsupported job skills", async () => {
     generateOllamaJson.mockResolvedValue(generatedCoverLetter);
 
-    const payload = await generateCoverLetter(coverLetterRequest);
+    const payload = await generateCoverLetter({
+      ...coverLetterRequest,
+      model: selectedModel
+    });
 
     expect(payload).toMatchObject({
       success: false,
@@ -201,5 +218,9 @@ describe("AI services", () => {
         code: "HALLUCINATION_DETECTED"
       }
     });
+    expect(generateOllamaJson).toHaveBeenCalledWith(
+      expect.any(Object),
+      { model: selectedModel }
+    );
   });
 });

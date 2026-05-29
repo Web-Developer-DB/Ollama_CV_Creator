@@ -12,7 +12,7 @@ type OllamaReadinessErrorCode = Extract<
 
 type OllamaReadinessBase = {
   baseUrl: string;
-  model: string;
+  model?: string;
   installedModels: string[];
   loadedModels: string[];
 };
@@ -20,6 +20,7 @@ type OllamaReadinessBase = {
 export type OllamaReadiness =
   | (OllamaReadinessBase & {
       ready: true;
+      model: string;
     })
   | (OllamaReadinessBase & {
       ready: false;
@@ -89,7 +90,7 @@ const collectModelNames = (body: OllamaModelsResponse): string[] => {
 
 const createNotReady = (
   config: AiConfig,
-  model: string,
+  model: string | undefined,
   code: OllamaReadinessErrorCode,
   message: string,
   installedModels: string[] = [],
@@ -105,12 +106,12 @@ const createNotReady = (
 });
 
 const resolveLoadedModel = (
-  requestedModel: string,
+  requestedModel: string | undefined,
   installedModels: string[],
   loadedModels: string[]
 ): string | undefined => {
-  if (loadedModels.includes(requestedModel)) {
-    return requestedModel;
+  if (requestedModel) {
+    return loadedModels.includes(requestedModel) ? requestedModel : undefined;
   }
 
   return (
@@ -119,11 +120,14 @@ const resolveLoadedModel = (
   );
 };
 
+const describeModel = (model: string | undefined): string =>
+  model ? `Ollama model ${model}` : "The selected Ollama model";
+
 export const checkOllamaReadiness = async (
   options: OllamaReadinessOptions = {}
 ): Promise<OllamaReadiness> => {
   const config = createRuntimeConfig(options);
-  const requestedModel = config.model;
+  const requestedModel = config.model?.trim() || undefined;
   const timeoutController = createTimeoutController(config.timeoutMs);
   let installedModels: string[] = [];
   let loadedModels: string[] = [];
@@ -181,23 +185,23 @@ export const checkOllamaReadiness = async (
       };
     }
 
-    if (!installedModels.includes(requestedModel)) {
+    if (requestedModel && !installedModels.includes(requestedModel)) {
       return createNotReady(
         config,
         requestedModel,
         "AI_MODEL_NOT_READY",
-        `Ollama model ${requestedModel} is not installed and no other model is loaded. Open AI Status, install or load an available model, then try again.`,
+        `${describeModel(requestedModel)} is not installed. Open AI Status, select an installed model, load it, then try again.`,
         installedModels,
         loadedModels
       );
     }
 
-    if (!loadedModels.includes(requestedModel)) {
+    if (requestedModel && !loadedModels.includes(requestedModel)) {
       return createNotReady(
         config,
         requestedModel,
         "AI_MODEL_NOT_READY",
-        `Ollama model ${requestedModel} is installed but not loaded. Open AI Status, load the model in Ollama, then try again.`,
+        `${describeModel(requestedModel)} is installed but not loaded. Open AI Status, load the selected model, then try again.`,
         installedModels,
         loadedModels
       );
@@ -207,7 +211,7 @@ export const checkOllamaReadiness = async (
       config,
       requestedModel,
       "AI_MODEL_NOT_READY",
-      "No Ollama model is loaded. Open AI Status, load a model, then try again.",
+      "No Ollama model is loaded. Open AI Status, load a selected installed model, then try again.",
       installedModels,
       loadedModels
     );
