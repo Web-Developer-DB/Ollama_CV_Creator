@@ -19,7 +19,7 @@ export function Panel({
   return (
     <section
       className={classNames(
-        "rounded-md border border-slate-200 bg-white p-5 shadow-panel",
+        "rounded-lg border border-slate-200/80 bg-white p-5 shadow-panel",
         className
       )}
     >

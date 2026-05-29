@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { Badge } from "@/components/ui/Badge";
 import { useProjectStore } from "@/stores/project-store";
 import type {
   CandidateProfile,
@@ -87,6 +88,46 @@ const buildProjectTitle = (
   return fallback ?? "Candidate profile";
 };
 
+const calculateProfileCompletion = (profile: CandidateProfile): number => {
+  const checks = [
+    profile.personalInfo.fullName,
+    profile.personalInfo.email,
+    profile.personalInfo.location,
+    profile.summary,
+    getEditableExperience(profile.experiences).role,
+    getEditableExperience(profile.experiences).company,
+    profile.skills.technical.length > 0 ? "technical" : undefined,
+    profile.skills.soft.length > 0 ? "soft" : undefined
+  ];
+  const completed = checks.filter(Boolean).length;
+
+  return Math.round((completed / checks.length) * 100);
+};
+
+const avatarLetters = (name: string | undefined): string => {
+  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+
+  return parts.length >= 2
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : (parts[0]?.slice(0, 2).toUpperCase() ?? "MS");
+};
+
+function SkillChips({ items }: Readonly<{ items: string[] }>) {
+  if (items.length === 0) {
+    return <p className="text-sm text-slate-500">Noch keine Einträge.</p>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <Badge className="border-indigo-100 bg-indigo-50/80" key={item}>
+          {item}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 export function ProfileScreen() {
   const { error, isLoading, projects, saveProject, selectedProjectId } =
     useProjectStore();
@@ -108,11 +149,15 @@ export function ProfileScreen() {
     getEditableExperience(initialProfile.experiences).responsibilities.join("\n")
   );
   const [savedMessage, setSavedMessage] = useState<string | undefined>();
+  const technicalSkillsRef = useRef<HTMLTextAreaElement>(null);
+  const softSkillsRef = useRef<HTMLTextAreaElement>(null);
   const editableExperience = getEditableExperience(profile.experiences);
   const uncertainFields = profile.extractionMeta?.uncertainFields ?? [];
   const warnings = profile.extractionMeta?.warnings ?? [];
   const hasExtractionConcerns =
     uncertainFields.length > 0 || warnings.length > 0;
+  const completion = calculateProfileCompletion(profile);
+  const fullName = profile.personalInfo.fullName ?? "Max Mustermann";
 
   useEffect(() => {
     const nextProfile =
@@ -228,6 +273,87 @@ export function ProfileScreen() {
       title="Candidate Profile"
     >
       <form className="grid gap-6" onSubmit={handleSubmit}>
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-panel">
+          <div className="flex items-start justify-between gap-5 border-b border-slate-200 pb-5">
+            <div className="flex items-center gap-4">
+              <span className="flex size-14 items-center justify-center rounded-full bg-action text-base font-semibold text-white shadow-sm">
+                {avatarLetters(fullName)}
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">
+                  {fullName}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {editableExperience.role ?? "Software Developer"}
+                </p>
+              </div>
+            </div>
+
+            <div className="w-48">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+                <span>{completion}% vollständig</span>
+              </div>
+              <div className="mt-2 h-2 rounded-full bg-slate-100">
+                <div
+                  className="h-2 rounded-full bg-action"
+                  style={{ width: `${completion}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-6 border-b border-slate-200 text-sm font-semibold text-slate-500">
+            {["Überblick", "Erfahrung", "Fähigkeiten", "Ausbildung", "Zertifikate"].map(
+              (tab) => (
+                <span
+                  className={`pb-3 ${
+                    tab === "Fähigkeiten"
+                      ? "border-b-2 border-action text-action"
+                      : ""
+                  }`}
+                  key={tab}
+                >
+                  {tab}
+                </span>
+              )
+            )}
+          </div>
+
+          <div className="mt-5 grid gap-5">
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-950">
+                  Technische Fähigkeiten
+                </h3>
+                <button
+                  className="h-8 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-action hover:bg-indigo-50"
+                  onClick={() => technicalSkillsRef.current?.focus()}
+                  type="button"
+                >
+                  + Hinzufügen
+                </button>
+              </div>
+              <SkillChips items={profile.skills.technical.slice(0, 12)} />
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-950">
+                  Soft Skills
+                </h3>
+                <button
+                  className="h-8 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-action hover:bg-indigo-50"
+                  onClick={() => softSkillsRef.current?.focus()}
+                  type="button"
+                >
+                  + Hinzufügen
+                </button>
+              </div>
+              <SkillChips items={profile.skills.soft.slice(0, 10)} />
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-md border border-slate-200 bg-white p-5">
           <div className="flex flex-col gap-1 border-b border-slate-200 pb-4">
             <h2 className="text-base font-semibold text-slate-950">
@@ -435,6 +561,7 @@ export function ProfileScreen() {
                     setTechnicalSkills
                   )
                 }
+                ref={technicalSkillsRef}
                 value={technicalSkills}
               />
             </label>
@@ -446,6 +573,7 @@ export function ProfileScreen() {
                 onChange={(event) =>
                   updateSkillField("soft", event.target.value, setSoftSkills)
                 }
+                ref={softSkillsRef}
                 value={softSkills}
               />
             </label>

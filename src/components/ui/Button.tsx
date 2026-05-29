@@ -14,11 +14,11 @@ type ButtonProps = Readonly<
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "border-transparent bg-action text-white shadow-sm hover:bg-blue-700 focus-visible:ring-action",
+    "border-transparent bg-action text-white shadow-sm hover:bg-indigo-700 focus-visible:ring-action",
   secondary:
-    "border-slate-300 bg-white text-slate-800 shadow-sm hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-slate-400",
+    "border-slate-200 bg-white text-slate-800 shadow-sm hover:border-indigo-200 hover:bg-indigo-50/70 hover:text-indigo-700 focus-visible:ring-slate-400",
   ghost:
-    "border-transparent bg-transparent text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-300",
+    "border-transparent bg-transparent text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-slate-300",
   danger:
     "border-transparent bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500"
 };
@@ -39,7 +39,7 @@ export function Button({
   return (
     <button
       className={classNames(
-        "inline-flex items-center justify-center rounded-md border font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none",
+        "inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none",
         variantClasses[variant],
         sizeClasses[size],
         className
