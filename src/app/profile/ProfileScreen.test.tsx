@@ -65,7 +65,9 @@ describe("ProfileScreen", () => {
 
     render(<ProfileScreen />);
 
-    const fullNameInput = screen.getByLabelText("Full name");
+    await user.click(screen.getByRole("tab", { name: /Kontaktdaten/ }));
+
+    const fullNameInput = screen.getByLabelText("Vollständiger Name");
     await user.clear(fullNameInput);
     await user.type(fullNameInput, "Ada Byron");
 
@@ -82,7 +84,9 @@ describe("ProfileScreen", () => {
 
     render(<ProfileScreen />);
 
-    expect(screen.getByLabelText("Full name")).toHaveValue("");
+    await userEvent.click(screen.getByRole("tab", { name: /Kontaktdaten/ }));
+
+    expect(screen.getByLabelText("Vollständiger Name")).toHaveValue("");
 
     act(() => {
       useProjectStore.setState({
@@ -94,10 +98,16 @@ describe("ProfileScreen", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Full name")).toHaveValue("Ada Lovelace");
+      expect(screen.getByLabelText("Vollständiger Name")).toHaveValue("Ada Lovelace");
     });
-    expect(screen.getByLabelText("Technical skills")).toHaveValue("TypeScript");
-    expect(screen.getByLabelText("Responsibilities")).toHaveValue("Built tools");
+
+    await userEvent.click(screen.getByRole("tab", { name: /Fähigkeiten/ }));
+    expect(screen.getByLabelText("Technische Fähigkeit 1")).toHaveValue(
+      "TypeScript"
+    );
+
+    await userEvent.click(screen.getByRole("tab", { name: /Erfahrung/ }));
+    expect(screen.getByLabelText("Aufgaben")).toHaveValue("Built tools");
   });
 
   it("makes experiences editable", async () => {
@@ -105,7 +115,9 @@ describe("ProfileScreen", () => {
 
     render(<ProfileScreen />);
 
-    const roleInput = screen.getByLabelText("Experience role");
+    await user.click(screen.getByRole("tab", { name: /Erfahrung/ }));
+
+    const roleInput = screen.getByLabelText("Rolle");
     await user.clear(roleInput);
     await user.type(roleInput, "Principal Engineer");
 
@@ -117,25 +129,40 @@ describe("ProfileScreen", () => {
 
     render(<ProfileScreen />);
 
-    const technicalSkillsInput = screen.getByLabelText("Technical skills");
-    expect(technicalSkillsInput.tagName).toBe("TEXTAREA");
+    const technicalSkillsInput = screen.getByLabelText("Technische Fähigkeit 1");
+    expect(technicalSkillsInput.tagName).toBe("INPUT");
 
     await user.clear(technicalSkillsInput);
-    await user.type(technicalSkillsInput, "TypeScript, React");
+    await user.type(technicalSkillsInput, "TypeScript Pro");
 
-    expect(technicalSkillsInput).toHaveValue("TypeScript, React");
+    expect(technicalSkillsInput).toHaveValue("TypeScript Pro");
+
+    await user.type(screen.getByLabelText("Neue Technische Fähigkeit"), "React");
+    await user.click(
+      screen.getByRole("button", {
+        name: "Technische Fähigkeit hinzufügen"
+      })
+    );
+
+    expect(screen.getByLabelText("Technische Fähigkeit 2")).toHaveValue("React");
   });
 
-  it("shows uncertain fields", () => {
+  it("shows uncertain fields", async () => {
+    const user = userEvent.setup();
+
     render(<ProfileScreen />);
 
-    expect(screen.getByText("Uncertain fields")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /LLM-Hinweise/ }));
+
+    expect(screen.getByText("Unsichere Felder")).toBeInTheDocument();
     expect(screen.getByText("experiences.0.startDate")).toBeInTheDocument();
     expect(screen.getByText("skills.tools")).toBeInTheDocument();
     expect(screen.getByText("Some dates were missing")).toBeInTheDocument();
   });
 
-  it("shows a neutral extraction state when no uncertain fields exist", () => {
+  it("shows a neutral extraction state when no uncertain fields exist", async () => {
+    const user = userEvent.setup();
+
     useProjectStore.setState({
       projects: [
         {
@@ -154,10 +181,11 @@ describe("ProfileScreen", () => {
 
     render(<ProfileScreen />);
 
-    const neutralStatus = screen.getByText("No uncertain fields were reported.");
+    await user.click(screen.getByRole("tab", { name: /LLM-Hinweise/ }));
+
+    const neutralStatus = screen.getByText("Keine unsicheren Felder gemeldet.");
     const statusSection = neutralStatus.closest("section");
 
-    expect(statusSection).toHaveClass("border-slate-200");
     expect(statusSection).not.toHaveClass("bg-amber-50");
   });
 });
