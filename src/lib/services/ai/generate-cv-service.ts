@@ -29,6 +29,7 @@ const generateCVRequestSchema = z.object({
   candidateProfile: candidateProfileSchema,
   jobTarget: jobTargetSchema,
   jobAnalysis: jobAnalysisSchema,
+  model: z.string().trim().min(1).optional(),
   options: z.object({
     language: z.enum(["de", "en"]),
     length: z.literal("one_page"),
@@ -136,7 +137,10 @@ export const generateCv = async (
   const prompt = buildGenerateCVPrompt(request);
 
   try {
-    const aiCV = await generateOllamaJson<unknown>(prompt);
+    const aiCV = await generateOllamaJson<unknown>(
+      prompt,
+      request.model ? { model: request.model } : undefined
+    );
     const parsedCV = generatedCVSchema.safeParse(aiCV);
 
     if (!parsedCV.success) {

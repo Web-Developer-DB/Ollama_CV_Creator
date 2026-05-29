@@ -40,6 +40,7 @@ export type ExtractProfileResponse = ApiResponse<CandidateProfile>;
 export type AnalyzeJobRequest = {
   jobDescription: string;
   language: "de" | "en";
+  model?: string;
 };
 
 export type AnalyzeJobResponse = ApiResponse<JobAnalysis>;
@@ -48,6 +49,7 @@ export type GenerateCVRequest = {
   candidateProfile: CandidateProfile;
   jobTarget: JobTarget;
   jobAnalysis: JobAnalysis;
+  model?: string;
   options: {
     language: "de" | "en";
     length: "one_page";
@@ -61,6 +63,7 @@ export type GenerateCoverLetterRequest = {
   candidateProfile: CandidateProfile;
   jobTarget: JobTarget;
   jobAnalysis: JobAnalysis;
+  model?: string;
   options: {
     language: "de" | "en";
     tone: JobTarget["tone"];

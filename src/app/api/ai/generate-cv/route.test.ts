@@ -18,6 +18,8 @@ const { generateOllamaJson } = vi.mocked(
   await import("@/lib/ai/ollama-client")
 );
 
+const selectedModel = "installed-selected-model:latest";
+
 const requestBody: GenerateCVRequest = {
   candidateProfile: {
     personalInfo: {
@@ -131,7 +133,12 @@ describe("POST /api/ai/generate-cv", () => {
   it("returns a valid generated CV", async () => {
     generateOllamaJson.mockResolvedValue(validCV);
 
-    const response = await POST(createRequest(requestBody));
+    const response = await POST(
+      createRequest({
+        ...requestBody,
+        model: selectedModel
+      })
+    );
     const payload = await readJson(response);
 
     expect(response.status).toBe(200);
@@ -142,7 +149,8 @@ describe("POST /api/ai/generate-cv", () => {
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.objectContaining({
         temperature: 0.4
-      })
+      }),
+      { model: selectedModel }
     );
   });
 

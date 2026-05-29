@@ -102,7 +102,8 @@ export const getOllamaStatus = async (
   options: { model?: string } = {}
 ): Promise<ApiResponse<OllamaStatus>> => {
   const runtimeConfig = getAiConfig();
-  const requestedModel = options.model?.trim() || runtimeConfig.model;
+  const requestedModel =
+    options.model?.trim() || runtimeConfig.model?.trim() || undefined;
   const hasExplicitModel = Boolean(options.model?.trim());
   const config = {
     ...runtimeConfig,
@@ -111,7 +112,7 @@ export const getOllamaStatus = async (
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
   const baseStatus: Omit<OllamaStatus, "error"> = {
     baseUrl,
-    configuredModel: config.model,
+    configuredModel: config.model ?? "",
     reachable: false,
     selectedModelAvailable: false,
     selectedModelLoaded: false,
@@ -143,9 +144,9 @@ export const getOllamaStatus = async (
 
       return normalizedModel ? [normalizedModel] : [];
     });
-    const requestedModelAvailable = installedModels.some(
-      (model) => model.name === config.model
-    );
+    const requestedModelAvailable = requestedModel
+      ? installedModels.some((model) => model.name === requestedModel)
+      : false;
 
     const psResponse = await fetch(`${baseUrl}/api/ps`, {
       method: "GET",
@@ -177,23 +178,28 @@ export const getOllamaStatus = async (
       loaded: loadedModelNames.has(model.name)
     }));
     const resolvedModel =
-      hasExplicitModel || loadedModels.length === 0
-        ? requestedModel
+      hasExplicitModel || requestedModel
+        ? (requestedModel ?? "")
         : (loadedModels.find((model) =>
             installedModels.some(
               (installedModel) => installedModel.name === model.name
             )
-          )?.name ?? loadedModels[0]?.name ?? requestedModel);
+          )?.name ??
+          loadedModels[0]?.name ??
+          installedModels[0]?.name ??
+          "");
     const selectedModelAvailable =
-      installedModels.some((model) => model.name === resolvedModel) ||
-      loadedModelNames.has(resolvedModel);
+      Boolean(resolvedModel) &&
+      (installedModels.some((model) => model.name === resolvedModel) ||
+        loadedModelNames.has(resolvedModel));
 
     return createSuccessResponse({
       ...baseStatus,
       configuredModel: resolvedModel,
       reachable: true,
       selectedModelAvailable,
-      selectedModelLoaded: loadedModelNames.has(resolvedModel),
+      selectedModelLoaded:
+        Boolean(resolvedModel) && loadedModelNames.has(resolvedModel),
       models,
       loadedModels
     });

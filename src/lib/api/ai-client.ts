@@ -12,6 +12,7 @@ import type {
   ModelControlResponse,
   OllamaStatus
 } from "@/types/api";
+import { readStoredModel } from "@/lib/ai/selected-model";
 
 const desktopApi = () =>
   typeof window === "undefined" ? undefined : window.desktopApi;
@@ -38,19 +39,28 @@ export const getAiStatus = async (
   model?: string
 ): Promise<ApiResponse<OllamaStatus>> => {
   const api = desktopApi();
+  const selectedModel = model?.trim() || readStoredModel();
 
   if (api?.ai) {
-    return api.ai.status(model ? { model } : undefined);
+    return api.ai.status(selectedModel ? { model: selectedModel } : undefined);
   }
 
-  const statusUrl = model
-    ? `/api/ai/status?model=${encodeURIComponent(model)}`
+  const statusUrl = selectedModel
+    ? `/api/ai/status?model=${encodeURIComponent(selectedModel)}`
     : "/api/ai/status";
   const response = await fetch(statusUrl, {
     cache: "no-store"
   });
 
   return readJsonResponse<OllamaStatus>(response);
+};
+
+const withSelectedModel = <TRequest extends { model?: string }>(
+  request: TRequest
+): TRequest => {
+  const selectedModel = request.model?.trim() || readStoredModel();
+
+  return selectedModel ? { ...request, model: selectedModel } : request;
 };
 
 export const controlAiModel = async (
@@ -67,38 +77,42 @@ export const extractProfile = async (
   request: ExtractProfileRequest
 ): Promise<ExtractProfileResponse> => {
   const api = desktopApi();
+  const requestWithModel = withSelectedModel(request);
 
   return api?.ai
-    ? api.ai.extractProfile(request)
-    : postJson("/api/ai/extract-profile", request);
+    ? api.ai.extractProfile(requestWithModel)
+    : postJson("/api/ai/extract-profile", requestWithModel);
 };
 
 export const analyzeJob = async (
   request: AnalyzeJobRequest
 ): Promise<AnalyzeJobResponse> => {
   const api = desktopApi();
+  const requestWithModel = withSelectedModel(request);
 
   return api?.ai
-    ? api.ai.analyzeJob(request)
-    : postJson("/api/ai/analyze-job", request);
+    ? api.ai.analyzeJob(requestWithModel)
+    : postJson("/api/ai/analyze-job", requestWithModel);
 };
 
 export const generateCv = async (
   request: GenerateCVRequest
 ): Promise<GenerateCVResponse> => {
   const api = desktopApi();
+  const requestWithModel = withSelectedModel(request);
 
   return api?.ai
-    ? api.ai.generateCv(request)
-    : postJson("/api/ai/generate-cv", request);
+    ? api.ai.generateCv(requestWithModel)
+    : postJson("/api/ai/generate-cv", requestWithModel);
 };
 
 export const generateCoverLetter = async (
   request: GenerateCoverLetterRequest
 ): Promise<GenerateCoverLetterResponse> => {
   const api = desktopApi();
+  const requestWithModel = withSelectedModel(request);
 
   return api?.ai
-    ? api.ai.generateCoverLetter(request)
-    : postJson("/api/ai/generate-cover-letter", request);
+    ? api.ai.generateCoverLetter(requestWithModel)
+    : postJson("/api/ai/generate-cover-letter", requestWithModel);
 };

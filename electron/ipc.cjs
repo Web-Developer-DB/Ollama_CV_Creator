@@ -33,7 +33,8 @@ const extractProfileRequestSchema = z.object({
 
 const analyzeJobRequestSchema = z.object({
   jobDescription: z.string().trim().min(1),
-  language: languageSchema
+  language: languageSchema,
+  model: modelSchema.optional()
 });
 
 const modelControlRequestSchema = z.object({
@@ -45,6 +46,7 @@ const generateCvRequestSchema = z.object({
   candidateProfile: z.record(z.string(), z.unknown()),
   jobTarget: z.record(z.string(), z.unknown()),
   jobAnalysis: z.record(z.string(), z.unknown()),
+  model: modelSchema.optional(),
   options: z.object({
     language: languageSchema,
     length: z.literal("one_page"),
@@ -56,6 +58,7 @@ const generateCoverLetterRequestSchema = z.object({
   candidateProfile: z.record(z.string(), z.unknown()),
   jobTarget: z.record(z.string(), z.unknown()),
   jobAnalysis: z.record(z.string(), z.unknown()),
+  model: modelSchema.optional(),
   options: z.object({
     language: languageSchema,
     tone: z.enum(["professional", "modern", "conservative", "confident"])

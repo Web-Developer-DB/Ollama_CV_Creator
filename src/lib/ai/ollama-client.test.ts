@@ -9,17 +9,19 @@ import {
 const createJsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status });
 
+const readyModel = "selected-model:latest";
+
 const createReadyGenerateFetchMock = (generatedBody: unknown) =>
   vi
     .fn()
     .mockResolvedValueOnce(
       createJsonResponse({
-        models: [{ name: DEFAULT_AI_CONFIG.model }]
+        models: [{ name: readyModel }]
       })
     )
     .mockResolvedValueOnce(
       createJsonResponse({
-        models: [{ model: DEFAULT_AI_CONFIG.model }]
+        models: [{ model: readyModel }]
       })
     )
     .mockResolvedValueOnce(createJsonResponse(generatedBody));
@@ -76,7 +78,7 @@ describe("Ollama client", () => {
       .mockResolvedValueOnce(
         createJsonResponse({
           models: [
-            { name: DEFAULT_AI_CONFIG.model },
+            { name: "another-installed-model:latest" },
             { name: "nemotron-3-nano:4b-q8_0" }
           ]
         })
@@ -211,7 +213,7 @@ describe("Ollama client", () => {
       .fn()
       .mockResolvedValueOnce(
         createJsonResponse({
-          models: [{ name: DEFAULT_AI_CONFIG.model }]
+          models: [{ name: readyModel }]
         })
       )
       .mockResolvedValueOnce(
@@ -224,7 +226,8 @@ describe("Ollama client", () => {
     await expect(
       generateOllamaText({
         prompt: "Return JSON",
-        system: "Return valid JSON only"
+        system: "Return valid JSON only",
+        model: readyModel
       })
     ).rejects.toMatchObject({
       code: "AI_MODEL_NOT_READY",

@@ -62,6 +62,8 @@ Ad-hoc dashboard AI status fix completed. The dashboard AI card now reads the li
 
 Ad-hoc profile review UX redesign completed. The profile page now uses real section tabs, direct editable skill chips with add/remove controls, editable experience selection, and dedicated education, certificate, and LLM-hint review panels so extracted profile facts can be corrected without working through comma-only textareas.
 
+Ad-hoc LLM model selection audit completed. Production AI config no longer defines a fallback model name, `OLLAMA_MODEL` is no longer used as a runtime model selector, all LLM request paths accept and forward the selected local model, and status/readiness logic only treats installed and loaded Ollama models as usable.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -131,6 +133,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 - npm run typecheck: passed
 - npm run test: passed, 130 tests
 - npm run build: passed
+- production model-name audit for `src` and `electron`: passed, no hard-coded LLM model names outside tests
 - headless Chrome profile layout check: passed for `/profile` at 1280x900 and 1450x900 with no horizontal overflow
 - headless Chrome visual smoke check: passed for `/`, `/profile`, `/templates`, and `/import` at 1512x920 with no horizontal overflow
 - npm run dev:electron: passed; renderer served locally and Electron loaded the app with IPC handlers registered after the launcher removed `ELECTRON_RUN_AS_NODE`
@@ -143,4 +146,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-29: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, and the profile review UX redesign. Next recommended task is TASK-036 Desktop Storage Migration.
+2026-05-29: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, and the full LLM model selection audit. Next recommended task is TASK-036 Desktop Storage Migration.

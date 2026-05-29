@@ -64,7 +64,7 @@ const pickSelectedModel = (status: OllamaStatus): string => {
     return status.configuredModel;
   }
 
-  return status.models[0]?.name ?? status.configuredModel;
+  return status.models[0]?.name ?? "";
 };
 
 export function AiSettingsScreen() {

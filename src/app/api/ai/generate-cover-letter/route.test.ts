@@ -18,6 +18,8 @@ const { generateOllamaJson } = vi.mocked(
   await import("@/lib/ai/ollama-client")
 );
 
+const selectedModel = "installed-selected-model:latest";
+
 const requestBody: GenerateCoverLetterRequest = {
   candidateProfile: {
     personalInfo: {
@@ -111,7 +113,12 @@ describe("POST /api/ai/generate-cover-letter", () => {
   it("uses company and role when present", async () => {
     generateOllamaJson.mockResolvedValue(validCoverLetter);
 
-    const response = await POST(createRequest(requestBody));
+    const response = await POST(
+      createRequest({
+        ...requestBody,
+        model: selectedModel
+      })
+    );
     const payload = await readJson(response);
 
     expect(response.status).toBe(200);
@@ -124,7 +131,8 @@ describe("POST /api/ai/generate-cover-letter", () => {
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.objectContaining({
         temperature: 0.5
-      })
+      }),
+      { model: selectedModel }
     );
   });
 
