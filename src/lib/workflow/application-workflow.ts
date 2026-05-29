@@ -15,70 +15,70 @@ export type NavigationGroup = {
 export const overviewRoute: WorkflowRoute = {
   href: "/dashboard",
   label: "Dashboard",
-  title: "Create application documents",
-  dependency: "Project workspace",
-  outcome: "Guided next action"
+  title: "Bewerbungsunterlagen erstellen",
+  dependency: "Projektarbeitsbereich",
+  outcome: "Geführte Aktion"
 };
 
 export const cvWorkflowSteps: WorkflowRoute[] = [
   {
     href: "/import",
-    label: "Candidate",
+    label: "Kandidat",
     step: "1",
-    title: "Collect candidate context",
-    dependency: "Start here",
-    outcome: "Raw experience saved"
+    title: "Erfahrung sammeln",
+    dependency: "Start hier",
+    outcome: "Rohdaten gespeichert"
   },
   {
     href: "/profile",
     label: "Profile",
     step: "2",
-    title: "Review structured profile",
-    dependency: "Requires candidate context",
-    outcome: "Verified profile facts"
+    title: "Profil überprüfen",
+    dependency: "Erfordert Kandidatentext",
+    outcome: "Verifizierte Profildaten"
   },
   {
     href: "/documents",
-    label: "Write",
+    label: "Schreiben",
     step: "3",
-    title: "Write CV and cover letter",
-    dependency: "Requires reviewed profile",
-    outcome: "Editable documents"
+    title: "CV und Anschreiben schreiben",
+    dependency: "Erfordert geprüftes Profil",
+    outcome: "Editierbare Dokumente"
   },
   {
     href: "/templates",
     label: "Design",
     step: "4",
-    title: "Choose document design",
-    dependency: "Requires document drafts",
-    outcome: "Professional preview"
+    title: "Dokumentdesign wählen",
+    dependency: "Erfordert Dokumententwürfe",
+    outcome: "Professionelle Vorschau"
   },
   {
     href: "/export",
     label: "Export",
     step: "5",
-    title: "Export application package",
-    dependency: "Requires selected design",
-    outcome: "PDF and project files"
+    title: "Bewerbungspaket exportieren",
+    dependency: "Erfordert gewähltes Design",
+    outcome: "PDF und Projektdateien"
   }
 ];
 
 export const tailoringSteps: WorkflowRoute[] = [
   {
     href: "/job",
-    label: "Target role",
+    label: "Zielrolle",
     step: "T1",
-    title: "Add target job",
-    dependency: "Optional after profile",
-    outcome: "Tailoring context"
+    title: "Zielrolle hinzufügen",
+    dependency: "Optional nach Profil",
+    outcome: "Anpassungskontext"
   },
   {
     href: "/analysis",
-    label: "Tailoring",
+    label: "Anpassung",
     step: "T2",
-    title: "Find positioning cues",
-    dependency: "Requires target job",
-    outcome: "Relevant emphasis"
+    title: "Positionierung finden",
+    dependency: "Erfordert Zielrolle",
+    outcome: "Relevante Betonung"
   }
 ];
 
@@ -98,19 +98,19 @@ export const systemRoutes: WorkflowRoute[] = [
 
 export const navigationGroups: NavigationGroup[] = [
   {
-    label: "Overview",
+    label: "Übersicht",
     items: [overviewRoute]
   },
   {
-    label: "Document creation",
+    label: "Dokumenterstellung",
     items: cvWorkflowSteps.slice(0, 3)
   },
   {
-    label: "Design and export",
+    label: "Design & Export",
     items: cvWorkflowSteps.slice(3)
   },
   {
-    label: "Role tailoring",
+    label: "Rolle anpassen",
     items: tailoringSteps
   },
   {

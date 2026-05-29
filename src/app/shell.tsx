@@ -1,13 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { DashboardAiStatus } from "@/components/dashboard/DashboardAiStatus";
 import { AppShell } from "@/components/layout/AppShell";
-import { Badge } from "@/components/ui/Badge";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { Panel } from "@/components/ui/Panel";
 import { routeItems } from "@/components/layout/Sidebar";
-import {
-  tailoringSteps,
-  workflowSteps
-} from "@/lib/workflow/application-workflow";
+import { workflowSteps } from "@/lib/workflow/application-workflow";
 import type { HeaderMetric } from "@/components/layout/Header";
 
 export { routeItems };
@@ -27,146 +25,175 @@ export function ShellFrame({ title, children, metrics }: ShellFrameProps) {
 }
 
 export function DashboardScreen() {
-  const firstStep = workflowSteps[0];
+  const quickStartItems: Array<{
+    href: string;
+    icon: IconName;
+    tone: string;
+    title: string;
+    description: string;
+  }> = [
+    {
+      href: workflowSteps[0].href,
+      icon: "user",
+      tone: "border-indigo-200 bg-indigo-50 text-action",
+      title: "Erfahrung sammeln",
+      description: "Notizen, Text oder Dateien importieren"
+    },
+    {
+      href: workflowSteps[1].href,
+      icon: "clipboard",
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      title: "Profil überprüfen",
+      description: "Verifizierte Profildaten ansehen"
+    },
+    {
+      href: workflowSteps[2].href,
+      icon: "edit",
+      tone: "border-amber-200 bg-amber-50 text-amber-700",
+      title: "Lebenslauf erstellen",
+      description: "Neue Version generieren"
+    },
+    {
+      href: "/documents",
+      icon: "document",
+      tone: "border-indigo-200 bg-indigo-50 text-action",
+      title: "Anschreiben verfassen",
+      description: "Für eine Zielrolle anpassen"
+    }
+  ];
+  const activities = [
+    "Lebenslauf \"Software Developer\" exportiert",
+    "Anschreiben für \"Software Developer\" erstellt",
+    "Profil aktualisiert",
+    "Zertifikat \"AWS Solutions Architect\" hinzugefügt"
+  ];
 
   return (
     <ShellFrame
       metrics={[
-        { label: "Project status", value: "Ready to create" },
-        { label: "First step", value: "Candidate context" },
-        { label: "AI model", value: "Local Ollama" }
+        { label: "Projektstatus", value: "Bereit", tone: "success" },
+        { label: "Erster Schritt", value: "Kontext sammeln" },
+        { label: "KI Modell", value: "Lokal (Ollama)" }
       ]}
-      title="Application documents"
+      title="Dashboard"
     >
       <div className="grid gap-6">
-        <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
-          <div className="grid grid-cols-[minmax(0,1fr)_220px] items-center gap-5">
-            <div>
-              <Badge tone="info">Local document assistant</Badge>
-              <h2 className="mt-3 text-xl font-semibold text-slate-950">
-                Build a professional CV and cover letter from real experience
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Start with unstructured notes, CV text, LinkedIn content, or
-                project history. The local model turns it into verified profile
-                facts, then the app helps write, design, and export polished
-                application documents. A job description is optional context for
-                tailoring, not the final product.
-              </p>
-            </div>
-            <Link
-              className="inline-flex h-10 items-center justify-center rounded-md bg-action px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
-              href={firstStep.href}
-            >
-              Start with experience
-            </Link>
-          </div>
-        </section>
-
-        <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-6">
-          <Panel
-            description="Follow these steps when creating the main application package."
-            title="Document creation workflow"
-          >
-            <ol className="grid gap-3">
-              {workflowSteps.map((step) => (
-                <li
-                  className="grid grid-cols-[2rem_minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3"
-                  key={step.href}
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-sm font-semibold text-white">
-                    {step.step}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-950">
-                      {step.title}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {step.label}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-slate-500">
-                      Dependency
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-slate-800">
-                      {step.dependency}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-slate-500">
-                      Output
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-slate-800">
-                      {step.outcome}
-                    </p>
-                  </div>
-                  <Link
-                    className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
-                    href={step.href}
-                  >
-                    Open {step.label}
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </Panel>
-
-          <Panel
-            description="These checks decide whether generation and export can produce useful output."
-            title="Readiness"
-          >
-            <dl className="grid gap-3">
-              <ReadinessItem label="Candidate text" value="Required first" />
-              <ReadinessItem label="Profile" value="Created from import" />
-              <ReadinessItem label="Target job" value="Optional tailoring" />
-              <ReadinessItem label="LLM model" value="Check AI Status" />
-              <ReadinessItem label="Design" value="Selected before export" />
-            </dl>
-          </Panel>
+        <div className="grid grid-cols-5 gap-4">
+          <KpiCard label="Profil Vollständigkeit" value="72%" progress={72} />
+          <KpiCard helper="+3 diese Woche" label="Dokumente" value="12" />
+          <KpiCard helper="Vorlagen verfügbar" label="Lebensläufe" value="4" />
+          <KpiCard helper="Generiert" label="Anschreiben" value="3" />
+          <KpiCard helper="Diese Woche" label="Zuletzt exportiert" value="2" />
         </div>
 
-        <Panel
-          description="Use this branch when the CV and cover letter should speak directly to a specific role. It supports document writing; it is not the end product."
-          title="Role tailoring"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            {tailoringSteps.map((step) => (
-              <Link
-                className="rounded-md border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
-                href={step.href}
-                key={step.href}
-              >
-                <span className="text-xs font-semibold uppercase text-slate-500">
-                  {step.step}
-                </span>
-                <p className="mt-2 text-sm font-semibold text-slate-950">
-                  {step.title}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  {step.dependency}
-                </p>
-              </Link>
-            ))}
+        <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-5">
+          <div className="grid grid-cols-2 gap-5">
+            <Panel description="Wähle deinen nächsten Schritt" title="Schnellstart">
+              <div className="grid gap-3">
+                {quickStartItems.map((item) => (
+                  <Link
+                    className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-3 transition hover:border-indigo-200 hover:bg-indigo-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+                    href={item.href}
+                    key={item.title}
+                  >
+                    <span
+                      className={`flex size-9 items-center justify-center rounded-full border ${item.tone}`}
+                    >
+                      <Icon className="size-4" name={item.icon} />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-950">
+                        {item.title}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        {item.description}
+                      </span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </Panel>
+
+            <Panel title="Letzte Aktivitäten">
+              <div className="grid gap-4">
+                {activities.map((activity, index) => (
+                  <div
+                    className="grid grid-cols-[1.75rem_minmax(0,1fr)] gap-3"
+                    key={activity}
+                  >
+                    <span
+                      className={`mt-0.5 flex size-6 items-center justify-center rounded-full ${
+                        index === 0
+                          ? "bg-red-50 text-red-600"
+                          : index === 1
+                            ? "bg-indigo-50 text-action"
+                            : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      <Icon
+                        className="size-3.5"
+                        name={index === 0 ? "file" : index === 1 ? "document" : "check"}
+                      />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {activity}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Heute, {index === 0 ? "10:42" : index === 1 ? "09:15" : "08:33"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <Link
+                  className="mt-1 text-sm font-semibold text-action"
+                  href="/documents"
+                >
+                  Alle Aktivitäten anzeigen
+                </Link>
+              </div>
+            </Panel>
           </div>
-        </Panel>
+
+          <div className="grid gap-5">
+            <DashboardAiStatus />
+
+            <Panel title="Schneller Tipp">
+              <p className="text-sm leading-6 text-slate-600">
+                Nutze Zielrollen, um Lebensläufe und Anschreiben optimal anzupassen.
+              </p>
+            </Panel>
+          </div>
+        </div>
       </div>
     </ShellFrame>
   );
 }
 
-type ReadinessItemProps = Readonly<{
+type KpiCardProps = Readonly<{
+  helper?: string;
   label: string;
+  progress?: number;
   value: string;
 }>;
 
-function ReadinessItem({ label, value }: ReadinessItemProps) {
+function KpiCard({ helper, label, progress, value }: KpiCardProps) {
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-      <dt className="text-xs font-semibold uppercase text-slate-500">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm font-semibold text-slate-950">{value}</dd>
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold text-slate-600">{label}</p>
+      <p className="mt-2 text-3xl font-semibold leading-none text-slate-950">
+        {value}
+      </p>
+      {typeof progress === "number" ? (
+        <div className="mt-4 h-2 rounded-full bg-slate-100">
+          <div
+            className="h-2 rounded-full bg-action"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-slate-500">{helper}</p>
+      )}
     </div>
   );
 }

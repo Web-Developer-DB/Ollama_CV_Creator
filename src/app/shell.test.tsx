@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   DashboardScreen,
   PlaceholderScreen,
@@ -7,29 +7,28 @@ import {
   ShellFrame
 } from "./shell";
 
+vi.mock("@/lib/api/ai-client", () => ({
+  getAiStatus: vi.fn(() => new Promise(() => undefined))
+}));
+
 describe("early frontend shell", () => {
   it("renders the dashboard", () => {
     render(<DashboardScreen />);
 
     expect(
-      screen.getByRole("heading", { name: "Application documents" })
+      screen.getByRole("heading", { name: "Dashboard" })
     ).toBeInTheDocument();
     expect(screen.getAllByText("Ollama CV Creator")).not.toHaveLength(0);
+    expect(screen.getByRole("heading", { name: "Schnellstart" })).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", {
-        name: "Build a professional CV and cover letter from real experience"
+      screen.getByRole("heading", { name: "Letzte Aktivitäten" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "KI Status" })).toBeInTheDocument();
+    expect(screen.getAllByText("Erfahrung sammeln")).not.toHaveLength(0);
+    expect(
+      screen.getByRole("link", {
+        name: "Erfahrung sammeln Notizen, Text oder Dateien importieren"
       })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Document creation workflow" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Role tailoring" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Collect candidate context")).toBeInTheDocument();
-    expect(screen.getByText("Requires candidate context")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Start with experience" })
     ).toHaveAttribute("href", "/import");
   });
 

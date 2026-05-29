@@ -56,6 +56,10 @@ TASK-022 completed. The document renderer now presents CVs and cover letters as 
 
 Ad-hoc loaded-model selection fix completed. LLM generation now resolves the actual loaded Ollama model from `/api/ps` before sending generation requests, so profile extraction, job analysis, CV generation, and cover letter generation no longer fall back to the default `OLLAMA_MODEL` when another local model is loaded. Candidate Intake and AI Status also prefer the loaded model over stale local selection state.
 
+Ad-hoc application redesign completed from the supplied frame sketch. The app now uses a carded desktop window layout, icon-based sidebar navigation, compact KPI cards, dashboard quick-start/activity/status panels, refreshed profile overview with progress and skill chips, and template cards with mini previews. The visual system now follows the frame principles: clearer hierarchy, consistent cards, status accents, tighter spacing, and no horizontal overflow.
+
+Ad-hoc dashboard AI status fix completed. The dashboard AI card now reads the live Ollama status instead of showing static demo text, and it only reports the model as ready when `/api/ai/status` returns at least one loaded model.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -123,8 +127,9 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 128 tests
+- npm run test: passed, 130 tests
 - npm run build: passed
+- headless Chrome visual smoke check: passed for `/`, `/profile`, `/templates`, and `/import` at 1512x920 with no horizontal overflow
 - npm run dev:electron: passed; renderer served locally and Electron loaded the app with IPC handlers registered after the launcher removed `ELECTRON_RUN_AS_NODE`
 - automated Chrome layout check: passed for `/`, `/import`, `/profile`, `/documents`, `/templates`, and `/ai` at 1280x860 with no horizontal document/body/sidebar scrolling, vertical scrolling enabled, no transform scaling, and stable 30px H1 sizing across screens
 - sensitive log scan for app/components/lib: passed
@@ -135,4 +140,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-29: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, and the loaded Ollama model selection fix. Next recommended task is TASK-036 Desktop Storage Migration.
+2026-05-29: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, and the dashboard live AI status fix. Next recommended task is TASK-036 Desktop Storage Migration.

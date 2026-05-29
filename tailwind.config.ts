@@ -5,17 +5,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#17202a",
-        paper: "#f4f7fb",
+        ink: "#0f172a",
+        paper: "#f8fafc",
         surface: "#ffffff",
-        line: "#d9e2ec",
+        line: "#e2e8f0",
         muted: "#64748b",
-        action: "#1d4ed8",
-        accent: "#0f766e",
-        warning: "#b45309"
+        action: "#4f46e5",
+        accent: "#6366f1",
+        success: "#10b981",
+        warning: "#f59e0b"
       },
       boxShadow: {
-        panel: "0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.05)"
+        panel: "0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 40px rgba(15, 23, 42, 0.06)",
+        window: "0 20px 70px rgba(15, 23, 42, 0.08)"
       }
     }
   },

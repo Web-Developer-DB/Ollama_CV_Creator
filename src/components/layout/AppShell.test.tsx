@@ -30,7 +30,7 @@ describe("layout components", () => {
       />
     );
 
-    expect(screen.getByText("Ollama CV Creator")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Import" })).toBeInTheDocument();
     expect(screen.getByText("Project status")).toBeInTheDocument();
     expect(screen.getByText("TASK-006")).toBeInTheDocument();
   });
