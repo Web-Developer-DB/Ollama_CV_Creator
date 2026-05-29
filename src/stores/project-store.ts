@@ -3,7 +3,7 @@ import {
   deleteProject as deleteStoredProject,
   listProjects,
   saveProject as saveStoredProject
-} from "@/lib/storage/indexeddb";
+} from "@/lib/storage/project-storage";
 import type { ApplicationProject } from "@/types/project";
 
 type ProjectStoreState = {

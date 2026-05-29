@@ -173,6 +173,43 @@ describe("GET /api/ai/status", () => {
     });
   });
 
+  it("defaults to the loaded model when no query model is provided", async () => {
+    vi.stubEnv("OLLAMA_MODEL", "qwen3.5:4b");
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            models: [
+              { name: "qwen3.5:4b" },
+              { name: "nemotron-3-nano:4b-q8_0" }
+            ]
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            models: [{ name: "nemotron-3-nano:4b-q8_0" }]
+          }),
+          { status: 200 }
+        )
+      );
+
+    const response = await GET(createRequest());
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        configuredModel: "nemotron-3-nano:4b-q8_0",
+        selectedModelAvailable: true,
+        selectedModelLoaded: true
+      }
+    });
+  });
+
   it("reports unavailable Ollama without failing the status endpoint", async () => {
     global.fetch = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
 

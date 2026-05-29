@@ -8,6 +8,13 @@ const openDevTools = process.argv.includes("--devtools");
 
 const processes = new Set();
 
+const createElectronProcessEnv = () => {
+  const safeEnv = { ...process.env };
+
+  delete safeEnv.ELECTRON_RUN_AS_NODE;
+  return safeEnv;
+};
+
 const spawnProcess = (command, args, options = {}) => {
   const child = spawn(command, args, {
     stdio: "inherit",
@@ -138,7 +145,7 @@ const main = async () => {
 
   const electronProcess = spawnProcess("npx", ["electron", "."], {
     env: {
-      ...process.env,
+      ...createElectronProcessEnv(),
       ELECTRON_OPEN_DEVTOOLS:
         openDevTools || process.env.ELECTRON_OPEN_DEVTOOLS === "1" ? "1" : "0",
       ELECTRON_RENDERER_URL: renderer.url

@@ -2,11 +2,7 @@
 
 ## BACKLOG
 
-- TASK-034: Extract Next.js API Logic into Services
-- TASK-035: Electron IPC Bridge for AI and Storage
-- TASK-036: Desktop Storage Migration
 - TASK-037: Desktop Export Flow
-- TASK-023: Template Pack
 - TASK-024: Template Selection UX
 - TASK-038: Professional CV and Cover Letter Design System
 - TASK-025: Styled PDF Export
@@ -18,7 +14,8 @@
 
 ## READY
 
-- TASK-022: Document Renderer v2
+- TASK-036: Desktop Storage Migration
+- TASK-023: Template Pack
 
 ## IN_PROGRESS
 
@@ -26,7 +23,7 @@ _None_
 
 ## REVIEW
 
-- TASK-033: Electron Migration Plan and Shell
+_None_
 
 ## DONE
 
@@ -51,8 +48,12 @@ _None_
 - TASK-019: Design System Foundation
 - TASK-020: App UX Polish
 - TASK-021: Candidate Intake and Profile Extraction UX
+- TASK-022: Document Renderer v2
 - TASK-031: AI Model Readiness Guards
 - TASK-032: Comprehensive Demo Candidate Context
+- TASK-033: Electron Migration Plan and Shell
+- TASK-034: Extract Next.js API Logic into Services
+- TASK-035: Electron IPC Bridge for AI and Storage
 
 ## BLOCKED
 

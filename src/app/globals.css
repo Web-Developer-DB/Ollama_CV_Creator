@@ -12,6 +12,13 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  min-height: 100%;
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -33,6 +40,12 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+textarea {
+  overflow-x: hidden;
+  overflow-y: auto;
+  resize: none;
 }
 
 ::selection {

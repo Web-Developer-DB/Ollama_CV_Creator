@@ -70,6 +70,40 @@ describe("Ollama client", () => {
     );
   });
 
+  it("sends generation requests to the loaded model", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          models: [
+            { name: DEFAULT_AI_CONFIG.model },
+            { name: "nemotron-3-nano:4b-q8_0" }
+          ]
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          models: [{ model: "nemotron-3-nano:4b-q8_0" }]
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          response: "Generated text",
+          done: true
+        })
+      );
+    global.fetch = fetchMock;
+
+    await generateOllamaText({
+      prompt: "Return JSON",
+      system: "Return valid JSON only"
+    });
+
+    expect(JSON.parse(fetchMock.mock.calls[2]?.[1]?.body as string)).toMatchObject({
+      model: "nemotron-3-nano:4b-q8_0"
+    });
+  });
+
   it("passes Ollama generation budgets through request options", async () => {
     const fetchMock = createReadyGenerateFetchMock({
       response: "Generated text",

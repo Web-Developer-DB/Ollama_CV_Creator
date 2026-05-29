@@ -24,7 +24,7 @@ export function Panel({
       )}
     >
       {title || description || actions ? (
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-5 flex flex-row items-start justify-between gap-3">
           <div>
             {title ? (
               <h2 className="text-base font-semibold text-slate-950">

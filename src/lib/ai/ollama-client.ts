@@ -82,7 +82,10 @@ const requestOllama = async (
     ...options,
     baseUrl: (options.baseUrl ?? runtimeConfig.baseUrl).replace(/\/+$/, "")
   };
-  const readiness = await checkOllamaReadiness(config);
+  const readiness = await checkOllamaReadiness({
+    ...config,
+    model: request.model ?? config.model
+  });
 
   if (!readiness.ready) {
     throw new OllamaClientError(readiness.code, readiness.message);
@@ -96,7 +99,7 @@ const requestOllama = async (
       headers: {
         "Content-Type": "application/json"
       },
-      body: createRequestBody(request, config),
+      body: createRequestBody({ ...request, model: readiness.model }, config),
       signal: timeoutController.signal
     });
   } catch (error) {

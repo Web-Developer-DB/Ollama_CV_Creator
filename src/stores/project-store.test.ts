@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApplicationProject } from "@/types/project";
 import { useProjectStore } from "./project-store";
 
-vi.mock("@/lib/storage/indexeddb", () => {
+vi.mock("@/lib/storage/project-storage", () => {
   const projects = new Map<string, ApplicationProject>();
 
   return {
@@ -29,7 +29,7 @@ const createProject = (id: string, title = "Application"): ApplicationProject =>
 
 describe("project store", () => {
   beforeEach(async () => {
-    const storage = await import("@/lib/storage/indexeddb");
+    const storage = await import("@/lib/storage/project-storage");
     (
       storage as typeof storage & {
         __resetStorage: () => void;

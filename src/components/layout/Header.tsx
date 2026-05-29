@@ -10,7 +10,7 @@ type HeaderProps = Readonly<{
 
 export function Header({ title, metrics }: HeaderProps) {
   return (
-    <header className="flex flex-col gap-5 border-b border-line pb-5 md:flex-row md:items-center md:justify-between">
+    <header className="flex items-center justify-between gap-6 border-b border-line pb-5">
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase text-accent">
           Ollama CV Creator
@@ -23,7 +23,7 @@ export function Header({ title, metrics }: HeaderProps) {
           for a target role.
         </p>
       </div>
-      <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+      <dl className="grid w-[520px] shrink-0 grid-cols-3 gap-3 text-sm">
         {metrics.map((metric) => (
           <div
             className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-sm"

@@ -3,41 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { readStoredModel, storeSelectedModel } from "@/lib/ai/selected-model";
-import type { ApiResponse } from "@/types/api";
-
-type OllamaModelStatus = {
-  name: string;
-  size?: number;
-  digest?: string;
-  modifiedAt?: string;
-  parameterSize?: string;
-  quantizationLevel?: string;
-  loaded: boolean;
-};
-
-type OllamaLoadedModelStatus = {
-  name: string;
-  size?: number;
-  sizeVram?: number;
-  digest?: string;
-  expiresAt?: string;
-  parameterSize?: string;
-  quantizationLevel?: string;
-};
-
-type OllamaStatus = {
-  baseUrl: string;
-  configuredModel: string;
-  reachable: boolean;
-  selectedModelAvailable: boolean;
-  selectedModelLoaded: boolean;
-  checkedAt: string;
-  models: OllamaModelStatus[];
-  loadedModels: OllamaLoadedModelStatus[];
-  error?: string;
-};
-
-type ModelControlAction = "load" | "unload";
+import { controlAiModel, getAiStatus } from "@/lib/api/ai-client";
+import type {
+  ModelControlAction,
+  OllamaStatus
+} from "@/types/api";
 
 const formatSize = (size: number | undefined): string =>
   size === undefined ? "Unknown" : `${(size / 1_000_000_000).toFixed(1)} GB`;
@@ -71,6 +41,20 @@ const formatLoadedUntil = (value: string | undefined): string => {
 const pickSelectedModel = (status: OllamaStatus): string => {
   const storedModel = readStoredModel();
   const modelNames = new Set(status.models.map((model) => model.name));
+  const loadedModelNames = new Set(status.loadedModels.map((model) => model.name));
+
+  if (storedModel && loadedModelNames.has(storedModel)) {
+    return storedModel;
+  }
+
+  if (status.loadedModels[0]?.name) {
+    return status.loadedModels[0].name;
+  }
+
+  const loadedInstalledModel = status.models.find((model) => model.loaded);
+  if (loadedInstalledModel) {
+    return loadedInstalledModel.name;
+  }
 
   if (storedModel && modelNames.has(storedModel)) {
     return storedModel;
@@ -97,12 +81,7 @@ export function AiSettingsScreen() {
     setRequestError(undefined);
 
     try {
-      const storedModel = readStoredModel();
-      const statusUrl = storedModel
-        ? `/api/ai/status?model=${encodeURIComponent(storedModel)}`
-        : "/api/ai/status";
-      const response = await fetch(statusUrl);
-      const payload = (await response.json()) as ApiResponse<OllamaStatus>;
+      const payload = await getAiStatus();
 
       if (!payload.success || !payload.data) {
         throw new Error(payload.error?.message ?? "Status check failed");
@@ -174,22 +153,12 @@ export function AiSettingsScreen() {
     );
 
     try {
-      const response = await fetch("/api/ai/model-control", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          action,
-          model: selectedModel
-        })
+      const payload = await controlAiModel({
+        action,
+        model: selectedModel
       });
-      const payload = (await response.json()) as ApiResponse<{
-        action: ModelControlAction;
-        model: string;
-      }>;
 
-      if (!response.ok || !payload.success) {
+      if (!payload.success) {
         throw new Error(
           payload.error?.message ??
             `Could not ${action === "load" ? "load" : "unload"} model`
@@ -226,7 +195,7 @@ export function AiSettingsScreen() {
     >
       <div className="grid gap-6">
         <section className="rounded-md border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-row items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-slate-500">Connection</p>
               <p
@@ -286,7 +255,7 @@ export function AiSettingsScreen() {
             </div>
           </div>
 
-          <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <dl className="mt-6 grid grid-cols-4 gap-4">
             <div>
               <dt className="text-sm font-medium text-slate-500">Model</dt>
               <dd className="mt-1 text-base font-semibold text-slate-950">
@@ -340,7 +309,7 @@ export function AiSettingsScreen() {
         </section>
 
         <section className="rounded-md border border-slate-200 bg-white p-5">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="grid grid-cols-[minmax(0,1fr)_260px] gap-5">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Model
               <select
@@ -371,7 +340,7 @@ export function AiSettingsScreen() {
             </div>
           </div>
 
-          <dl className="mt-6 grid gap-4 sm:grid-cols-4">
+          <dl className="mt-6 grid grid-cols-4 gap-4">
             <div>
               <dt className="text-sm font-medium text-slate-500">Status</dt>
               <dd className="mt-1 text-base font-semibold text-slate-950">
@@ -404,7 +373,7 @@ export function AiSettingsScreen() {
             <p className="text-sm font-medium text-slate-500">
               Runtime statistics
             </p>
-            <dl className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="mt-3 grid grid-cols-4 gap-4">
               <div>
                 <dt className="text-sm font-medium text-slate-500">Memory</dt>
                 <dd className="mt-1 text-base font-semibold text-slate-950">

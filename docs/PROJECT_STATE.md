@@ -6,7 +6,7 @@ Ollama CV Creator Desktop
 
 ## Current Phase
 
-Desktop migration planning phase.
+Desktop migration implementation phase.
 
 ## Current Stable State
 
@@ -34,7 +34,9 @@ Ad-hoc comprehensive demo context completed. The first-run import context now in
 
 Architecture direction update accepted: the project should migrate from a browser-first Next.js PWA to an Electron desktop application because the app is local-first, depends on local Ollama models, handles sensitive CV data, and benefits from controlled local filesystem/export capabilities.
 
-TASK-033 implementation is in review. The project now has a minimal Electron main process, preload bridge, development launcher, Electron dependency, and a typed `window.desktopApi` runtime surface. The shell loads the existing Next.js renderer during development so the UI can migrate before API and storage services are moved into the main process.
+TASK-033 completed. The project has a minimal Electron main process, preload bridge, development launcher, Electron dependency, and a typed `window.desktopApi` runtime surface. The development launcher now removes `ELECTRON_RUN_AS_NODE` for the spawned Electron process so Electron starts correctly from the VS Code/Codex shell environment while the renderer still loads through Next.js during development.
+
+TASK-034 completed. AI route logic has been extracted into framework-independent services under `src/lib/services/ai`, with shared API response mapping and thin Next.js route adapters. The extraction includes profile extraction, job analysis, CV generation, cover letter generation, Ollama status, and model control so the next Electron IPC task can call service functions instead of duplicating route behavior.
 
 Ad-hoc Ollama model management completed. AI Status now provides model load/unload controls for the selected local model, visible loading/unloading feedback, automatic status refresh after model control actions, and runtime statistics from Ollama's loaded-model status such as memory, VRAM, keep-alive expiry, and digest.
 
@@ -46,6 +48,14 @@ Ad-hoc full-app product audit completed. Navigation, dashboard, target-role work
 
 Ad-hoc document preview polish completed. Template previews now render more like printable application pages, with stronger hierarchy, page-like white surfaces, clearer empty states, recipient display for cover letters, and template descriptions that explain the role fit of each design.
 
+Ad-hoc desktop layout correction completed. The app shell now uses a consistent desktop layout without transform-based page scaling. Horizontal page and sidebar scrolling are suppressed, vertical page scrolling remains available for long workflows, and text/component sizing stays stable when switching between screens.
+
+TASK-035 completed. Electron now registers a narrow IPC bridge for AI status, model control, profile extraction, job analysis, CV generation, cover letter generation, and project storage. The preload surface exposes typed `window.desktopApi` calls, renderer code uses bridge-aware AI and storage clients with web fallbacks, and main-process handlers validate incoming payloads before any desktop operation.
+
+TASK-022 completed. The document renderer now presents CVs and cover letters as more polished page previews with template-specific page framing, headers, metadata, profile/letter structure, clearer empty states, and stable preview test IDs for future export work.
+
+Ad-hoc loaded-model selection fix completed. LLM generation now resolves the actual loaded Ollama model from `/api/ps` before sending generation requests, so profile extraction, job analysis, CV generation, and cover letter generation no longer fall back to the default `OLLAMA_MODEL` when another local model is loaded. Candidate Intake and AI Status also prefer the loaded model over stale local selection state.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -54,8 +64,8 @@ Ad-hoc document preview polish completed. Template previews now render more like
 - Tailwind CSS UI
 - Zustand state management
 - React Hook Form + Zod validation
-- Desktop-owned local storage target
-- Ollama via Electron main-process services
+- Desktop-owned local storage bridge, with full migration next
+- Ollama through typed Electron bridge and framework-independent AI services
 - PDF export through desktop export service
 - Desktop installability
 
@@ -94,7 +104,7 @@ None
 
 ## Next Recommended Task
 
-Review TASK-033, then continue with TASK-034: Extract Next.js API Logic into Services
+Continue with TASK-036: Desktop Storage Migration
 
 ## Known Risks
 
@@ -113,14 +123,16 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 110 tests
+- npm run test: passed, 128 tests
 - npm run build: passed
+- npm run dev:electron: passed; renderer served locally and Electron loaded the app with IPC handlers registered after the launcher removed `ELECTRON_RUN_AS_NODE`
+- automated Chrome layout check: passed for `/`, `/import`, `/profile`, `/documents`, `/templates`, and `/ai` at 1280x860 with no horizontal document/body/sidebar scrolling, vertical scrolling enabled, no transform scaling, and stable 30px H1 sizing across screens
 - sensitive log scan for app/components/lib: passed
 - frontend styling constraint scan for letter spacing and arbitrary text sizing: passed
 - manual dev-server check for `/api/ai/status`: passed, installed model detected but not loaded
 - manual dev-server check for `/api/ai/extract-profile`: passed, returns `AI_MODEL_NOT_READY` when no model is loaded and returns a normalized profile when `qwen3.5:4b` is loaded
-- runtime environment check: current agent shell is WSL2 (`microsoft-standard-WSL2`); native Linux testing still needs to be run from the Linux PC shell
+- runtime environment check: current agent shell exposes a Linux desktop display but also sets `ELECTRON_RUN_AS_NODE=1`; the launcher now strips that variable for Electron
 
 ## Last Update
 
-2026-05-26: Completed full-app product audit, UI orientation pass, and document preview polish after adding the Electron shell. Next recommended task after TASK-033 review is TASK-034 Extract Next.js API Logic into Services.
+2026-05-29: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, and the loaded Ollama model selection fix. Next recommended task is TASK-036 Desktop Storage Migration.

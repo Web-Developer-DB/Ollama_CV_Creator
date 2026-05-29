@@ -34,10 +34,10 @@ export function Sidebar({
   return (
     <nav
       aria-label="Primary"
-      className="flex gap-5 overflow-x-auto border-b border-line pb-4 lg:flex-col lg:overflow-visible lg:border-b-0 lg:border-r lg:pr-4"
+      className="flex flex-col gap-5 overflow-hidden border-r border-line pr-4"
     >
       {renderedGroups.map((group) => (
-        <div className="min-w-44 lg:min-w-0" key={group.label}>
+        <div className="min-w-0" key={group.label}>
           <p className="px-3 text-xs font-semibold uppercase text-slate-500">
             {group.label}
           </p>
@@ -69,7 +69,7 @@ export function Sidebar({
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate">{routeItem.label}</span>
-                    <span className="mt-0.5 hidden truncate text-xs font-medium text-slate-500 lg:block">
+                    <span className="mt-0.5 block truncate text-xs font-medium text-slate-500">
                       {routeItem.outcome}
                     </span>
                   </span>
