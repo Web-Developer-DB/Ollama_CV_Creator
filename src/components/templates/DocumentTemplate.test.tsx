@@ -99,8 +99,10 @@ describe("DocumentTemplate", () => {
   it("renders CV and cover letter previews", () => {
     render(<DocumentTemplate coverLetter={coverLetter} cv={cv} template="modern" />);
 
-    expect(screen.getByText("CV preview")).toBeInTheDocument();
-    expect(screen.getByText("Cover letter preview")).toBeInTheDocument();
+    expect(screen.getByTestId("document-page-cv")).toBeInTheDocument();
+    expect(screen.getByTestId("document-page-cover-letter")).toBeInTheDocument();
+    expect(screen.getByText("Curriculum vitae")).toBeInTheDocument();
+    expect(screen.getByText("Cover letter")).toBeInTheDocument();
     expect(
       screen.getByText("Frontend engineer focused on accessible React applications.")
     ).toBeInTheDocument();

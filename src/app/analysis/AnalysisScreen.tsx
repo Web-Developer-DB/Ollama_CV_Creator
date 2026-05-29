@@ -63,7 +63,7 @@ export function AnalysisScreen() {
       {analysis ? (
         <div className="grid gap-6">
           <section className="rounded-md border border-slate-200 bg-white p-5">
-            <div className="grid gap-5 md:grid-cols-[180px_1fr] md:items-center">
+            <div className="grid grid-cols-[180px_1fr] items-center gap-5">
               <div className="rounded-md border border-blue-200 bg-blue-50 p-4">
                 <p className="text-sm font-medium text-blue-900">
                   Relevance score
@@ -94,7 +94,7 @@ export function AnalysisScreen() {
             </div>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-3 gap-6">
             <AnalysisList
               accentClassName="bg-emerald-500"
               emptyText="No strengths recorded."

@@ -89,6 +89,7 @@ const collectModelNames = (body: OllamaModelsResponse): string[] => {
 
 const createNotReady = (
   config: AiConfig,
+  model: string,
   code: OllamaReadinessErrorCode,
   message: string,
   installedModels: string[] = [],
@@ -98,17 +99,34 @@ const createNotReady = (
   code,
   message,
   baseUrl: config.baseUrl,
-  model: config.model,
+  model,
   installedModels,
   loadedModels
 });
+
+const resolveLoadedModel = (
+  requestedModel: string,
+  installedModels: string[],
+  loadedModels: string[]
+): string | undefined => {
+  if (loadedModels.includes(requestedModel)) {
+    return requestedModel;
+  }
+
+  return (
+    loadedModels.find((loadedModel) => installedModels.includes(loadedModel)) ??
+    loadedModels[0]
+  );
+};
 
 export const checkOllamaReadiness = async (
   options: OllamaReadinessOptions = {}
 ): Promise<OllamaReadiness> => {
   const config = createRuntimeConfig(options);
+  const requestedModel = config.model;
   const timeoutController = createTimeoutController(config.timeoutMs);
   let installedModels: string[] = [];
+  let loadedModels: string[] = [];
 
   try {
     const tagsResponse = await fetch(`${config.baseUrl}/api/tags`, {
@@ -120,6 +138,7 @@ export const checkOllamaReadiness = async (
     if (!tagsResponse.ok) {
       return createNotReady(
         config,
+        requestedModel,
         "OLLAMA_UNAVAILABLE",
         `Ollama model list returned HTTP ${tagsResponse.status}. Open AI Status, verify Ollama is running, then try again.`
       );
@@ -127,15 +146,6 @@ export const checkOllamaReadiness = async (
 
     const tagsBody = (await tagsResponse.json()) as OllamaModelsResponse;
     installedModels = collectModelNames(tagsBody);
-
-    if (!installedModels.includes(config.model)) {
-      return createNotReady(
-        config,
-        "AI_MODEL_NOT_READY",
-        `Ollama model ${config.model} is not installed. Open AI Status, install or select an available model, then try again.`,
-        installedModels
-      );
-    }
 
     const psResponse = await fetch(`${config.baseUrl}/api/ps`, {
       method: "GET",
@@ -146,6 +156,7 @@ export const checkOllamaReadiness = async (
     if (!psResponse.ok) {
       return createNotReady(
         config,
+        requestedModel,
         "AI_MODEL_NOT_READY",
         `Loaded model status returned HTTP ${psResponse.status}. Open AI Status and verify the selected model.`,
         installedModels
@@ -153,33 +164,63 @@ export const checkOllamaReadiness = async (
     }
 
     const psBody = (await psResponse.json()) as OllamaModelsResponse;
-    const loadedModels = collectModelNames(psBody);
+    loadedModels = collectModelNames(psBody);
+    const resolvedModel = resolveLoadedModel(
+      requestedModel,
+      installedModels,
+      loadedModels
+    );
 
-    if (!loadedModels.includes(config.model)) {
+    if (resolvedModel) {
+      return {
+        ready: true,
+        baseUrl: config.baseUrl,
+        model: resolvedModel,
+        installedModels,
+        loadedModels
+      };
+    }
+
+    if (!installedModels.includes(requestedModel)) {
       return createNotReady(
         config,
+        requestedModel,
         "AI_MODEL_NOT_READY",
-        `Ollama model ${config.model} is installed but not loaded. Open AI Status, load the model in Ollama, then try again.`,
+        `Ollama model ${requestedModel} is not installed and no other model is loaded. Open AI Status, install or load an available model, then try again.`,
         installedModels,
         loadedModels
       );
     }
 
-    return {
-      ready: true,
-      baseUrl: config.baseUrl,
-      model: config.model,
+    if (!loadedModels.includes(requestedModel)) {
+      return createNotReady(
+        config,
+        requestedModel,
+        "AI_MODEL_NOT_READY",
+        `Ollama model ${requestedModel} is installed but not loaded. Open AI Status, load the model in Ollama, then try again.`,
+        installedModels,
+        loadedModels
+      );
+    }
+
+    return createNotReady(
+      config,
+      requestedModel,
+      "AI_MODEL_NOT_READY",
+      "No Ollama model is loaded. Open AI Status, load a model, then try again.",
       installedModels,
       loadedModels
-    };
+    );
   } catch (error) {
     return createNotReady(
       config,
+      requestedModel,
       isAbortError(error) ? "AI_TIMEOUT" : "OLLAMA_UNAVAILABLE",
       isAbortError(error)
         ? "Ollama readiness check timed out. Open AI Status, verify Ollama and the selected model, then try again."
         : "Ollama is unavailable. Open AI Status, start Ollama, then try again.",
-      installedModels
+      installedModels,
+      loadedModels
     );
   } finally {
     timeoutController.cancel();

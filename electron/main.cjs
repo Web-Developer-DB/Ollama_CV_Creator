@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("node:path");
+const { registerIpcHandlers } = require("./ipc.cjs");
 
 const rendererUrl =
   process.env.ELECTRON_RENDERER_URL || "http://127.0.0.1:3000";
@@ -42,6 +43,7 @@ const createMainWindow = async () => {
 };
 
 app.whenReady().then(async () => {
+  registerIpcHandlers({ rendererUrl });
   await createMainWindow();
 
   app.on("activate", () => {

@@ -89,7 +89,7 @@ export function TemplatesScreen() {
             </p>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3">
             {templateDefinitions.map((template) => {
               const isSelected = template.id === selectedTemplate;
 
@@ -139,7 +139,7 @@ export function TemplatesScreen() {
             })}
           </div>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 flex flex-row items-center justify-between gap-3">
             <p className="text-sm text-slate-600">
               Selection is stored with the current local project.
             </p>

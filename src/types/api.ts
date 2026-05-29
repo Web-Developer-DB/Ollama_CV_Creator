@@ -32,6 +32,7 @@ export type ApiResponse<T> = {
 export type ExtractProfileRequest = {
   text: string;
   language: "de" | "en";
+  model?: string;
 };
 
 export type ExtractProfileResponse = ApiResponse<CandidateProfile>;
@@ -87,4 +88,48 @@ export type PdfExportRequest = {
   template: TemplateStyle;
   theme: Record<string, unknown>;
   content: GeneratedCV | GeneratedCoverLetter;
+};
+
+export type OllamaModelStatus = {
+  name: string;
+  size?: number;
+  digest?: string;
+  modifiedAt?: string;
+  parameterSize?: string;
+  quantizationLevel?: string;
+  loaded: boolean;
+};
+
+export type OllamaLoadedModelStatus = {
+  name: string;
+  size?: number;
+  sizeVram?: number;
+  digest?: string;
+  expiresAt?: string;
+  parameterSize?: string;
+  quantizationLevel?: string;
+};
+
+export type OllamaStatus = {
+  baseUrl: string;
+  configuredModel: string;
+  reachable: boolean;
+  selectedModelAvailable: boolean;
+  selectedModelLoaded: boolean;
+  checkedAt: string;
+  models: OllamaModelStatus[];
+  loadedModels: OllamaLoadedModelStatus[];
+  error?: string;
+};
+
+export type ModelControlAction = "load" | "unload";
+
+export type ModelControlRequest = {
+  action: ModelControlAction;
+  model: string;
+};
+
+export type ModelControlResponse = {
+  action: ModelControlAction;
+  model: string;
 };

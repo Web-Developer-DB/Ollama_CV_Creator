@@ -238,7 +238,7 @@ export function ProfileScreen() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid grid-cols-2 gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Full name
               <input
@@ -310,7 +310,7 @@ export function ProfileScreen() {
           <label className="mt-4 grid gap-2 text-sm font-medium text-slate-700">
             Summary
             <textarea
-              className="min-h-28 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+              className="min-h-28 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
               onChange={(event) =>
                 setProfile((currentProfile) => ({
                   ...currentProfile,
@@ -332,7 +332,7 @@ export function ProfileScreen() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid grid-cols-2 gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Experience role
               <input
@@ -366,7 +366,7 @@ export function ProfileScreen() {
               />
             </label>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
                 Start date
                 <input
@@ -391,11 +391,11 @@ export function ProfileScreen() {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-4 grid grid-cols-2 gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Experience description
               <textarea
-                className="min-h-28 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+                className="min-h-28 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
                   updateExperience("description", event.target.value)
                 }
@@ -406,7 +406,7 @@ export function ProfileScreen() {
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Responsibilities
               <textarea
-                className="min-h-28 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+                className="min-h-28 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) => updateResponsibilities(event.target.value)}
                 value={responsibilities}
               />
@@ -423,11 +423,11 @@ export function ProfileScreen() {
             </p>
           </div>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="mt-5 grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Technical skills
               <textarea
-                className="min-h-24 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+                className="min-h-24 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
                   updateSkillField(
                     "technical",
@@ -442,7 +442,7 @@ export function ProfileScreen() {
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Soft skills
               <textarea
-                className="min-h-24 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+                className="min-h-24 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
                   updateSkillField("soft", event.target.value, setSoftSkills)
                 }
@@ -453,7 +453,7 @@ export function ProfileScreen() {
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Tools
               <textarea
-                className="min-h-24 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+                className="min-h-24 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
                   updateSkillField("tools", event.target.value, setToolSkills)
                 }
@@ -509,7 +509,7 @@ export function ProfileScreen() {
           ) : null}
         </section>
 
-        <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-row items-center justify-between gap-3 rounded-md border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-600">
             Changes are saved locally to the current project.
           </p>

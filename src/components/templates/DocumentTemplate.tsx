@@ -36,8 +36,11 @@ type DocumentTemplateProps = Readonly<{
 type TemplateClasses = {
   shell: string;
   page: string;
+  pageFrame: string;
+  header: string;
   label: string;
   heading: string;
+  subheading: string;
   rule: string;
   meta: string;
   panel: string;
@@ -50,8 +53,11 @@ const templateClassMap: Record<TemplateStyle, TemplateClasses> = {
   modern: {
     shell: "border-blue-200 bg-slate-50",
     page: "bg-white text-slate-950 shadow-panel",
+    pageFrame: "border-blue-100",
+    header: "bg-slate-950 text-white",
     label: "text-blue-700",
     heading: "text-slate-950",
+    subheading: "text-slate-500",
     rule: "border-blue-500",
     meta: "text-blue-800",
     panel: "border-blue-100 bg-blue-50",
@@ -62,8 +68,11 @@ const templateClassMap: Record<TemplateStyle, TemplateClasses> = {
   classic: {
     shell: "border-slate-300 bg-slate-50",
     page: "bg-white font-serif text-slate-950 shadow-panel",
+    pageFrame: "border-stone-200",
+    header: "border-b border-stone-300 bg-white text-stone-950",
     label: "font-serif text-stone-700",
     heading: "font-serif text-stone-950",
+    subheading: "font-serif text-stone-600",
     rule: "border-stone-500",
     meta: "font-serif text-stone-700",
     panel: "border-stone-200 bg-white",
@@ -74,8 +83,11 @@ const templateClassMap: Record<TemplateStyle, TemplateClasses> = {
   minimal: {
     shell: "border-slate-200 bg-slate-50",
     page: "bg-white text-slate-950 shadow-panel",
+    pageFrame: "border-slate-200",
+    header: "border-b border-slate-200 bg-white text-slate-950",
     label: "text-slate-500",
     heading: "text-slate-950",
+    subheading: "text-slate-500",
     rule: "border-slate-900",
     meta: "text-slate-600",
     panel: "border-slate-200 bg-white",
@@ -90,6 +102,25 @@ const hasText = (value: string | undefined): value is string =>
 
 const joinPresent = (values: Array<string | undefined>, separator: string) =>
   values.filter(hasText).join(separator);
+
+const formatGeneratedAt = (value: string | undefined): string | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? undefined
+    : date.toLocaleDateString("en", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+};
+
+const languageLabel = (language: string | undefined): string | undefined =>
+  language === "de" ? "German" : language === "en" ? "English" : undefined;
 
 function EmptyDocumentState({ label }: Readonly<{ label: string }>) {
   return (
@@ -164,54 +195,79 @@ function CVPreview({
   classes
 }: Readonly<{ cv?: GeneratedCV; classes: TemplateClasses }>) {
   const hasCvContent = Boolean(cv?.sections.length || hasText(cv?.summary));
+  const metaLine = joinPresent(
+    [languageLabel(cv?.language), formatGeneratedAt(cv?.meta.generatedAt)],
+    " / "
+  );
 
   return (
-    <article className={`min-h-[720px] rounded-sm border border-slate-200 p-8 ${classes.page}`}>
-      <div className="border-b pb-5">
-        <p className={`text-xs font-semibold uppercase ${classes.label}`}>
-          CV preview
+    <article
+      className={`min-h-[760px] rounded-sm border ${classes.pageFrame} ${classes.page}`}
+      data-testid="document-page-cv"
+    >
+      <div className={`px-8 py-7 ${classes.header}`}>
+        <p
+          className={`text-xs font-semibold uppercase ${
+            classes.header.includes("text-white") ? "text-blue-100" : classes.label
+          }`}
+        >
+          Curriculum vitae
         </p>
-        <h2 className={`mt-2 text-3xl font-semibold leading-tight ${classes.heading}`}>
+        <h2
+          className={`mt-2 text-3xl font-semibold leading-tight ${
+            classes.header.includes("text-white") ? "text-white" : classes.heading
+          }`}
+        >
           {cv?.title ?? "Untitled CV"}
         </h2>
-        <div className={`mt-4 w-16 border-t-2 ${classes.rule}`} />
+        {metaLine ? (
+          <p
+            className={`mt-3 text-sm ${
+              classes.header.includes("text-white") ? "text-slate-200" : classes.subheading
+            }`}
+          >
+            {metaLine}
+          </p>
+        ) : null}
       </div>
 
-      {hasCvContent ? (
-        <>
-          {hasText(cv?.summary) ? (
-            <section className={`mt-6 rounded-md border px-4 py-3 ${classes.panel}`}>
-              <h3 className={`text-xs font-semibold uppercase ${classes.label}`}>
-                Profile
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-slate-700">
-                {cv.summary}
-              </p>
-            </section>
-          ) : null}
+      <div className="p-8">
+        {hasCvContent ? (
+          <>
+            {hasText(cv?.summary) ? (
+              <section className={`rounded-md border px-4 py-3 ${classes.panel}`}>
+                <h3 className={`text-xs font-semibold uppercase ${classes.label}`}>
+                  Profile
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {cv.summary}
+                </p>
+              </section>
+            ) : null}
 
-          <div className="mt-6 grid gap-6">
-            {cv?.sections.length ? (
-              cv.sections.map((section) => (
-                <CVSectionView
-                  classes={classes}
-                  key={section.id}
-                  section={section}
-                />
-              ))
-            ) : (
-              <p className="text-sm text-slate-500">No CV sections yet.</p>
-            )}
+            <div className="mt-6 grid gap-6">
+              {cv?.sections.length ? (
+                cv.sections.map((section) => (
+                  <CVSectionView
+                    classes={classes}
+                    key={section.id}
+                    section={section}
+                  />
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No CV sections yet.</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <div>
+            <EmptyDocumentState label="CV preview" />
           </div>
-        </>
-      ) : (
-        <div className="mt-6">
-          <EmptyDocumentState label="CV preview" />
-        </div>
-      )}
-      {!cv?.sections.length && hasCvContent ? (
-        <p className="mt-6 text-sm text-slate-500">No CV sections yet.</p>
-      ) : null}
+        )}
+        {!cv?.sections.length && hasCvContent ? (
+          <p className="mt-6 text-sm text-slate-500">No CV sections yet.</p>
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -245,20 +301,42 @@ function CoverLetterPreview({
   coverLetter?: GeneratedCoverLetter;
   classes: TemplateClasses;
 }>) {
+  const metaLine = joinPresent(
+    [
+      coverLetter?.recipient?.company,
+      languageLabel(coverLetter?.language),
+      formatGeneratedAt(coverLetter?.meta.generatedAt)
+    ],
+    " / "
+  );
+
   return (
-    <article className={`min-h-[720px] rounded-sm border border-slate-200 p-8 ${classes.page}`}>
-      <div className="border-b pb-5">
-        <p className={`text-xs font-semibold uppercase ${classes.label}`}>
-          Cover letter preview
-        </p>
-        <h2 className={`mt-2 text-2xl font-semibold leading-tight ${classes.heading}`}>
-          {coverLetter?.subject ?? "Untitled cover letter"}
-        </h2>
-        <div className={`mt-4 w-16 border-t-2 ${classes.rule}`} />
+    <article
+      className={`min-h-[760px] rounded-sm border ${classes.pageFrame} ${classes.page}`}
+      data-testid="document-page-cover-letter"
+    >
+      <div className="px-8 py-7">
+        <div className="flex items-start justify-between gap-6 border-b pb-5">
+          <div className="min-w-0">
+            <p className={`text-xs font-semibold uppercase ${classes.label}`}>
+              Cover letter
+            </p>
+            <h2
+              className={`mt-2 text-2xl font-semibold leading-tight ${classes.heading}`}
+            >
+              {coverLetter?.subject ?? "Untitled cover letter"}
+            </h2>
+          </div>
+          {metaLine ? (
+            <p className={`max-w-44 text-right text-xs leading-5 ${classes.meta}`}>
+              {metaLine}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {coverLetter ? (
-        <div className="mt-7 grid gap-5 text-sm leading-6 text-slate-700">
+        <div className="grid gap-5 px-8 pb-8 text-sm leading-6 text-slate-700">
           <RecipientBlock coverLetter={coverLetter} />
           {hasText(coverLetter.greeting) ? <p>{coverLetter.greeting}</p> : null}
           <p>{coverLetter.opening}</p>
@@ -273,7 +351,7 @@ function CoverLetterPreview({
           ) : null}
         </div>
       ) : (
-        <div className="mt-6">
+        <div className="px-8 pb-8">
           <EmptyDocumentState label="Cover letter preview" />
         </div>
       )}
@@ -300,7 +378,7 @@ export function DocumentTemplate({
       className={`grid gap-5 rounded-md border p-5 ${classes.shell}`}
       data-testid={`template-${definition.id}`}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-row items-end justify-between gap-3">
         <div>
           <p className={`text-xs font-semibold uppercase ${classes.label}`}>
             Template
@@ -317,11 +395,7 @@ export function DocumentTemplate({
         </p>
       </div>
 
-      <div
-        className={`grid gap-5 ${
-          previewMode === "both" ? "xl:grid-cols-2" : ""
-        }`}
-      >
+      <div className={`grid gap-5 ${previewMode === "both" ? "grid-cols-2" : ""}`}>
         {showCV ? <CVPreview classes={classes} cv={cv} /> : null}
         {showCoverLetter ? (
           <CoverLetterPreview classes={classes} coverLetter={coverLetter} />

@@ -185,7 +185,7 @@ export function DocumentsScreen() {
           description="Edit the generated wording before choosing the final visual design. Keep facts accurate; use the target role only to decide emphasis and tone."
           title="Professional application drafts"
         >
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
               <p className="text-xs font-semibold uppercase text-slate-500">
                 Source
@@ -213,11 +213,11 @@ export function DocumentsScreen() {
           </div>
         </Panel>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-2 gap-6">
           <label className="grid gap-2 rounded-md border border-slate-200 bg-white p-5 text-sm font-medium text-slate-700">
             CV draft
             <textarea
-              className="min-h-96 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+              className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
               onChange={(event) => setCvDraft(event.target.value)}
               value={cvDraft}
             />
@@ -226,14 +226,14 @@ export function DocumentsScreen() {
           <label className="grid gap-2 rounded-md border border-slate-200 bg-white p-5 text-sm font-medium text-slate-700">
             Cover letter draft
             <textarea
-              className="min-h-96 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+              className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
               onChange={(event) => setCoverLetterDraft(event.target.value)}
               value={coverLetterDraft}
             />
           </label>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-row items-center justify-between gap-3 rounded-md border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-600">
             Draft edits are saved to the selected local project.
           </p>

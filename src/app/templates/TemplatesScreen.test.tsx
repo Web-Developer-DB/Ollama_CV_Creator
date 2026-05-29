@@ -58,8 +58,10 @@ describe("TemplatesScreen", () => {
     expect(screen.getByRole("button", { name: "Modern" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Classic" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Minimal" })).toBeInTheDocument();
-    expect(screen.getByText("CV preview")).toBeInTheDocument();
-    expect(screen.getByText("Cover letter preview")).toBeInTheDocument();
+    expect(screen.getByTestId("document-page-cv")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("document-page-cover-letter")
+    ).toBeInTheDocument();
   });
 
   it("switches the visible template", async () => {
@@ -82,14 +84,18 @@ describe("TemplatesScreen", () => {
 
     await user.click(screen.getByRole("button", { name: "Cover letter" }));
 
-    expect(screen.queryByText("CV preview")).not.toBeInTheDocument();
-    expect(screen.getByText("Cover letter preview")).toBeInTheDocument();
+    expect(screen.queryByTestId("document-page-cv")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("document-page-cover-letter")
+    ).toBeInTheDocument();
     expect(screen.getByText("Application for Frontend Engineer")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "CV" }));
 
-    expect(screen.getByText("CV preview")).toBeInTheDocument();
-    expect(screen.queryByText("Cover letter preview")).not.toBeInTheDocument();
+    expect(screen.getByTestId("document-page-cv")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("document-page-cover-letter")
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Frontend Engineer CV")).toBeInTheDocument();
   });
 });

@@ -29,7 +29,7 @@ export default function ExportPage() {
           description="Final export will produce the polished CV, cover letter, and project data from the current local project."
           title="Final application package"
         >
-          <dl className="grid gap-3 md:grid-cols-3">
+          <dl className="grid grid-cols-3 gap-3">
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
               <dt className="text-xs font-semibold uppercase text-slate-500">
                 Candidate profile
@@ -56,7 +56,7 @@ export default function ExportPage() {
             </div>
           </dl>
 
-          <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 flex flex-row items-center justify-between gap-3 border-t border-slate-200 pt-4">
             <p className="text-sm leading-6 text-slate-600">
               PDF export is enabled after the document renderer and desktop
               export service are completed.

@@ -134,7 +134,7 @@ export function JobScreen() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Job title
               <input
@@ -162,7 +162,7 @@ export function JobScreen() {
               />
             </label>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4">
               <label className="grid gap-2 text-sm font-medium text-slate-700">
                 Language
                 <select
@@ -196,13 +196,13 @@ export function JobScreen() {
           <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">
             Job description
             <textarea
-              className="min-h-72 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+              className="min-h-72 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
               onChange={(event) => setJobDescription(event.target.value)}
               value={jobDescription}
             />
           </label>
 
-          <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 flex flex-row items-center justify-between gap-3 border-t border-slate-200 pt-4">
             <p className="text-sm leading-6 text-slate-600">
               Output: local tailoring context for the CV and cover letter.
             </p>

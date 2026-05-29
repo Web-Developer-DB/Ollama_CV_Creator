@@ -167,11 +167,11 @@ describe("ImportScreen", () => {
     expect(screen.getByText(/Profile extracted/)).toBeInTheDocument();
   });
 
-  it("uses the locally selected Ollama model for readiness and extraction", async () => {
+  it("uses the loaded Ollama model for readiness and extraction", async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(
       "ollama-cv-selected-model",
-      "granite4.1:3b-q6_K"
+      "qwen3.5:4b"
     );
     global.fetch = vi
       .fn()
@@ -181,13 +181,16 @@ describe("ImportScreen", () => {
             success: true,
             data: {
               baseUrl: "http://127.0.0.1:11434",
-              configuredModel: "granite4.1:3b-q6_K",
+              configuredModel: "nemotron-3-nano:4b-q8_0",
               reachable: true,
               selectedModelAvailable: true,
               selectedModelLoaded: true,
               checkedAt: "2026-05-25T12:00:00.000Z",
-              models: [{ name: "granite4.1:3b-q6_K", loaded: true }],
-              loadedModels: [{ name: "granite4.1:3b-q6_K" }]
+              models: [
+                { name: "qwen3.5:4b", loaded: false },
+                { name: "nemotron-3-nano:4b-q8_0", loaded: true }
+              ],
+              loadedModels: [{ name: "nemotron-3-nano:4b-q8_0" }]
             }
           }),
           { status: 200 }
@@ -228,14 +231,14 @@ describe("ImportScreen", () => {
     });
     expect(global.fetch).toHaveBeenNthCalledWith(
       1,
-      "/api/ai/status?model=granite4.1%3A3b-q6_K",
+      "/api/ai/status",
       { cache: "no-store" }
     );
     const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
     const extractionRequest = fetchMock.mock.calls[1][1] as RequestInit;
 
     expect(JSON.parse(extractionRequest.body as string)).toMatchObject({
-      model: "granite4.1:3b-q6_K"
+      model: "nemotron-3-nano:4b-q8_0"
     });
   });
 
@@ -264,9 +267,7 @@ describe("ImportScreen", () => {
 
     await user.click(screen.getByRole("button", { name: "Extract profile" }));
 
-    expect(
-      await screen.findByText(/installed but not loaded/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/no ollama model is loaded/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open AI Status" })).toHaveAttribute(
       "href",
       "/ai"

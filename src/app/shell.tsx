@@ -40,7 +40,7 @@ export function DashboardScreen() {
     >
       <div className="grid gap-6">
         <section className="rounded-md border border-slate-200 bg-white p-5 shadow-panel">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
+          <div className="grid grid-cols-[minmax(0,1fr)_220px] items-center gap-5">
             <div>
               <Badge tone="info">Local document assistant</Badge>
               <h2 className="mt-3 text-xl font-semibold text-slate-950">
@@ -63,7 +63,7 @@ export function DashboardScreen() {
           </div>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-6">
           <Panel
             description="Follow these steps when creating the main application package."
             title="Document creation workflow"
@@ -71,7 +71,7 @@ export function DashboardScreen() {
             <ol className="grid gap-3">
               {workflowSteps.map((step) => (
                 <li
-                  className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 md:grid-cols-[2rem_minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-center"
+                  className="grid grid-cols-[2rem_minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3"
                   key={step.href}
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-sm font-semibold text-white">
@@ -130,7 +130,7 @@ export function DashboardScreen() {
           description="Use this branch when the CV and cover letter should speak directly to a specific role. It supports document writing; it is not the end product."
           title="Role tailoring"
         >
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             {tailoringSteps.map((step) => (
               <Link
                 className="rounded-md border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
@@ -183,7 +183,7 @@ export function PlaceholderScreen({
   return (
     <ShellFrame title={title}>
       <div className="rounded-md border border-slate-200 bg-white p-5">
-        <dl className="grid gap-4 sm:grid-cols-2">
+        <dl className="grid grid-cols-2 gap-4">
           <div>
             <dt className="text-sm font-medium text-slate-500">Status</dt>
             <dd className="mt-1 text-base font-semibold">{status}</dd>

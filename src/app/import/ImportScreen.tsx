@@ -5,10 +5,12 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
-import { readStoredModel } from "@/lib/ai/selected-model";
+import {
+  extractProfile,
+  getAiStatus
+} from "@/lib/api/ai-client";
 import { sampleCandidateContext } from "@/lib/demo/sample-candidate-context";
 import { useProjectStore } from "@/stores/project-store";
-import type { ApiResponse } from "@/types/api";
 import type { CandidateProfile } from "@/types/profile";
 import type { ApplicationProject, RawInputSourceType } from "@/types/project";
 
@@ -26,6 +28,13 @@ type OllamaStatusSummary = {
   reachable: boolean;
   selectedModelAvailable: boolean;
   selectedModelLoaded: boolean;
+  models: Array<{
+    name: string;
+    loaded: boolean;
+  }>;
+  loadedModels: Array<{
+    name: string;
+  }>;
   error?: string;
 };
 
@@ -46,16 +55,9 @@ const isAiAvailabilityErrorCode = (code: string | undefined): boolean =>
 
 const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
   try {
-    const selectedModel = readStoredModel();
-    const statusUrl = selectedModel
-      ? `/api/ai/status?model=${encodeURIComponent(selectedModel)}`
-      : "/api/ai/status";
-    const response = await fetch(statusUrl, {
-      cache: "no-store"
-    });
-    const payload = (await response.json()) as ApiResponse<OllamaStatusSummary>;
+    const payload = await getAiStatus();
 
-    if (!response.ok || !payload.success || !payload.data) {
+    if (!payload.success || !payload.data) {
       return {
         ready: false,
         message:
@@ -65,8 +67,9 @@ const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
     }
 
     const status = payload.data;
-    const model = selectedModel ?? status.configuredModel;
-    const modelLabel = model || "the selected model";
+    const loadedModel =
+      status.loadedModels[0]?.name ??
+      status.models.find((model) => model.loaded)?.name;
 
     if (!status.reachable) {
       return {
@@ -76,21 +79,22 @@ const checkAiReadiness = async (): Promise<AiReadinessCheck> => {
       };
     }
 
-    if (!status.selectedModelAvailable) {
+    if (!loadedModel) {
       return {
         ready: false,
-        message: `Ollama model ${modelLabel} is not installed. Open AI Status, install or select an available model, then try extraction again.`
+        message:
+          "No Ollama model is loaded. Open AI Status, load an available model, then try extraction again."
       };
     }
 
-    if (!status.selectedModelLoaded) {
+    if (!status.selectedModelAvailable || !status.selectedModelLoaded) {
       return {
         ready: false,
-        message: `Ollama model ${modelLabel} is installed but not loaded. Open AI Status, load the model in Ollama, then try extraction again.`
+        message: `Ollama model ${loadedModel} could not be verified as ready. Open AI Status, verify the loaded model, then try extraction again.`
       };
     }
 
-    return { ready: true, model };
+    return { ready: true, model: loadedModel };
   } catch {
     return {
       ready: false,
@@ -241,20 +245,13 @@ export function ImportScreen() {
       }
 
       setExtractionPhase("extracting_profile");
-      const response = await fetch("/api/ai/extract-profile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          text: trimmedText,
-          language,
-          model: readiness.model
-        })
+      const payload = await extractProfile({
+        text: trimmedText,
+        language,
+        model: readiness.model
       });
-      const payload = (await response.json()) as ApiResponse<CandidateProfile>;
 
-      if (!response.ok || !payload.success || !payload.data) {
+      if (!payload.success || !payload.data) {
         if (isAiAvailabilityErrorCode(payload.error?.code)) {
           setShowAiStatusLink(true);
         }
@@ -317,7 +314,7 @@ export function ImportScreen() {
           description="Unstructured candidate material becomes an editable profile dataset for CV and cover letter generation. Role tailoring stays separate."
           title="Candidate context"
         >
-          <div className="mb-5 grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="mb-5 grid grid-cols-[minmax(0,1fr)_260px] gap-4 border-b border-slate-200 pb-5">
             <div>
               <p className="text-sm font-semibold text-slate-950">
                 Candidate profile extraction
@@ -348,7 +345,7 @@ export function ImportScreen() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
               Language
               <select
@@ -383,13 +380,13 @@ export function ImportScreen() {
           <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">
             Candidate context
             <textarea
-              className="min-h-96 resize-y rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+              className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
               onChange={(event) => setRawText(event.target.value)}
               value={rawText}
             />
           </label>
 
-          <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 flex flex-row items-center justify-between gap-3 border-t border-slate-200 pt-4">
             <p className="text-sm leading-6 text-slate-600">
               Output: candidate profile for CV and cover letter generation.
             </p>
