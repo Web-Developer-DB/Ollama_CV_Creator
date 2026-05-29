@@ -2,19 +2,25 @@ import type { SVGProps } from "react";
 
 export type IconName =
   | "activity"
+  | "award"
   | "bot"
+  | "briefcase"
   | "check"
   | "clipboard"
   | "document"
   | "download"
   | "edit"
   | "file"
+  | "graduation"
   | "home"
   | "palette"
+  | "plus"
   | "settings"
   | "shield"
   | "target"
-  | "user";
+  | "trash"
+  | "user"
+  | "x";
 
 type IconProps = Readonly<
   SVGProps<SVGSVGElement> & {
@@ -24,6 +30,10 @@ type IconProps = Readonly<
 
 const paths: Record<IconName, string[]> = {
   activity: ["M3 12h4l2-6 4 12 2-6h6"],
+  award: [
+    "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12",
+    "M9 14l-1 7 4-2 4 2-1-7"
+  ],
   bot: [
     "M12 8V4",
     "M8 4h8",
@@ -31,6 +41,12 @@ const paths: Record<IconName, string[]> = {
     "M9 14h.01",
     "M15 14h.01",
     "M10 17h4"
+  ],
+  briefcase: [
+    "M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1",
+    "M4 7h16v12H4z",
+    "M4 12h16",
+    "M9 12v2h6v-2"
   ],
   check: ["M20 6 9 17l-5-5"],
   clipboard: [
@@ -54,6 +70,11 @@ const paths: Record<IconName, string[]> = {
     "M14 3v5h4",
     "M9 12h6"
   ],
+  graduation: [
+    "M3 8l9-4 9 4-9 4z",
+    "M7 10v5c2 2 8 2 10 0v-5",
+    "M21 8v6"
+  ],
   home: ["M3 11l9-8 9 8", "M5 10v10h14V10", "M9 20v-6h6v6"],
   palette: [
     "M12 3a9 9 0 0 0 0 18h1.5a1.5 1.5 0 0 0 1.2-2.4 1.5 1.5 0 0 1 1.2-2.4H18a6 6 0 0 0 0-12z",
@@ -62,6 +83,7 @@ const paths: Record<IconName, string[]> = {
     "M14 7h.01",
     "M16.5 10h.01"
   ],
+  plus: ["M12 5v14", "M5 12h14"],
   settings: [
     "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8",
     "M4 12h2",
@@ -75,7 +97,15 @@ const paths: Record<IconName, string[]> = {
   ],
   shield: ["M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6z"],
   target: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18", "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10", "M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2"],
-  user: ["M20 21a8 8 0 0 0-16 0", "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8"]
+  trash: [
+    "M4 7h16",
+    "M10 11v6",
+    "M14 11v6",
+    "M6 7l1 14h10l1-14",
+    "M9 7V4h6v3"
+  ],
+  user: ["M20 21a8 8 0 0 0-16 0", "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8"],
+  x: ["M6 6l12 12", "M18 6 6 18"]
 };
 
 export function Icon({ name, className, ...props }: IconProps) {
