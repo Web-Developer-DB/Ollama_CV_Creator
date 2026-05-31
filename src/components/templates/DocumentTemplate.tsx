@@ -12,17 +12,44 @@ export const templateDefinitions: TemplateDefinition[] = [
   {
     id: "modern",
     name: "Modern",
-    description: "Confident structure with a crisp header and strong section rhythm."
+    description: "Confident structure with a crisp header and strong section rhythm.",
+    category: "professional",
+    bestFor: "Product, SaaS, and general business roles"
   },
   {
     id: "classic",
     name: "Classic",
-    description: "Formal typography and measured spacing for conservative roles."
+    description: "Formal typography and measured spacing for conservative roles.",
+    category: "classic",
+    bestFor: "Conservative companies, public sector, and formal applications"
   },
   {
     id: "minimal",
     name: "Minimal",
-    description: "Quiet ATS-friendly presentation focused on clean content."
+    description: "Quiet ATS-friendly presentation focused on clean content.",
+    category: "professional",
+    bestFor: "ATS-focused applications and content-heavy profiles"
+  },
+  {
+    id: "executive",
+    name: "Executive",
+    description: "Premium leadership layout with restrained contrast and confident framing.",
+    category: "professional",
+    bestFor: "Senior, lead, management, and consulting roles"
+  },
+  {
+    id: "technical",
+    name: "Technical",
+    description: "Precise engineering-oriented layout for skills, systems, and projects.",
+    category: "technical",
+    bestFor: "Software, data, infrastructure, and technical specialist roles"
+  },
+  {
+    id: "compact",
+    name: "Compact",
+    description: "Dense one-page layout with strong scanability and efficient spacing.",
+    category: "compact",
+    bestFor: "Long experience histories that need tight readable structure"
   }
 ];
 
@@ -94,6 +121,51 @@ const templateClassMap: Record<TemplateStyle, TemplateClasses> = {
     sectionTitle: "border-slate-200 text-slate-900",
     itemTitle: "text-slate-950",
     bullet: "marker:text-slate-500"
+  },
+  executive: {
+    shell: "border-emerald-200 bg-emerald-50",
+    page: "bg-white text-slate-950 shadow-panel",
+    pageFrame: "border-emerald-100",
+    header: "bg-emerald-950 text-white",
+    label: "text-emerald-700",
+    heading: "text-slate-950",
+    subheading: "text-slate-500",
+    rule: "border-emerald-600",
+    meta: "text-emerald-800",
+    panel: "border-emerald-100 bg-emerald-50",
+    sectionTitle: "border-emerald-200 text-emerald-950",
+    itemTitle: "text-slate-950",
+    bullet: "marker:text-emerald-600"
+  },
+  technical: {
+    shell: "border-cyan-200 bg-cyan-50",
+    page: "bg-white text-slate-950 shadow-panel",
+    pageFrame: "border-cyan-100",
+    header: "border-b-4 border-cyan-500 bg-white text-slate-950",
+    label: "text-cyan-700",
+    heading: "text-slate-950",
+    subheading: "text-slate-500",
+    rule: "border-cyan-500",
+    meta: "text-cyan-800",
+    panel: "border-cyan-100 bg-cyan-50",
+    sectionTitle: "border-cyan-200 text-cyan-950",
+    itemTitle: "text-slate-950",
+    bullet: "marker:text-cyan-600"
+  },
+  compact: {
+    shell: "border-amber-200 bg-stone-50",
+    page: "bg-white text-slate-950 shadow-panel",
+    pageFrame: "border-amber-100",
+    header: "border-b border-amber-200 bg-stone-50 text-stone-950",
+    label: "text-amber-700",
+    heading: "text-stone-950",
+    subheading: "text-stone-600",
+    rule: "border-amber-500",
+    meta: "text-amber-800",
+    panel: "border-amber-100 bg-amber-50",
+    sectionTitle: "border-amber-200 text-stone-950",
+    itemTitle: "text-stone-950",
+    bullet: "marker:text-amber-600"
   }
 };
 
@@ -388,6 +460,9 @@ export function DocumentTemplate({
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
             {definition.description}
+          </p>
+          <p className="mt-1 text-xs font-medium text-slate-500">
+            {definition.bestFor}
           </p>
         </div>
         <p className="text-xs font-semibold uppercase text-slate-500">

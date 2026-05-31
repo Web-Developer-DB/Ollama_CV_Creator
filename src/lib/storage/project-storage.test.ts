@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   deleteProject,
+  exportProjectsJson,
+  getProjectStorageLocation,
+  importProjectsJson,
   listProjects,
   saveProject
 } from "@/lib/storage/project-storage";
@@ -31,6 +34,9 @@ const createDesktopApi = (overrides: DesktopApiOverrides): DesktopApi =>
       listProjects: vi.fn(),
       saveProject: vi.fn(),
       deleteProject: vi.fn(),
+      getLocation: vi.fn(),
+      exportProjectsJson: vi.fn(),
+      importProjectsJson: vi.fn(),
       ...overrides.storage
     }
   }) as unknown as DesktopApi;
@@ -92,5 +98,72 @@ describe("project storage bridge", () => {
     });
 
     await expect(listProjects()).rejects.toThrow("Could not list projects");
+  });
+
+  it("exposes desktop project JSON import and export helpers", async () => {
+    const locationMock = vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        filePath: "/home/user/.config/Ollama CV Creator/projects.json"
+      }
+    });
+    const exportMock = vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        filePath: "/tmp/projects.json",
+        projectCount: 2
+      }
+    });
+    const importMock = vi.fn().mockResolvedValue({
+      success: true,
+      data: {
+        filePath: "/tmp/projects.json",
+        importedCount: 2,
+        totalCount: 3
+      }
+    });
+    window.desktopApi = createDesktopApi({
+      storage: {
+        getLocation: locationMock,
+        exportProjectsJson: exportMock,
+        importProjectsJson: importMock
+      }
+    });
+
+    await expect(getProjectStorageLocation()).resolves.toEqual({
+      filePath: "/home/user/.config/Ollama CV Creator/projects.json"
+    });
+    await expect(exportProjectsJson("/tmp/projects.json")).resolves.toEqual({
+      filePath: "/tmp/projects.json",
+      projectCount: 2
+    });
+    await expect(
+      importProjectsJson({
+        filePath: "/tmp/projects.json",
+        mode: "merge"
+      })
+    ).resolves.toEqual({
+      filePath: "/tmp/projects.json",
+      importedCount: 2,
+      totalCount: 3
+    });
+
+    expect(exportMock).toHaveBeenCalledWith("/tmp/projects.json");
+    expect(importMock).toHaveBeenCalledWith({
+      filePath: "/tmp/projects.json",
+      mode: "merge"
+    });
+  });
+
+  it("requires desktop storage for project JSON import and export helpers", async () => {
+    await expect(getProjectStorageLocation()).rejects.toThrow(
+      "Desktop project storage is not available"
+    );
+    await expect(exportProjectsJson("/tmp/projects.json")).rejects.toThrow(
+      "Desktop project storage is not available"
+    );
+    await expect(
+      importProjectsJson({ filePath: "/tmp/projects.json" })
+    ).rejects.toThrow("Desktop project storage is not available");
   });
 });

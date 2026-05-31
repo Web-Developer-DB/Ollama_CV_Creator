@@ -3,7 +3,13 @@ import {
   listProjects as listIndexedDbProjects,
   saveProject as saveIndexedDbProject
 } from "@/lib/storage/indexeddb";
-import type { ApiResponse } from "@/types/api";
+import type {
+  ApiResponse,
+  ProjectJsonExportResult,
+  ProjectJsonImportRequest,
+  ProjectJsonImportResult,
+  ProjectStorageLocation
+} from "@/types/api";
 import type { ApplicationProject } from "@/types/project";
 
 const desktopApi = () =>
@@ -53,3 +59,33 @@ export const deleteProject = async (id: string): Promise<void> => {
 
   return deleteIndexedDbProject(id);
 };
+
+const requireDesktopStorage = () => {
+  const api = desktopApi();
+
+  if (!api?.storage) {
+    throw new Error("Desktop project storage is not available");
+  }
+
+  return api.storage;
+};
+
+export const getProjectStorageLocation =
+  async (): Promise<ProjectStorageLocation> =>
+    unwrapDesktopResponse<ProjectStorageLocation>(
+      await requireDesktopStorage().getLocation()
+    );
+
+export const exportProjectsJson = async (
+  filePath: string
+): Promise<ProjectJsonExportResult> =>
+  unwrapDesktopResponse<ProjectJsonExportResult>(
+    await requireDesktopStorage().exportProjectsJson(filePath)
+  );
+
+export const importProjectsJson = async (
+  request: ProjectJsonImportRequest
+): Promise<ProjectJsonImportResult> =>
+  unwrapDesktopResponse<ProjectJsonImportResult>(
+    await requireDesktopStorage().importProjectsJson(request)
+  );

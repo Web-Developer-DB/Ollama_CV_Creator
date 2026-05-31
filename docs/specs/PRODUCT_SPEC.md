@@ -38,7 +38,7 @@ The main product goal is not to analyze whether a candidate matches a job as an 
 - CV generation
 - Cover letter generation
 - Professional CV and cover letter presentation
-- Modern/classic/minimal templates
+- Modern, classic, minimal, executive, technical, and compact templates
 - Live preview
 - PDF export
 - JSON project export
@@ -79,6 +79,20 @@ For banks, public sector, industry, administration.
 ### Minimal
 
 ATS-friendly, clean, highly readable.
+
+### Executive
+
+Premium leadership layout for senior, lead, management, and consulting roles.
+
+### Technical
+
+Precise engineering-oriented layout for software, data, infrastructure, and
+technical specialist roles.
+
+### Compact
+
+Dense one-page layout for long experience histories that still need to scan
+cleanly.
 
 ## UX Requirements
 

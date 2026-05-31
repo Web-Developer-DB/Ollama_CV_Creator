@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { GeneratedCoverLetter, GeneratedCV } from "@/types/documents";
-import type { TemplateStyle } from "@/types/templates";
 import { DocumentTemplate, templateDefinitions } from "./DocumentTemplate";
 
 const cv: GeneratedCV = {
@@ -49,7 +48,7 @@ const coverLetter: GeneratedCoverLetter = {
 };
 
 describe("DocumentTemplate", () => {
-  it.each(["modern", "classic", "minimal"] satisfies TemplateStyle[])(
+  it.each(templateDefinitions.map((template) => template.id))(
     "renders the %s template",
     (template) => {
       render(<DocumentTemplate coverLetter={coverLetter} cv={cv} template={template} />);

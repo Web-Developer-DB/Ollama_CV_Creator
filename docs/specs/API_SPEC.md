@@ -117,3 +117,16 @@ Input:
 
 Output:
 PDF file
+
+## Desktop IPC Storage
+
+The Electron preload bridge exposes desktop-owned project storage:
+
+- `storage.listProjects()`
+- `storage.saveProject(project)`
+- `storage.deleteProject(id)`
+- `storage.getLocation()`
+- `storage.exportProjectsJson(filePath)`
+- `storage.importProjectsJson({ filePath, mode })`
+
+Project JSON import supports `mode: "merge"` and `mode: "replace"`.

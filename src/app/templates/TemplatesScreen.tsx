@@ -9,7 +9,7 @@ import {
 } from "@/components/templates/DocumentTemplate";
 import { useProjectStore } from "@/stores/project-store";
 import type { ApplicationProject } from "@/types/project";
-import type { TemplateStyle } from "@/types/templates";
+import type { TemplateCategory, TemplateStyle } from "@/types/templates";
 
 const previewModes: Array<{
   id: DocumentPreviewMode;
@@ -19,6 +19,66 @@ const previewModes: Array<{
   { id: "cv", label: "CV" },
   { id: "cover_letter", label: "Cover letter" }
 ];
+
+type TemplateCategoryFilter = "all" | TemplateCategory;
+
+const categoryOptions: Array<{
+  id: TemplateCategoryFilter;
+  label: string;
+}> = [
+  { id: "all", label: "Alle Kategorien" },
+  { id: "professional", label: "Professionell" },
+  { id: "classic", label: "Klassisch" },
+  { id: "technical", label: "Technisch" },
+  { id: "compact", label: "Kompakt" }
+];
+
+const miniPreviewClassMap: Record<
+  TemplateStyle,
+  {
+    header: string;
+    primaryLine: string;
+    secondaryLine: string;
+    panel: string;
+  }
+> = {
+  modern: {
+    header: "bg-slate-950",
+    primaryLine: "bg-blue-500",
+    secondaryLine: "bg-slate-300",
+    panel: "bg-blue-50"
+  },
+  classic: {
+    header: "border-b border-stone-300 bg-white",
+    primaryLine: "bg-stone-500",
+    secondaryLine: "bg-stone-200",
+    panel: "bg-stone-50"
+  },
+  minimal: {
+    header: "bg-slate-100",
+    primaryLine: "bg-slate-500",
+    secondaryLine: "bg-slate-200",
+    panel: "bg-slate-50"
+  },
+  executive: {
+    header: "bg-emerald-950",
+    primaryLine: "bg-emerald-500",
+    secondaryLine: "bg-emerald-100",
+    panel: "bg-emerald-50"
+  },
+  technical: {
+    header: "border-b-4 border-cyan-500 bg-white",
+    primaryLine: "bg-cyan-500",
+    secondaryLine: "bg-cyan-100",
+    panel: "bg-cyan-50"
+  },
+  compact: {
+    header: "bg-amber-100",
+    primaryLine: "bg-amber-500",
+    secondaryLine: "bg-stone-200",
+    panel: "bg-amber-50"
+  }
+};
 
 const createId = (): string => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -32,8 +92,7 @@ function TemplateMiniPreview({
   template,
   selected
 }: Readonly<{ selected: boolean; template: TemplateStyle }>) {
-  const isModern = template === "modern";
-  const isClassic = template === "classic";
+  const previewClasses = miniPreviewClassMap[template];
 
   return (
     <div
@@ -41,15 +100,11 @@ function TemplateMiniPreview({
         selected ? "border-action" : "border-slate-200"
       }`}
     >
-      <div
-        className={`h-5 rounded-sm ${
-          isModern ? "bg-slate-950" : isClassic ? "border-b border-slate-300" : "bg-slate-100"
-        }`}
-      />
+      <div className={`h-5 rounded-sm ${previewClasses.header}`} />
       <div className="mt-4 grid gap-2">
-        <span className="h-2 w-3/4 rounded-full bg-slate-300" />
-        <span className="h-2 w-1/2 rounded-full bg-slate-200" />
-        <span className="h-2 w-2/3 rounded-full bg-slate-200" />
+        <span className={`h-2 w-3/4 rounded-full ${previewClasses.primaryLine}`} />
+        <span className={`h-2 w-1/2 rounded-full ${previewClasses.secondaryLine}`} />
+        <span className={`h-2 w-2/3 rounded-full ${previewClasses.secondaryLine}`} />
       </div>
       <div className="mt-5 grid gap-2">
         <span className="h-1.5 rounded-full bg-slate-200" />
@@ -57,8 +112,8 @@ function TemplateMiniPreview({
         <span className="h-1.5 w-5/6 rounded-full bg-slate-200" />
       </div>
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <span className="h-8 rounded-sm bg-slate-100" />
-        <span className="h-8 rounded-sm bg-slate-100" />
+        <span className={`h-8 rounded-sm ${previewClasses.panel}`} />
+        <span className={`h-8 rounded-sm ${previewClasses.panel}`} />
       </div>
     </div>
   );
@@ -74,7 +129,15 @@ export function TemplatesScreen() {
   );
   const [previewMode, setPreviewMode] =
     useState<DocumentPreviewMode>("both");
+  const [selectedCategory, setSelectedCategory] =
+    useState<TemplateCategoryFilter>("all");
   const [savedMessage, setSavedMessage] = useState<string | undefined>();
+  const visibleTemplates =
+    selectedCategory === "all"
+      ? templateDefinitions
+      : templateDefinitions.filter(
+          (template) => template.category === selectedCategory
+        );
 
   const handleSaveTemplate = async () => {
     const now = new Date().toISOString();
@@ -125,16 +188,26 @@ export function TemplatesScreen() {
             </div>
             <label className="grid gap-2 text-xs font-semibold text-slate-500">
               Kategorie
-              <select className="control-field w-48">
-                <option>Alle Kategorien</option>
-                <option>Professionell</option>
-                <option>Klassisch</option>
+              <select
+                className="control-field w-48"
+                onChange={(event) =>
+                  setSelectedCategory(
+                    event.target.value as TemplateCategoryFilter
+                  )
+                }
+                value={selectedCategory}
+              >
+                {categoryOptions.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            {templateDefinitions.map((template) => {
+            {visibleTemplates.map((template) => {
               const isSelected = template.id === selectedTemplate;
 
               return (
@@ -161,6 +234,9 @@ export function TemplatesScreen() {
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-slate-500">
                         {template.description}
+                      </span>
+                      <span className="mt-1 block text-xs font-medium text-slate-500">
+                        {template.bestFor}
                       </span>
                     </span>
                     {isSelected ? (

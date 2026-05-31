@@ -64,6 +64,12 @@ Ad-hoc profile review UX redesign completed. The profile page now uses real sect
 
 Ad-hoc LLM model selection audit completed. Production AI config no longer defines a fallback model name, `OLLAMA_MODEL` is no longer used as a runtime model selector, all LLM request paths accept and forward the selected local model, and status/readiness logic only treats installed and loaded Ollama models as usable.
 
+Ad-hoc Ollama shutdown cleanup completed. The Electron main process now intercepts app quit, reads currently loaded Ollama models from `/api/ps`, unloads each unique model with `keep_alive: 0`, and then continues quitting even if Ollama is unreachable or one unload request fails.
+
+TASK-036 completed. Desktop project persistence now lives in a dedicated Electron storage module with deterministic `projects.json` storage under Electron `userData`, validated save/load/list/delete behavior, desktop JSON import/export primitives, and a migration note for existing browser IndexedDB data.
+
+TASK-023 completed. The template pack now includes Modern, Classic, Minimal, Executive, Technical, and Compact templates, each with dedicated renderer styling, mini-preview accents, category metadata, and category filtering on the template screen.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -112,7 +118,7 @@ None
 
 ## Next Recommended Task
 
-Continue with TASK-036: Desktop Storage Migration
+Continue with TASK-037: Desktop Export Flow
 
 ## Known Risks
 
@@ -131,8 +137,10 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 130 tests
+- npm run test: passed, 148 tests
 - npm run build: passed
+- electron Ollama shutdown cleanup tests: passed
+- electron desktop storage tests: passed
 - production model-name audit for `src` and `electron`: passed, no hard-coded LLM model names outside tests
 - headless Chrome profile layout check: passed for `/profile` at 1280x900 and 1450x900 with no horizontal overflow
 - headless Chrome visual smoke check: passed for `/`, `/profile`, `/templates`, and `/import` at 1512x920 with no horizontal overflow
@@ -146,4 +154,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-29: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, and the full LLM model selection audit. Next recommended task is TASK-036 Desktop Storage Migration.
+2026-05-31: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, the full LLM model selection audit, Electron Ollama shutdown cleanup, TASK-036 Desktop Storage Migration, and TASK-023 Template Pack. Next recommended task is TASK-037 Desktop Export Flow.

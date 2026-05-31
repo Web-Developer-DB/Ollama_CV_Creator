@@ -58,6 +58,9 @@ describe("TemplatesScreen", () => {
     expect(screen.getByRole("button", { name: "Modern" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Classic" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Minimal" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Executive" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Technical" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compact" })).toBeInTheDocument();
     expect(screen.getByTestId("document-page-cv")).toBeInTheDocument();
     expect(
       screen.getByTestId("document-page-cover-letter")
@@ -97,5 +100,16 @@ describe("TemplatesScreen", () => {
       screen.queryByTestId("document-page-cover-letter")
     ).not.toBeInTheDocument();
     expect(screen.getByText("Frontend Engineer CV")).toBeInTheDocument();
+  });
+
+  it("filters templates by category", async () => {
+    const user = userEvent.setup();
+
+    render(<TemplatesScreen />);
+
+    await user.selectOptions(screen.getByLabelText("Kategorie"), "technical");
+
+    expect(screen.getByRole("button", { name: "Technical" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Modern" })).not.toBeInTheDocument();
   });
 });

@@ -214,7 +214,10 @@ export const jobAnalysisSchema: z.ZodType<JobAnalysis> = z.object({
 export const templateStyleSchema: z.ZodType<TemplateStyle> = z.enum([
   "modern",
   "classic",
-  "minimal"
+  "minimal",
+  "executive",
+  "technical",
+  "compact"
 ]);
 
 export const fontFamilySchema: z.ZodType<FontFamily> = z.enum([

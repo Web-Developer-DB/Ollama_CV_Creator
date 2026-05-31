@@ -10,7 +10,11 @@ import type {
   GenerateCVResponse,
   ModelControlRequest,
   ModelControlResponse,
-  OllamaStatus
+  OllamaStatus,
+  ProjectJsonExportResult,
+  ProjectJsonImportRequest,
+  ProjectJsonImportResult,
+  ProjectStorageLocation
 } from "./api";
 import type { ApplicationProject } from "./project";
 
@@ -41,6 +45,13 @@ export type DesktopApi = {
       project: ApplicationProject
     ) => Promise<ApiResponse<ApplicationProject>>;
     deleteProject: (id: string) => Promise<ApiResponse<void>>;
+    getLocation: () => Promise<ApiResponse<ProjectStorageLocation>>;
+    exportProjectsJson: (
+      filePath: string
+    ) => Promise<ApiResponse<ProjectJsonExportResult>>;
+    importProjectsJson: (
+      request: ProjectJsonImportRequest
+    ) => Promise<ApiResponse<ProjectJsonImportResult>>;
   };
 };
 

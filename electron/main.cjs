@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("node:path");
 const { registerIpcHandlers } = require("./ipc.cjs");
+const { unloadLoadedOllamaModels } = require("./ollama-shutdown.cjs");
 
 const rendererUrl =
   process.env.ELECTRON_RENDERER_URL || "http://127.0.0.1:3000";
@@ -41,6 +42,50 @@ const createMainWindow = async () => {
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 };
+
+let quitAfterOllamaUnload = false;
+let ollamaUnloadPromise;
+
+const reportOllamaShutdownResult = (result) => {
+  if (!result.error && result.failedModels.length === 0) {
+    return;
+  }
+
+  console.warn(
+    "[ollama-shutdown] App quit continued after Ollama model unload warning.",
+    {
+      loadedModels: result.loadedModels.length,
+      unloadedModels: result.unloadedModels.length,
+      failedModels: result.failedModels.length,
+      error: result.error
+    }
+  );
+};
+
+const unloadOllamaBeforeQuit = (event) => {
+  if (quitAfterOllamaUnload) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (!ollamaUnloadPromise) {
+    ollamaUnloadPromise = unloadLoadedOllamaModels()
+      .then(reportOllamaShutdownResult)
+      .catch((error) => {
+        console.warn(
+          "[ollama-shutdown] App quit continued after shutdown cleanup failed.",
+          error
+        );
+      })
+      .finally(() => {
+        quitAfterOllamaUnload = true;
+        app.quit();
+      });
+  }
+};
+
+app.on("before-quit", unloadOllamaBeforeQuit);
 
 app.whenReady().then(async () => {
   registerIpcHandlers({ rendererUrl });

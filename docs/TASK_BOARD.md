@@ -14,8 +14,7 @@
 
 ## READY
 
-- TASK-036: Desktop Storage Migration
-- TASK-023: Template Pack
+_None_
 
 ## IN_PROGRESS
 
@@ -54,6 +53,8 @@ _None_
 - TASK-033: Electron Migration Plan and Shell
 - TASK-034: Extract Next.js API Logic into Services
 - TASK-035: Electron IPC Bridge for AI and Storage
+- TASK-036: Desktop Storage Migration
+- TASK-023: Template Pack
 
 ## BLOCKED
 

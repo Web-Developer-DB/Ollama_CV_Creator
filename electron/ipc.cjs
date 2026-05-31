@@ -1,7 +1,9 @@
 const { app, ipcMain } = require("electron");
-const fs = require("node:fs/promises");
-const path = require("node:path");
 const { z } = require("zod");
+const {
+  createProjectStorage,
+  projectSchema
+} = require("./project-storage.cjs");
 
 const createSuccessResponse = (data) => ({
   success: true,
@@ -19,6 +21,14 @@ const createErrorResponse = (code, message, details) => ({
 
 const languageSchema = z.enum(["de", "en"]);
 const modelSchema = z.string().trim().min(1);
+const templateStyleSchema = z.enum([
+  "modern",
+  "classic",
+  "minimal",
+  "executive",
+  "technical",
+  "compact"
+]);
 const modelQuerySchema = z
   .object({
     model: modelSchema.optional()
@@ -50,7 +60,7 @@ const generateCvRequestSchema = z.object({
   options: z.object({
     language: languageSchema,
     length: z.literal("one_page"),
-    style: z.enum(["modern", "classic", "minimal"])
+    style: templateStyleSchema
   })
 });
 
@@ -65,55 +75,12 @@ const generateCoverLetterRequestSchema = z.object({
   })
 });
 
-const projectSchema = z
-  .object({
-    id: z.string().trim().min(1),
-    title: z.string().trim().min(1),
-    status: z.enum([
-      "draft",
-      "text_imported",
-      "profile_extracted",
-      "profile_reviewed",
-      "job_imported",
-      "job_analyzed",
-      "documents_generated",
-      "template_selected",
-      "export_ready"
-    ]),
-    createdAt: z.string().trim().min(1),
-    updatedAt: z.string().trim().min(1)
-  })
-  .passthrough();
-
 const projectIdSchema = z.string().trim().min(1);
-
-const storageFilePath = () =>
-  path.join(app.getPath("userData"), "projects.json");
-
-const ensureStorageDirectory = async () => {
-  await fs.mkdir(path.dirname(storageFilePath()), { recursive: true });
-};
-
-const readStoredProjects = async () => {
-  try {
-    const rawValue = await fs.readFile(storageFilePath(), "utf8");
-    const parsedValue = JSON.parse(rawValue);
-    const parsedProjects = z.array(projectSchema).safeParse(parsedValue);
-
-    return parsedProjects.success ? parsedProjects.data : [];
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return [];
-    }
-
-    throw error;
-  }
-};
-
-const writeStoredProjects = async (projects) => {
-  await ensureStorageDirectory();
-  await fs.writeFile(storageFilePath(), JSON.stringify(projects, null, 2), "utf8");
-};
+const projectJsonPathSchema = z.string().trim().min(1);
+const projectJsonImportRequestSchema = z.object({
+  filePath: projectJsonPathSchema,
+  mode: z.enum(["merge", "replace"]).optional()
+});
 
 const createValidatedHandler =
   (schema, handler) =>
@@ -161,35 +128,9 @@ const proxyStatusRoute = async (rendererUrl, input = {}) => {
   return response.json();
 };
 
-const saveProject = async (project) => {
-  const projects = await readStoredProjects();
-  const existingIndex = projects.findIndex(
-    (currentProject) => currentProject.id === project.id
-  );
-  const nextProjects =
-    existingIndex >= 0
-      ? projects.map((currentProject) =>
-          currentProject.id === project.id ? project : currentProject
-        )
-      : [...projects, project];
-
-  await writeStoredProjects(nextProjects);
-
-  return createSuccessResponse(project);
-};
-
-const listProjects = async () => createSuccessResponse(await readStoredProjects());
-
-const deleteProject = async (id) => {
-  const projects = await readStoredProjects();
-  await writeStoredProjects(
-    projects.filter((currentProject) => currentProject.id !== id)
-  );
-
-  return createSuccessResponse(undefined);
-};
-
 const registerIpcHandlers = ({ rendererUrl }) => {
+  const projectStorage = createProjectStorage({ app });
+
   ipcMain.handle(
     "ai:status",
     createValidatedHandler(modelQuerySchema, (input) =>
@@ -229,18 +170,45 @@ const registerIpcHandlers = ({ rendererUrl }) => {
 
   ipcMain.handle("storage:list-projects", async () => {
     try {
-      return await listProjects();
+      return createSuccessResponse(await projectStorage.listProjects());
     } catch {
       return createErrorResponse("EXPORT_FAILED", "Could not list projects");
     }
   });
   ipcMain.handle(
     "storage:save-project",
-    createValidatedHandler(projectSchema, saveProject)
+    createValidatedHandler(projectSchema, async (project) =>
+      createSuccessResponse(await projectStorage.saveProject(project))
+    )
   );
   ipcMain.handle(
     "storage:delete-project",
-    createValidatedHandler(projectIdSchema, deleteProject)
+    createValidatedHandler(projectIdSchema, async (id) => {
+      await projectStorage.deleteProject(id);
+
+      return createSuccessResponse(undefined);
+    })
+  );
+  ipcMain.handle("storage:get-location", async () =>
+    createSuccessResponse({
+      filePath: projectStorage.storageFilePath()
+    })
+  );
+  ipcMain.handle(
+    "storage:export-projects-json",
+    createValidatedHandler(projectJsonPathSchema, async (filePath) =>
+      createSuccessResponse(await projectStorage.exportProjectsJson(filePath))
+    )
+  );
+  ipcMain.handle(
+    "storage:import-projects-json",
+    createValidatedHandler(projectJsonImportRequestSchema, async (input) =>
+      createSuccessResponse(
+        await projectStorage.importProjectsJson(input.filePath, {
+          mode: input.mode
+        })
+      )
+    )
   );
 };
 

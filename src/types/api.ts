@@ -136,3 +136,23 @@ export type ModelControlResponse = {
   action: ModelControlAction;
   model: string;
 };
+
+export type ProjectStorageLocation = {
+  filePath: string;
+};
+
+export type ProjectJsonExportResult = {
+  filePath: string;
+  projectCount: number;
+};
+
+export type ProjectJsonImportRequest = {
+  filePath: string;
+  mode?: "merge" | "replace";
+};
+
+export type ProjectJsonImportResult = {
+  filePath: string;
+  importedCount: number;
+  totalCount: number;
+};

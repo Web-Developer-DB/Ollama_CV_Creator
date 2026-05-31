@@ -167,7 +167,13 @@ type GeneratedDocuments = {
 
 ```ts
 type DesignSettings = {
-  template: "modern" | "classic" | "minimal";
+  template:
+    | "modern"
+    | "classic"
+    | "minimal"
+    | "executive"
+    | "technical"
+    | "compact";
   accentColor?: string;
   fontFamily?: "inter" | "serif" | "system";
   density?: "compact" | "comfortable";

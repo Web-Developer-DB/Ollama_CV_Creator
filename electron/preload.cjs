@@ -19,6 +19,11 @@ contextBridge.exposeInMainWorld("desktopApi", {
   storage: {
     listProjects: () => invoke("storage:list-projects"),
     saveProject: (project) => invoke("storage:save-project", project),
-    deleteProject: (id) => invoke("storage:delete-project", id)
+    deleteProject: (id) => invoke("storage:delete-project", id),
+    getLocation: () => invoke("storage:get-location"),
+    exportProjectsJson: (filePath) =>
+      invoke("storage:export-projects-json", filePath),
+    importProjectsJson: (request) =>
+      invoke("storage:import-projects-json", request)
   }
 });
