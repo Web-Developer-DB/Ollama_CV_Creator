@@ -55,6 +55,7 @@ _None_
 - TASK-035: Electron IPC Bridge for AI and Storage
 - TASK-036: Desktop Storage Migration
 - TASK-023: Template Pack
+- TASK-039: Document Creation UX Flow
 
 ## BLOCKED
 

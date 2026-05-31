@@ -94,6 +94,17 @@ const validCoverLetter: GeneratedCoverLetter = {
   }
 };
 
+const validGeneralCoverLetter: GeneratedCoverLetter = {
+  ...validCoverLetter,
+  id: "cover-letter-general",
+  recipient: undefined,
+  subject: "General application",
+  opening: "I am writing to introduce my frontend engineering profile.",
+  body: [
+    "My React and TypeScript work at Acme GmbH focused on accessible components."
+  ]
+};
+
 const createRequest = (body: unknown): Request =>
   new Request("http://localhost/api/ai/generate-cover-letter", {
     method: "POST",
@@ -167,6 +178,27 @@ describe("POST /api/ai/generate-cover-letter", () => {
       success: true,
       data: validCoverLetter
     });
+  });
+
+  it("returns a general cover letter without a job target", async () => {
+    generateOllamaJson.mockResolvedValue(validGeneralCoverLetter);
+
+    const response = await POST(
+      createRequest({
+        candidateProfile: requestBody.candidateProfile,
+        options: requestBody.options
+      })
+    );
+    const payload = await readJson(response);
+    const [promptRequest] = generateOllamaJson.mock.calls[0] ?? [];
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({
+      success: true,
+      data: validGeneralCoverLetter
+    });
+    expect(promptRequest.prompt).toContain("general professional");
+    expect(promptRequest.prompt).toContain("None provided");
   });
 
   it("rejects unreasonable length", async () => {

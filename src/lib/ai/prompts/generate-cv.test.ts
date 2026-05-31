@@ -52,4 +52,35 @@ describe("generate CV prompt", () => {
     expect(prompt.prompt).toContain("<job_analysis>");
     expect(prompt.temperature).toBe(0.4);
   });
+
+  it("supports a general CV without target role context", () => {
+    const prompt = buildGenerateCVPrompt({
+      candidateProfile: {
+        personalInfo: {
+          fullName: "Ada Lovelace"
+        },
+        experiences: [],
+        education: [],
+        skills: {
+          technical: ["React"],
+          soft: [],
+          tools: [],
+          languages: [],
+          methods: []
+        },
+        projects: [],
+        languages: [],
+        certificates: []
+      },
+      options: {
+        language: "en",
+        length: "one_page",
+        style: "technical"
+      }
+    });
+
+    expect(prompt.prompt).toContain("general professional");
+    expect(prompt.prompt).toContain("None provided");
+    expect(prompt.prompt).toContain("without assuming a target role");
+  });
 });

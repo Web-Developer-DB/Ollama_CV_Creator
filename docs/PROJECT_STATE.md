@@ -70,6 +70,8 @@ TASK-036 completed. Desktop project persistence now lives in a dedicated Electro
 
 TASK-023 completed. The template pack now includes Modern, Classic, Minimal, Executive, Technical, and Compact templates, each with dedicated renderer styling, mini-preview accents, category metadata, and category filtering on the template screen.
 
+TASK-039 completed. The document creation flow now connects reviewed profiles directly to document generation. The Write Documents screen offers general CV, tailored CV, general cover letter, and tailored cover letter actions; tailored actions automatically create job analysis when it is missing. Profile now links to document creation, Design shows a clear empty state until documents exist, and AI Status persists the currently loaded model when local selection was stale.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -137,7 +139,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 148 tests
+- npm run test: passed, 159 tests
 - npm run build: passed
 - electron Ollama shutdown cleanup tests: passed
 - electron desktop storage tests: passed
@@ -154,4 +156,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-31: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, the full LLM model selection audit, Electron Ollama shutdown cleanup, TASK-036 Desktop Storage Migration, and TASK-023 Template Pack. Next recommended task is TASK-037 Desktop Export Flow.
+2026-05-31: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, the full LLM model selection audit, Electron Ollama shutdown cleanup, TASK-036 Desktop Storage Migration, TASK-023 Template Pack, and TASK-039 Document Creation UX Flow. Next recommended task is TASK-037 Desktop Export Flow.

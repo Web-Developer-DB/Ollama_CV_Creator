@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { selectedModelStorageKey } from "@/lib/ai/selected-model";
 import { AiSettingsScreen } from "./AiSettingsScreen";
 
 const reachableStatus = {
@@ -85,6 +86,27 @@ const reachableAfterUnloadStatus = {
     models: reachableStatus.data.models.map((model) => ({
       ...model,
       loaded: false
+    }))
+  }
+};
+
+const reachableWithDifferentLoadedModelStatus = {
+  success: true,
+  data: {
+    ...reachableStatus.data,
+    configuredModel: "qwen3.5:4b",
+    selectedModelLoaded: false,
+    loadedModels: [
+      {
+        name: "llama3.2:3b",
+        size: 2_000_000_000,
+        sizeVram: 1_900_000_000,
+        expiresAt: "2026-05-24T00:05:00.000Z"
+      }
+    ],
+    models: reachableStatus.data.models.map((model) => ({
+      ...model,
+      loaded: model.name === "llama3.2:3b"
     }))
   }
 };
@@ -211,6 +233,23 @@ describe("AiSettingsScreen", () => {
 
     expect(screen.getByLabelText("Model")).toHaveValue("llama3.2:3b");
     expect(screen.getByText("Selected locally")).toBeInTheDocument();
+  });
+
+  it("stores the loaded model when local selection is stale", async () => {
+    window.localStorage.setItem(selectedModelStorageKey, "qwen3.5:4b");
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(reachableWithDifferentLoadedModelStatus), {
+        status: 200
+      })
+    );
+
+    render(<AiSettingsScreen />);
+
+    expect(await screen.findByText("Connected")).toBeInTheDocument();
+    expect(screen.getByLabelText("Model")).toHaveValue("llama3.2:3b");
+    expect(window.localStorage.getItem(selectedModelStorageKey)).toBe(
+      "llama3.2:3b"
+    );
   });
 
   it("does not show connected when Ollama is reachable but no model is loaded", async () => {

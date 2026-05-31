@@ -67,6 +67,29 @@ describe("TemplatesScreen", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a document creation empty state before previews exist", () => {
+    useProjectStore.setState({
+      projects: [
+        {
+          ...projectWithDocuments,
+          generatedDocuments: undefined,
+          status: "profile_reviewed"
+        }
+      ],
+      selectedProjectId: projectWithDocuments.id,
+      isLoading: false,
+      error: undefined
+    });
+
+    render(<TemplatesScreen />);
+
+    expect(screen.getByText("Erstelle zuerst Dokumente")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Dokumente erstellen" })
+    ).toHaveAttribute("href", "/documents");
+    expect(screen.queryByTestId("document-page-cv")).not.toBeInTheDocument();
+  });
+
   it("switches the visible template", async () => {
     const user = userEvent.setup();
 

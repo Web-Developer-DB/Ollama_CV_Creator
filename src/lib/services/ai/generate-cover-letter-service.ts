@@ -29,8 +29,8 @@ import type { CandidateProfile } from "@/types/profile";
 
 const generateCoverLetterRequestSchema = z.object({
   candidateProfile: candidateProfileSchema,
-  jobTarget: jobTargetSchema,
-  jobAnalysis: jobAnalysisSchema,
+  jobTarget: jobTargetSchema.optional(),
+  jobAnalysis: jobAnalysisSchema.optional(),
   model: z.string().trim().min(1).optional(),
   options: z.object({
     language: z.enum(["de", "en"]),
@@ -58,8 +58,12 @@ const containsTerm = (text: string, term: string | undefined): boolean =>
 
 const usesTargetCompanyAndRole = (
   coverLetter: GeneratedCoverLetter,
-  jobTarget: JobTarget
+  jobTarget: JobTarget | undefined
 ): boolean => {
+  if (!jobTarget) {
+    return true;
+  }
+
   const letterText = collectLetterText(coverLetter);
 
   return (
@@ -99,8 +103,12 @@ const collectJobSkillSignals = (jobAnalysis: JobAnalysis): string[] =>
 const mentionsUnsupportedJobSkill = (
   coverLetter: GeneratedCoverLetter,
   candidateProfile: CandidateProfile,
-  jobAnalysis: JobAnalysis
+  jobAnalysis: JobAnalysis | undefined
 ): boolean => {
+  if (!jobAnalysis) {
+    return false;
+  }
+
   const knownSkills = collectKnownSkills(candidateProfile);
   const unsupportedJobSkills = collectJobSkillSignals(jobAnalysis).filter(
     (skill) => !includesKnownFact(skill, knownSkills)
@@ -112,11 +120,11 @@ const mentionsUnsupportedJobSkill = (
 
 const collectAllowedCompanies = (
   candidateProfile: CandidateProfile,
-  jobTarget: JobTarget
+  jobTarget: JobTarget | undefined
 ): string[] =>
   compactFacts([
     ...candidateProfile.experiences.map((experience) => experience.company),
-    jobTarget.company
+    jobTarget?.company
   ]);
 
 const companyLikePattern =
@@ -125,7 +133,7 @@ const companyLikePattern =
 const mentionsUnknownCompany = (
   coverLetter: GeneratedCoverLetter,
   candidateProfile: CandidateProfile,
-  jobTarget: JobTarget
+  jobTarget: JobTarget | undefined
 ): boolean => {
   const allowedCompanies = collectAllowedCompanies(candidateProfile, jobTarget);
   const letterText = collectLetterText(coverLetter);
@@ -141,7 +149,7 @@ export const generateCoverLetter = async (
   if (!parsedRequest.success) {
     return createErrorResponse(
       "INVALID_INPUT",
-      "Candidate profile, job target, job analysis and cover letter options are required"
+      "Candidate profile and cover letter options are required"
     );
   }
 

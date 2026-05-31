@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -780,6 +781,21 @@ export function ProfileScreen() {
                 />
                 <StatusPill active={skillCount > 0} label="Skills" />
                 <StatusPill active={!hasExtractionConcerns} label="LLM" />
+              </div>
+              <div className="mt-4 rounded-md border border-indigo-100 bg-indigo-50 p-3">
+                <p className="text-xs font-semibold uppercase text-indigo-700">
+                  Nächster Schritt
+                </p>
+                <p className="mt-1 text-sm font-medium leading-5 text-slate-700">
+                  Aus diesem Profil CV oder Anschreiben erstellen.
+                </p>
+                <Link
+                  className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-action px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+                  href="/documents"
+                >
+                  <Icon className="size-4" name="document" />
+                  Dokumente erstellen
+                </Link>
               </div>
             </div>
           </div>

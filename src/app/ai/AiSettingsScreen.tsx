@@ -91,6 +91,9 @@ export function AiSettingsScreen() {
 
       setStatus(payload.data);
       setSelectedModel(nextSelectedModel);
+      if (nextSelectedModel) {
+        storeSelectedModel(nextSelectedModel);
+      }
       setIsConnected(payload.data.reachable);
     } catch (error) {
       setStatus(undefined);

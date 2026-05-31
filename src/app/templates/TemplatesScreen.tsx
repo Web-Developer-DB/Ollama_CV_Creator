@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import {
   DocumentTemplate,
@@ -124,6 +125,10 @@ export function TemplatesScreen() {
     useProjectStore();
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) ?? projects[0];
+  const hasGeneratedDocuments = Boolean(
+    selectedProject?.generatedDocuments?.cv ||
+      selectedProject?.generatedDocuments?.coverLetter
+  );
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateStyle>(
     selectedProject?.designSettings?.template ?? "modern"
   );
@@ -298,12 +303,34 @@ export function TemplatesScreen() {
           ) : null}
         </section>
 
-        <DocumentTemplate
-          coverLetter={selectedProject?.generatedDocuments?.coverLetter}
-          cv={selectedProject?.generatedDocuments?.cv}
-          previewMode={previewMode}
-          template={selectedTemplate}
-        />
+        {hasGeneratedDocuments ? (
+          <DocumentTemplate
+            coverLetter={selectedProject?.generatedDocuments?.coverLetter}
+            cv={selectedProject?.generatedDocuments?.cv}
+            previewMode={previewMode}
+            template={selectedTemplate}
+          />
+        ) : (
+          <section className="rounded-lg border border-blue-200 bg-blue-50 p-5 shadow-panel">
+            <p className="text-xs font-semibold uppercase text-blue-700">
+              Vorschau wartet auf Inhalt
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-950">
+              Erstelle zuerst Dokumente
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-700">
+              Wähle hier schon ein Design aus. Die echte Druckvorschau erscheint,
+              sobald ein allgemeiner oder angepasster CV beziehungsweise ein
+              Anschreiben erzeugt wurde.
+            </p>
+            <Link
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-md bg-action px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+              href="/documents"
+            >
+              Dokumente erstellen
+            </Link>
+          </section>
+        )}
       </div>
     </AppShell>
   );

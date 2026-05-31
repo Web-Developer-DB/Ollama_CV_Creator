@@ -154,6 +154,75 @@ describe("POST /api/ai/generate-cv", () => {
     );
   });
 
+  it("returns a general generated CV without a job target", async () => {
+    generateOllamaJson.mockResolvedValue(validCV);
+
+    const response = await POST(
+      createRequest({
+        candidateProfile: requestBody.candidateProfile,
+        options: requestBody.options
+      })
+    );
+    const payload = await readJson(response);
+    const [promptRequest] = generateOllamaJson.mock.calls[0] ?? [];
+
+    expect(response.status).toBe(200);
+    expect(payload).toEqual({
+      success: true,
+      data: validCV
+    });
+    expect(promptRequest.prompt).toContain("general professional");
+    expect(promptRequest.prompt).toContain("None provided");
+  });
+
+  it("normalizes recoverable model CV output before validation", async () => {
+    generateOllamaJson.mockResolvedValue({
+      title: "Frontend Engineer CV",
+      language: "en",
+      sections: [
+        {
+          type: "work_experience",
+          title: "Work Experience",
+          items: [
+            {
+              role: "Frontend Engineer",
+              company: "Acme GmbH",
+              responsibilities: ["Built accessible React components"]
+            }
+          ]
+        }
+      ]
+    });
+
+    const response = await POST(createRequest(requestBody));
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        id: "generated-cv",
+        language: "en",
+        sections: [
+          {
+            id: "section-experience-1",
+            type: "experience",
+            title: "Work Experience",
+            items: [
+              {
+                id: "item-experience-1",
+                title: "Frontend Engineer",
+                subtitle: "Acme GmbH",
+                bullets: ["Built accessible React components"]
+              }
+            ]
+          }
+        ]
+      }
+    });
+    expect(payload.data.meta.generatedAt).toEqual(expect.any(String));
+  });
+
   it("rejects an empty candidate", async () => {
     const response = await POST(
       createRequest({

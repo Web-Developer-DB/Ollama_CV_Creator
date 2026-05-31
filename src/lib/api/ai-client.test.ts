@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   extractProfile,
+  generateCv,
   getAiStatus
 } from "@/lib/api/ai-client";
 import type { DesktopApi } from "@/types/electron";
@@ -51,6 +52,7 @@ describe("AI client", () => {
   afterEach(() => {
     global.fetch = originalFetch;
     delete window.desktopApi;
+    window.localStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -127,5 +129,45 @@ describe("AI client", () => {
 
     expect(extractProfileMock).toHaveBeenCalledWith(request);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("returns a readable API error when a response body is not JSON", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response("Gateway timeout", {
+        status: 504,
+        statusText: "Gateway Timeout"
+      })
+    );
+
+    await expect(
+      generateCv({
+        candidateProfile: {
+          personalInfo: {},
+          experiences: [],
+          education: [],
+          skills: {
+            technical: [],
+            soft: [],
+            tools: [],
+            languages: [],
+            methods: []
+          },
+          projects: [],
+          languages: [],
+          certificates: []
+        },
+        options: {
+          language: "de",
+          length: "one_page",
+          style: "modern"
+        }
+      })
+    ).resolves.toMatchObject({
+      success: false,
+      error: {
+        code: "AI_TIMEOUT",
+        message: expect.stringContaining("zu lange gedauert")
+      }
+    });
   });
 });

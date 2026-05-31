@@ -16,11 +16,11 @@ The main product goal is not to analyze whether a candidate matches a job as an 
 2. User imports raw unstructured text
 3. AI extracts structured profile data
 4. User reviews and edits extracted profile
-5. User imports a job posting
-6. AI extracts role requirements and positioning cues from the job posting
-7. App shows useful tailoring guidance
-8. AI generates a targeted CV based on verified candidate data
-9. AI generates a tailored cover letter based on verified candidate data
+5. User creates a general CV and/or general cover letter from the verified profile
+6. User optionally imports a job posting
+7. AI extracts role requirements and positioning cues from the job posting
+8. App shows useful tailoring guidance
+9. AI generates a tailored CV and/or tailored cover letter based on verified candidate data
 10. User selects template/style and visual presentation
 11. User previews and edits professionally designed documents
 12. User exports PDF and project JSON
@@ -35,8 +35,10 @@ The main product goal is not to analyze whether a candidate matches a job as an 
 - Job posting import
 - Job analysis
 - Job-based tailoring guidance
-- CV generation
-- Cover letter generation
+- General CV generation
+- Tailored CV generation
+- General cover letter generation
+- Tailored cover letter generation
 - Professional CV and cover letter presentation
 - Modern, classic, minimal, executive, technical, and compact templates
 - Live preview

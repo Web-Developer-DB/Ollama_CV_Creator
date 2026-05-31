@@ -74,6 +74,14 @@ describe("ProfileScreen", () => {
     expect(fullNameInput).toHaveValue("Ada Byron");
   });
 
+  it("links reviewed profiles to document creation", () => {
+    render(<ProfileScreen />);
+
+    expect(
+      screen.getByRole("link", { name: /Dokumente erstellen/ })
+    ).toHaveAttribute("href", "/documents");
+  });
+
   it("syncs the form when an extracted profile arrives after mount", async () => {
     useProjectStore.setState({
       projects: [],

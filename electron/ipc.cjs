@@ -19,6 +19,59 @@ const createErrorResponse = (code, message, details) => ({
   }
 });
 
+const isApiResponse = (value) =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof value.success === "boolean";
+
+const apiErrorCodeFromStatus = (status) => {
+  if (status === 504) {
+    return "AI_TIMEOUT";
+  }
+
+  if (status >= 500) {
+    return "OLLAMA_UNAVAILABLE";
+  }
+
+  return "INVALID_INPUT";
+};
+
+const createHttpErrorMessage = (response) => {
+  if (response.status === 504) {
+    return "Die KI-Anfrage hat zu lange gedauert. Bitte versuche es erneut oder nutze ein kleineres geladenes Ollama-Modell.";
+  }
+
+  const statusText = response.statusText ? ` ${response.statusText}` : "";
+
+  return `Die API-Anfrage ist fehlgeschlagen (HTTP ${response.status}${statusText}).`;
+};
+
+const readApiResponse = async (response) => {
+  let payload;
+
+  try {
+    payload = await response.json();
+  } catch {
+    payload = undefined;
+  }
+
+  if (isApiResponse(payload)) {
+    return payload;
+  }
+
+  if (!response.ok) {
+    return createErrorResponse(
+      apiErrorCodeFromStatus(response.status),
+      createHttpErrorMessage(response)
+    );
+  }
+
+  return createErrorResponse(
+    "INVALID_AI_JSON",
+    "Die API-Antwort konnte nicht gelesen werden."
+  );
+};
+
 const languageSchema = z.enum(["de", "en"]);
 const modelSchema = z.string().trim().min(1);
 const templateStyleSchema = z.enum([
@@ -54,8 +107,8 @@ const modelControlRequestSchema = z.object({
 
 const generateCvRequestSchema = z.object({
   candidateProfile: z.record(z.string(), z.unknown()),
-  jobTarget: z.record(z.string(), z.unknown()),
-  jobAnalysis: z.record(z.string(), z.unknown()),
+  jobTarget: z.record(z.string(), z.unknown()).optional(),
+  jobAnalysis: z.record(z.string(), z.unknown()).optional(),
   model: modelSchema.optional(),
   options: z.object({
     language: languageSchema,
@@ -66,8 +119,8 @@ const generateCvRequestSchema = z.object({
 
 const generateCoverLetterRequestSchema = z.object({
   candidateProfile: z.record(z.string(), z.unknown()),
-  jobTarget: z.record(z.string(), z.unknown()),
-  jobAnalysis: z.record(z.string(), z.unknown()),
+  jobTarget: z.record(z.string(), z.unknown()).optional(),
+  jobAnalysis: z.record(z.string(), z.unknown()).optional(),
   model: modelSchema.optional(),
   options: z.object({
     language: languageSchema,
@@ -111,7 +164,7 @@ const proxyJsonRoute = async (rendererUrl, route, payload) => {
     body: JSON.stringify(payload)
   });
 
-  return response.json();
+  return readApiResponse(response);
 };
 
 const proxyStatusRoute = async (rendererUrl, input = {}) => {
@@ -125,7 +178,7 @@ const proxyStatusRoute = async (rendererUrl, input = {}) => {
     cache: "no-store"
   });
 
-  return response.json();
+  return readApiResponse(response);
 };
 
 const registerIpcHandlers = ({ rendererUrl }) => {

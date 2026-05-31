@@ -72,6 +72,9 @@ Input:
 }
 ```
 
+`jobTarget` and `jobAnalysis` are optional. Omit them for a general CV; include
+both for a tailored CV.
+
 Output:
 GeneratedCV
 
@@ -90,6 +93,9 @@ Input:
   }
 }
 ```
+
+`jobTarget` and `jobAnalysis` are optional. Omit them for a reusable general
+cover letter; include both for a tailored cover letter.
 
 Output:
 GeneratedCoverLetter

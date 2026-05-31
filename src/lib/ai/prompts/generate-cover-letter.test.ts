@@ -53,4 +53,35 @@ describe("generate cover letter prompt", () => {
     expect(prompt.prompt).toContain("<job_analysis>");
     expect(prompt.temperature).toBe(0.5);
   });
+
+  it("supports a general cover letter without target role context", () => {
+    const prompt = buildGenerateCoverLetterPrompt({
+      candidateProfile: {
+        personalInfo: {
+          fullName: "Ada Lovelace"
+        },
+        experiences: [],
+        education: [],
+        skills: {
+          technical: ["React"],
+          soft: [],
+          tools: [],
+          languages: [],
+          methods: []
+        },
+        projects: [],
+        languages: [],
+        certificates: []
+      },
+      options: {
+        language: "en",
+        tone: "professional"
+      }
+    });
+
+    expect(prompt.prompt).toContain("general professional");
+    expect(prompt.prompt).toContain("None provided");
+    expect(prompt.prompt).toContain("reusable cover letter");
+    expect(prompt.prompt).toContain("Do not mention a specific company");
+  });
 });

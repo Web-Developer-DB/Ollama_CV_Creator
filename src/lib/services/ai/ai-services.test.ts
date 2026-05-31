@@ -81,8 +81,9 @@ const cvRequest: GenerateCVRequest = {
 
 const coverLetterRequest: GenerateCoverLetterRequest = {
   ...cvRequest,
+  jobTarget: cvRequest.jobTarget!,
   jobAnalysis: {
-    ...cvRequest.jobAnalysis,
+    ...cvRequest.jobAnalysis!,
     requiredSkills: ["React", "TypeScript", "Rust"],
     gaps: ["No Rust evidence"]
   },

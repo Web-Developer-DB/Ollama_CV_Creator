@@ -3,13 +3,20 @@
 import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/ui/Panel";
+import {
+  analyzeJob,
+  generateCoverLetter,
+  generateCv
+} from "@/lib/api/ai-client";
 import { useProjectStore } from "@/stores/project-store";
 import type {
   GeneratedCoverLetter,
   GeneratedCV,
   GeneratedDocuments
 } from "@/types/documents";
+import type { JobAnalysis } from "@/types/job";
 import type { ApplicationProject } from "@/types/project";
+import type { TemplateStyle } from "@/types/templates";
 
 const createId = (): string => {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -62,6 +69,15 @@ const coverLetterToText = (
     .filter(Boolean)
     .join("\n\n");
 };
+
+const toGenerationErrorMessage = (fallback: string, error: unknown): string =>
+  error instanceof Error ? error.message : fallback;
+
+const hasTargetRole = (project: ApplicationProject | undefined): boolean =>
+  Boolean(project?.jobTarget?.jobDescription.trim());
+
+const hasProfile = (project: ApplicationProject | undefined): boolean =>
+  Boolean(project?.candidateProfile);
 
 const createCVFromText = (
   text: string,
@@ -137,6 +153,236 @@ export function DocumentsScreen() {
     coverLetterToText(initialDocuments?.coverLetter)
   );
   const [savedMessage, setSavedMessage] = useState<string | undefined>();
+  const [generationError, setGenerationError] = useState<string | undefined>();
+  const [activeGeneration, setActiveGeneration] = useState<
+    | "general_cv"
+    | "tailored_cv"
+    | "general_cover_letter"
+    | "tailored_cover_letter"
+    | undefined
+  >();
+
+  const resolveDocumentLanguage = (): "de" | "en" =>
+    selectedProject?.jobTarget?.language ??
+    selectedProject?.candidateProfile?.extractionMeta?.language ??
+    "de";
+
+  const resolveTemplateStyle = (): TemplateStyle =>
+    selectedProject?.designSettings?.template ?? "modern";
+
+  const saveGeneratedDocuments = async (
+    documents: Partial<GeneratedDocuments>,
+    jobAnalysis?: JobAnalysis
+  ) => {
+    if (!selectedProject) {
+      throw new Error("No local project is selected");
+    }
+
+    const now = new Date().toISOString();
+    const nextDocuments = {
+      ...selectedProject.generatedDocuments,
+      ...documents
+    };
+
+    await saveProject({
+      ...selectedProject,
+      status: "documents_generated",
+      updatedAt: now,
+      jobAnalysis: jobAnalysis ?? selectedProject.jobAnalysis,
+      generatedDocuments: nextDocuments
+    });
+  };
+
+  const ensureJobAnalysis = async (): Promise<JobAnalysis> => {
+    if (selectedProject?.jobAnalysis) {
+      return selectedProject.jobAnalysis;
+    }
+
+    const jobTarget = selectedProject?.jobTarget;
+    if (!jobTarget?.jobDescription.trim()) {
+      throw new Error("Add a target role before creating tailored documents");
+    }
+
+    const payload = await analyzeJob({
+      jobDescription: jobTarget.jobDescription,
+      language: jobTarget.language
+    });
+
+    if (!payload.success || !payload.data) {
+      throw new Error(payload.error?.message ?? "Job analysis failed");
+    }
+
+    return payload.data;
+  };
+
+  const handleGenerateGeneralCv = async () => {
+    if (!selectedProject?.candidateProfile) {
+      setGenerationError("Review or extract a candidate profile first");
+      return;
+    }
+
+    setActiveGeneration("general_cv");
+    setGenerationError(undefined);
+    setSavedMessage(undefined);
+
+    try {
+      const payload = await generateCv({
+        candidateProfile: selectedProject.candidateProfile,
+        options: {
+          language: resolveDocumentLanguage(),
+          length: "one_page",
+          style: resolveTemplateStyle()
+        }
+      });
+
+      if (!payload.success || !payload.data) {
+        throw new Error(payload.error?.message ?? "CV generation failed");
+      }
+
+      await saveGeneratedDocuments({ cv: payload.data });
+      setCvDraft(cvToText(payload.data));
+      setSavedMessage("General CV generated and saved locally");
+    } catch (error) {
+      setGenerationError(
+        toGenerationErrorMessage("CV generation failed", error)
+      );
+    } finally {
+      setActiveGeneration(undefined);
+    }
+  };
+
+  const handleGenerateTailoredCv = async () => {
+    if (!selectedProject?.candidateProfile) {
+      setGenerationError("Review or extract a candidate profile first");
+      return;
+    }
+
+    if (!selectedProject.jobTarget?.jobDescription.trim()) {
+      setGenerationError("Add a target role before creating a tailored CV");
+      return;
+    }
+
+    setActiveGeneration("tailored_cv");
+    setGenerationError(undefined);
+    setSavedMessage(undefined);
+
+    try {
+      const jobAnalysis = await ensureJobAnalysis();
+      const payload = await generateCv({
+        candidateProfile: selectedProject.candidateProfile,
+        jobTarget: selectedProject.jobTarget,
+        jobAnalysis,
+        options: {
+          language: selectedProject.jobTarget.language,
+          length: "one_page",
+          style: resolveTemplateStyle()
+        }
+      });
+
+      if (!payload.success || !payload.data) {
+        throw new Error(payload.error?.message ?? "Tailored CV generation failed");
+      }
+
+      await saveGeneratedDocuments({ cv: payload.data }, jobAnalysis);
+      setCvDraft(cvToText(payload.data));
+      setSavedMessage("Tailored CV generated and saved locally");
+    } catch (error) {
+      setGenerationError(
+        toGenerationErrorMessage("Tailored CV generation failed", error)
+      );
+    } finally {
+      setActiveGeneration(undefined);
+    }
+  };
+
+  const handleGenerateGeneralCoverLetter = async () => {
+    if (!selectedProject?.candidateProfile) {
+      setGenerationError("Review or extract a candidate profile first");
+      return;
+    }
+
+    setActiveGeneration("general_cover_letter");
+    setGenerationError(undefined);
+    setSavedMessage(undefined);
+
+    try {
+      const payload = await generateCoverLetter({
+        candidateProfile: selectedProject.candidateProfile,
+        options: {
+          language: resolveDocumentLanguage(),
+          tone: selectedProject.jobTarget?.tone ?? "professional"
+        }
+      });
+
+      if (!payload.success || !payload.data) {
+        throw new Error(
+          payload.error?.message ?? "Cover letter generation failed"
+        );
+      }
+
+      await saveGeneratedDocuments({
+        coverLetter: payload.data
+      });
+      setCoverLetterDraft(coverLetterToText(payload.data));
+      setSavedMessage("General cover letter generated and saved locally");
+    } catch (error) {
+      setGenerationError(
+        toGenerationErrorMessage("Cover letter generation failed", error)
+      );
+    } finally {
+      setActiveGeneration(undefined);
+    }
+  };
+
+  const handleGenerateTailoredCoverLetter = async () => {
+    if (!selectedProject?.candidateProfile) {
+      setGenerationError("Review or extract a candidate profile first");
+      return;
+    }
+
+    if (!selectedProject.jobTarget?.jobDescription.trim()) {
+      setGenerationError("Add a target role before creating a cover letter");
+      return;
+    }
+
+    setActiveGeneration("tailored_cover_letter");
+    setGenerationError(undefined);
+    setSavedMessage(undefined);
+
+    try {
+      const jobAnalysis = await ensureJobAnalysis();
+      const payload = await generateCoverLetter({
+        candidateProfile: selectedProject.candidateProfile,
+        jobTarget: selectedProject.jobTarget,
+        jobAnalysis,
+        options: {
+          language: selectedProject.jobTarget.language,
+          tone: selectedProject.jobTarget.tone
+        }
+      });
+
+      if (!payload.success || !payload.data) {
+        throw new Error(
+          payload.error?.message ?? "Cover letter generation failed"
+        );
+      }
+
+      await saveGeneratedDocuments(
+        {
+          coverLetter: payload.data
+        },
+        jobAnalysis
+      );
+      setCoverLetterDraft(coverLetterToText(payload.data));
+      setSavedMessage("Tailored cover letter generated and saved locally");
+    } catch (error) {
+      setGenerationError(
+        toGenerationErrorMessage("Cover letter generation failed", error)
+      );
+    } finally {
+      setActiveGeneration(undefined);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -169,7 +415,25 @@ export function DocumentsScreen() {
 
     await saveProject(project);
     setSavedMessage("Documents saved locally");
+    setGenerationError(undefined);
   };
+
+  const isGenerating = Boolean(activeGeneration);
+  const canGenerateFromProfile = hasProfile(selectedProject) && !isGenerating;
+  const canGenerateWithTarget =
+    hasProfile(selectedProject) && hasTargetRole(selectedProject) && !isGenerating;
+  const profileName =
+    selectedProject?.candidateProfile?.personalInfo.fullName ??
+    selectedProject?.title ??
+    "No profile selected";
+  const targetLabel = selectedProject?.jobTarget?.title
+    ? [
+        selectedProject.jobTarget.title,
+        selectedProject.jobTarget.company
+      ]
+        .filter(Boolean)
+        .join(" at ")
+    : "No target role";
 
   return (
     <AppShell
@@ -182,35 +446,167 @@ export function DocumentsScreen() {
     >
       <form className="grid gap-6" onSubmit={handleSubmit}>
         <Panel
-          description="Edit the generated wording before choosing the final visual design. Keep facts accurate; use the target role only to decide emphasis and tone."
-          title="Professional application drafts"
+          description="Create a CV or cover letter from the reviewed profile. Target role context is optional and only changes emphasis; it never adds new facts."
+          title="Document creation studio"
         >
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              "Profile",
+              "Document",
+              "Context",
+              "Edit"
+            ].map((step, index) => (
+              <div
+                className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
+                key={step}
+              >
+                <p className="text-xs font-semibold uppercase text-slate-500">
+                  {index + 1}
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-950">
+                  {step}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
               <p className="text-xs font-semibold uppercase text-slate-500">
-                Source
+                Profile source
               </p>
               <p className="mt-1 text-sm font-semibold text-slate-950">
-                Verified profile data
+                {hasProfile(selectedProject) ? profileName : "Profile required"}
+              </p>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                {hasProfile(selectedProject)
+                  ? "Ready for document generation"
+                  : "Extract or review a profile first"}
               </p>
             </div>
             <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
               <p className="text-xs font-semibold uppercase text-slate-500">
-                Optional focus
+                Target context
               </p>
               <p className="mt-1 text-sm font-semibold text-slate-950">
-                Target role tailoring
+                {targetLabel}
               </p>
-            </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className="text-xs font-semibold uppercase text-slate-500">
-                Next step
-              </p>
-              <p className="mt-1 text-sm font-semibold text-slate-950">
-                Choose visual design
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                {hasTargetRole(selectedProject)
+                  ? "Tailored documents available"
+                  : "Optional for general CVs and letters"}
               </p>
             </div>
           </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 pt-5">
+            <div className="rounded-md border border-slate-200 bg-white p-4">
+              <p className="text-sm font-semibold text-slate-950">
+                General CV
+              </p>
+              <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
+                Create a strong one-page CV from the verified profile without a
+                target role.
+              </p>
+              <button
+                className="mt-4 h-10 w-full rounded-md bg-action px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={!canGenerateFromProfile}
+                onClick={handleGenerateGeneralCv}
+                type="button"
+              >
+                {activeGeneration === "general_cv"
+                  ? "Creating CV..."
+                  : "Create general CV"}
+              </button>
+            </div>
+
+            <div className="rounded-md border border-slate-200 bg-white p-4">
+              <p className="text-sm font-semibold text-slate-950">
+                Tailored CV
+              </p>
+              <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
+                Analyze the saved job description if needed and emphasize the
+                most relevant verified experience.
+              </p>
+              <button
+                className="mt-4 h-10 w-full rounded-md bg-action px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={!canGenerateWithTarget}
+                onClick={handleGenerateTailoredCv}
+                type="button"
+              >
+                {activeGeneration === "tailored_cv"
+                  ? "Creating tailored CV..."
+                  : "Create tailored CV"}
+              </button>
+            </div>
+
+            <div className="rounded-md border border-slate-200 bg-white p-4">
+              <p className="text-sm font-semibold text-slate-950">
+                General cover letter
+              </p>
+              <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
+                Create a reusable letter from verified profile facts without a
+                company or job description.
+              </p>
+              <button
+                className="mt-4 h-10 w-full rounded-md bg-action px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={!canGenerateFromProfile}
+                onClick={handleGenerateGeneralCoverLetter}
+                type="button"
+              >
+                {activeGeneration === "general_cover_letter"
+                  ? "Creating letter..."
+                  : "Create general letter"}
+              </button>
+            </div>
+
+            <div className="rounded-md border border-slate-200 bg-white p-4">
+              <p className="text-sm font-semibold text-slate-950">
+                Tailored cover letter
+              </p>
+              <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">
+                Generate a concise letter for the saved company and role using
+                only profile facts.
+              </p>
+              <button
+                className="mt-4 h-10 w-full rounded-md bg-action px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={!canGenerateWithTarget}
+                onClick={handleGenerateTailoredCoverLetter}
+                type="button"
+              >
+                {activeGeneration === "tailored_cover_letter"
+                  ? "Creating letter..."
+                  : "Create tailored letter"}
+              </button>
+            </div>
+          </div>
+
+          {!hasProfile(selectedProject) ? (
+            <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950">
+              Extract or review a candidate profile before generating documents.
+            </p>
+          ) : null}
+          {hasProfile(selectedProject) && !hasTargetRole(selectedProject) ? (
+            <p className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-950">
+              General CV and general cover letter are ready. Add a target role
+              to generate tailored documents.
+            </p>
+          ) : null}
+          {generationError ? (
+            <div
+              className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-950"
+              role="alert"
+            >
+              <p className="font-semibold">
+                Dokument konnte nicht erstellt werden
+              </p>
+              <p className="mt-1 leading-6">{generationError}</p>
+              <p className="mt-2 text-xs font-medium text-red-800">
+                Prüfe den AI Status, ob Ollama erreichbar ist und ein Modell
+                geladen ist. Bei einem Timeout kann ein kleineres Modell helfen.
+              </p>
+            </div>
+          ) : null}
         </Panel>
 
         <div className="grid grid-cols-2 gap-6">
