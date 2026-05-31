@@ -6,7 +6,7 @@ export type AiConfig = {
 
 export const DEFAULT_AI_CONFIG: AiConfig = {
   baseUrl: "http://127.0.0.1:11434",
-  timeoutMs: 60_000
+  timeoutMs: 180_000
 };
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
