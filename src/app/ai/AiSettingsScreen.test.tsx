@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { selectedModelStorageKey } from "@/lib/ai/selected-model";
+import { runtimeSettingsStorageKey } from "@/lib/ai/runtime-settings";
 import { AiSettingsScreen } from "./AiSettingsScreen";
 
 const reachableStatus = {
@@ -108,6 +109,27 @@ const reachableWithDifferentLoadedModelStatus = {
       ...model,
       loaded: model.name === "llama3.2:3b"
     }))
+  }
+};
+
+const reachableWithCloudModelStatus = {
+  success: true,
+  data: {
+    ...reachableStatus.data,
+    configuredModel: "gpt-oss:120b-cloud",
+    loadedModels: [
+      {
+        name: "gpt-oss:120b-cloud",
+        expiresAt: "2026-05-24T00:05:00.000Z"
+      }
+    ],
+    models: [
+      {
+        name: "gpt-oss:120b-cloud",
+        loaded: true,
+        parameterSize: "120B"
+      }
+    ]
   }
 };
 
@@ -233,6 +255,40 @@ describe("AiSettingsScreen", () => {
 
     expect(screen.getByLabelText("Model")).toHaveValue("llama3.2:3b");
     expect(screen.getByText("Selected locally")).toBeInTheDocument();
+  });
+
+  it("stores runtime presets for generation requests", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(reachableStatus), { status: 200 })
+    );
+
+    render(<AiSettingsScreen />);
+
+    await screen.findByText("Connected");
+    await user.selectOptions(screen.getByLabelText("Context window"), "16384");
+    await user.selectOptions(screen.getByLabelText("AI timeout"), "300000");
+
+    expect(screen.getByText("Lange Profile")).toBeInTheDocument();
+    expect(screen.getByText("5 Minuten")).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(runtimeSettingsStorageKey)!)).toEqual({
+      contextWindow: 16384,
+      timeoutMs: 300000
+    });
+  });
+
+  it("marks cloud models when selected through local Ollama", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(reachableWithCloudModelStatus), {
+        status: 200
+      })
+    );
+
+    render(<AiSettingsScreen />);
+
+    expect(await screen.findByText("Connected")).toBeInTheDocument();
+    expect(screen.getByText("Cloud")).toBeInTheDocument();
+    expect(screen.getByText(/Cloud model via local Ollama/)).toBeInTheDocument();
   });
 
   it("stores the loaded model when local selection is stale", async () => {

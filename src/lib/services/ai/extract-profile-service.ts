@@ -9,13 +9,23 @@ import {
   createSuccessResponse
 } from "@/lib/services/api-response";
 import { candidateProfileSchema } from "@/lib/validation/schemas";
-import type { ApiResponse, ExtractProfileRequest } from "@/types/api";
+import type {
+  AiRuntimeOptions,
+  ApiResponse,
+  ExtractProfileRequest
+} from "@/types/api";
 import type { CandidateProfile, LanguageProficiency } from "@/types/profile";
 
 const extractProfileRequestSchema = z.object({
   text: z.string().trim().min(1),
   language: z.enum(["de", "en"]),
-  model: z.string().trim().min(1).optional()
+  model: z.string().trim().min(1).optional(),
+  runtime: z
+    .object({
+      contextWindow: z.number().int().positive().optional(),
+      timeoutMs: z.number().int().positive().optional()
+    })
+    .optional()
 });
 
 const EXTRACTION_TIMEOUT_MS = 120_000;
@@ -488,10 +498,11 @@ const backfillProfileFromText = (
 };
 
 const createOllamaOptions = (
-  model: string | undefined
+  model: string | undefined,
+  runtime: AiRuntimeOptions | undefined
 ): { model?: string; timeoutMs: number } => ({
   ...(model ? { model } : {}),
-  timeoutMs: EXTRACTION_TIMEOUT_MS
+  timeoutMs: runtime?.timeoutMs ?? EXTRACTION_TIMEOUT_MS
 });
 
 const parseAiProfile = (aiProfile: unknown) =>
@@ -506,10 +517,14 @@ export const extractProfile = async (
   }
 
   const request: ExtractProfileRequest = parsedRequest.data;
-  const prompt = buildExtractProfilePrompt(request);
+  const basePrompt = buildExtractProfilePrompt(request);
+  const prompt = {
+    ...basePrompt,
+    numCtx: request.runtime?.contextWindow ?? basePrompt.numCtx
+  };
 
   try {
-    const generationOptions = createOllamaOptions(request.model);
+    const generationOptions = createOllamaOptions(request.model, request.runtime);
     const aiProfile = await generateOllamaJson<unknown>(
       prompt,
       generationOptions
@@ -531,8 +546,12 @@ export const extractProfile = async (
         ...request,
         recovery: true
       });
+      const runtimeRecoveryPrompt = {
+        ...recoveryPrompt,
+        numCtx: request.runtime?.contextWindow ?? recoveryPrompt.numCtx
+      };
       const recoveryAiProfile = await generateOllamaJson<unknown>(
-        recoveryPrompt,
+        runtimeRecoveryPrompt,
         generationOptions
       );
 

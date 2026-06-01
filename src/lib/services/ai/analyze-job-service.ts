@@ -9,13 +9,33 @@ import {
   createSuccessResponse
 } from "@/lib/services/api-response";
 import { jobAnalysisSchema } from "@/lib/validation/schemas";
-import type { AnalyzeJobRequest, ApiResponse } from "@/types/api";
+import type {
+  AiRuntimeOptions,
+  AnalyzeJobRequest,
+  ApiResponse
+} from "@/types/api";
 import type { JobAnalysis } from "@/types/job";
+
+const runtimeOptionsSchema = z
+  .object({
+    contextWindow: z.number().int().positive().optional(),
+    timeoutMs: z.number().int().positive().optional()
+  })
+  .optional();
 
 const analyzeJobRequestSchema = z.object({
   jobDescription: z.string().trim().min(1),
   language: z.enum(["de", "en"]),
-  model: z.string().trim().min(1).optional()
+  model: z.string().trim().min(1).optional(),
+  runtime: runtimeOptionsSchema
+});
+
+const createOllamaOptions = (
+  model: string | undefined,
+  runtime: AiRuntimeOptions | undefined
+) => ({
+  ...(model ? { model } : {}),
+  ...(runtime?.timeoutMs ? { timeoutMs: runtime.timeoutMs } : {})
 });
 
 export const analyzeJob = async (
@@ -30,12 +50,17 @@ export const analyzeJob = async (
   }
 
   const request: AnalyzeJobRequest = parsedRequest.data;
-  const prompt = buildAnalyzeJobPrompt(request);
+  const prompt = {
+    ...buildAnalyzeJobPrompt(request),
+    ...(request.runtime?.contextWindow
+      ? { numCtx: request.runtime.contextWindow }
+      : {})
+  };
 
   try {
     const aiAnalysis = await generateOllamaJson<unknown>(
       prompt,
-      request.model ? { model: request.model } : undefined
+      createOllamaOptions(request.model, request.runtime)
     );
     const parsedAnalysis = jobAnalysisSchema.safeParse(aiAnalysis);
 

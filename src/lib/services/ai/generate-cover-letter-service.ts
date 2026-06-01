@@ -5,6 +5,7 @@ import {
   OllamaClientError
 } from "@/lib/ai/ollama-client";
 import {
+  collectCandidateSkillEvidence,
   compactFacts,
   hasCandidateFacts,
   hasText,
@@ -22,7 +23,11 @@ import {
   jobTargetSchema,
   jobToneSchema
 } from "@/lib/validation/schemas";
-import type { ApiResponse, GenerateCoverLetterRequest } from "@/types/api";
+import type {
+  AiRuntimeOptions,
+  ApiResponse,
+  GenerateCoverLetterRequest
+} from "@/types/api";
 import type { GeneratedCoverLetter } from "@/types/documents";
 import type { JobAnalysis, JobTarget } from "@/types/job";
 import type { CandidateProfile } from "@/types/profile";
@@ -32,10 +37,24 @@ const generateCoverLetterRequestSchema = z.object({
   jobTarget: jobTargetSchema.optional(),
   jobAnalysis: jobAnalysisSchema.optional(),
   model: z.string().trim().min(1).optional(),
+  runtime: z
+    .object({
+      contextWindow: z.number().int().positive().optional(),
+      timeoutMs: z.number().int().positive().optional()
+    })
+    .optional(),
   options: z.object({
     language: z.enum(["de", "en"]),
     tone: jobToneSchema
   })
+});
+
+const createOllamaOptions = (
+  model: string | undefined,
+  runtime: AiRuntimeOptions | undefined
+) => ({
+  ...(model ? { model } : {}),
+  ...(runtime?.timeoutMs ? { timeoutMs: runtime.timeoutMs } : {})
 });
 
 const collectLetterText = (coverLetter: GeneratedCoverLetter): string =>
@@ -79,20 +98,6 @@ const hasReasonableLength = (coverLetter: GeneratedCoverLetter): boolean =>
   coverLetter.body.length <= 4 &&
   countWords(collectLetterText(coverLetter)) <= 450;
 
-const collectKnownSkills = (candidateProfile: CandidateProfile): string[] =>
-  compactFacts([
-    ...candidateProfile.skills.technical,
-    ...candidateProfile.skills.soft,
-    ...candidateProfile.skills.tools,
-    ...candidateProfile.skills.languages,
-    ...candidateProfile.skills.methods,
-    ...candidateProfile.experiences.flatMap(
-      (experience) => experience.technologies ?? []
-    ),
-    ...candidateProfile.projects.flatMap((project) => project.technologies ?? []),
-    ...candidateProfile.languages.map((language) => language.language)
-  ]);
-
 const collectJobSkillSignals = (jobAnalysis: JobAnalysis): string[] =>
   compactFacts([
     ...jobAnalysis.requiredSkills,
@@ -109,7 +114,7 @@ const mentionsUnsupportedJobSkill = (
     return false;
   }
 
-  const knownSkills = collectKnownSkills(candidateProfile);
+  const knownSkills = collectCandidateSkillEvidence(candidateProfile);
   const unsupportedJobSkills = collectJobSkillSignals(jobAnalysis).filter(
     (skill) => !includesKnownFact(skill, knownSkills)
   );
@@ -162,12 +167,17 @@ export const generateCoverLetter = async (
     );
   }
 
-  const prompt = buildGenerateCoverLetterPrompt(request);
+  const prompt = {
+    ...buildGenerateCoverLetterPrompt(request),
+    ...(request.runtime?.contextWindow
+      ? { numCtx: request.runtime.contextWindow }
+      : {})
+  };
 
   try {
     const aiCoverLetter = await generateOllamaJson<unknown>(
       prompt,
-      request.model ? { model: request.model } : undefined
+      createOllamaOptions(request.model, request.runtime)
     );
     const parsedCoverLetter =
       generatedCoverLetterSchema.safeParse(aiCoverLetter);

@@ -45,9 +45,9 @@ describe("Ollama client", () => {
   });
 
   it("supports environment base URL overrides", () => {
-    vi.stubEnv("OLLAMA_BASE_URL", "http://localhost:11435/");
+    vi.stubEnv("OLLAMA_BASE_URL", "https://ollama.com/api/");
 
-    expect(getAiConfig().baseUrl).toBe("http://localhost:11435");
+    expect(getAiConfig().baseUrl).toBe("https://ollama.com");
   });
 
   it("parses a successful text response", async () => {
@@ -68,6 +68,52 @@ describe("Ollama client", () => {
       "http://127.0.0.1:11434/api/generate",
       expect.objectContaining({
         method: "POST"
+      })
+    );
+  });
+
+  it("uses Ollama Cloud authentication for direct cloud API requests", async () => {
+    vi.stubEnv("OLLAMA_BASE_URL", "https://ollama.com/api");
+    vi.stubEnv("OLLAMA_API_KEY", "secret-key");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          models: [{ name: "gpt-oss:120b" }]
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          response: "Generated cloud text",
+          done: true
+        })
+      );
+    global.fetch = fetchMock;
+
+    await expect(
+      generateOllamaText({
+        prompt: "Return JSON",
+        system: "Return valid JSON only",
+        model: "gpt-oss:120b"
+      })
+    ).resolves.toBe("Generated cloud text");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://ollama.com/api/tags",
+      expect.objectContaining({
+        headers: {
+          Authorization: "Bearer secret-key"
+        }
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://ollama.com/api/generate",
+      expect.objectContaining({
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer secret-key"
+        }
       })
     );
   });
@@ -205,6 +251,36 @@ describe("Ollama client", () => {
       })
     ).rejects.toMatchObject({
       code: "OLLAMA_UNAVAILABLE"
+    });
+  });
+
+  it("uses Ollama JSON error messages from failed responses", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          models: [{ name: readyModel }]
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({
+          models: [{ name: readyModel }]
+        })
+      )
+      .mockResolvedValueOnce(
+        createJsonResponse({ error: "rate limit exceeded" }, 429)
+      );
+    global.fetch = fetchMock;
+
+    await expect(
+      generateOllamaText({
+        prompt: "Return JSON",
+        system: "Return valid JSON only",
+        model: readyModel
+      })
+    ).rejects.toMatchObject({
+      code: "OLLAMA_UNAVAILABLE",
+      message: "rate limit exceeded"
     });
   });
 

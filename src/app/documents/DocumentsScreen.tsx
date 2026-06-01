@@ -16,6 +16,7 @@ import type {
 } from "@/types/documents";
 import type { JobAnalysis } from "@/types/job";
 import type { ApplicationProject } from "@/types/project";
+import type { ApiError } from "@/types/api";
 import type { TemplateStyle } from "@/types/templates";
 
 const createId = (): string => {
@@ -70,8 +71,112 @@ const coverLetterToText = (
     .join("\n\n");
 };
 
-const toGenerationErrorMessage = (fallback: string, error: unknown): string =>
-  error instanceof Error ? error.message : fallback;
+type GenerationApiError = Error & {
+  code?: ApiError["code"];
+  details?: unknown;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const createGenerationError = (
+  error: ApiError | undefined,
+  fallback: string
+): GenerationApiError => {
+  const nextError = new Error(error?.message ?? fallback) as GenerationApiError;
+
+  nextError.code = error?.code;
+  nextError.details = error?.details;
+
+  return nextError;
+};
+
+const readUnknownSkills = (details: unknown): string[] =>
+  isRecord(details) && Array.isArray(details.unknownSkills)
+    ? details.unknownSkills.filter(
+        (skill): skill is string =>
+          typeof skill === "string" && skill.trim().length > 0
+      )
+    : [];
+
+const toGenerationErrorMessage = (fallback: string, error: unknown): string => {
+  if (!(error instanceof Error)) {
+    return fallback;
+  }
+
+  const apiError = error as GenerationApiError;
+  const unknownSkills = readUnknownSkills(apiError.details);
+
+  if (unknownSkills.length > 0) {
+    return `Das Modell hat nicht belegte Skills erzeugt: ${unknownSkills.join(", ")}. Prüfe die Profildaten oder entferne diese Begriffe aus der Antwort.`;
+  }
+
+  switch (apiError.code) {
+    case "AI_TIMEOUT":
+      return "Die KI-Anfrage hat das Zeitlimit erreicht. Erhöhe im AI Status das Timeout oder nutze ein schnelleres Cloud-Modell.";
+    case "INVALID_AI_JSON":
+      return "Ollama hat keine lesbare JSON-Antwort geliefert. Erhöhe das Kontextfenster oder nutze ein stärkeres Modell.";
+    case "SCHEMA_VALIDATION_FAILED":
+      return "Ollama hat JSON geliefert, aber nicht im erwarteten Dokumentformat. Ein größeres Kontextfenster oder Cloud-Modell kann helfen.";
+    case "AI_MODEL_NOT_READY":
+      return "Kein passendes Modell ist geladen. Öffne AI Status und lade das ausgewählte Modell.";
+    case "HALLUCINATION_DETECTED":
+      return error.message;
+    default:
+      return error.message || fallback;
+  }
+};
+
+type ActiveGeneration =
+  | "general_cv"
+  | "tailored_cv"
+  | "general_cover_letter"
+  | "tailored_cover_letter";
+
+type GenerationPhase =
+  | "preparing"
+  | "analyzing_job"
+  | "generating_cv"
+  | "generating_cover_letter"
+  | "checking_response"
+  | "saving";
+
+const generationLabels: Record<ActiveGeneration, string> = {
+  general_cv: "Allgemeiner CV",
+  tailored_cv: "Angepasster CV",
+  general_cover_letter: "Allgemeines Anschreiben",
+  tailored_cover_letter: "Angepasstes Anschreiben"
+};
+
+const generationPhaseCopy: Record<
+  GenerationPhase,
+  { title: string; description: string }
+> = {
+  preparing: {
+    title: "Profil wird vorbereitet",
+    description: "Die verifizierten Profildaten werden für die Anfrage gesammelt."
+  },
+  analyzing_job: {
+    title: "Stellenbeschreibung wird analysiert",
+    description: "Die Zielrolle wird als Kontext für die Dokumente ausgewertet."
+  },
+  generating_cv: {
+    title: "CV-Erstellung läuft",
+    description: "Ollama erstellt gerade den Lebenslauf aus den Profildaten."
+  },
+  generating_cover_letter: {
+    title: "Anschreiben-Erstellung läuft",
+    description: "Ollama formuliert gerade das Anschreiben."
+  },
+  checking_response: {
+    title: "Antwort wird geprüft",
+    description: "Die JSON-Antwort wird validiert und mit dem Profil abgeglichen."
+  },
+  saving: {
+    title: "Dokument wird gespeichert",
+    description: "Das Ergebnis wird lokal im Projekt abgelegt."
+  }
+};
 
 const hasTargetRole = (project: ApplicationProject | undefined): boolean =>
   Boolean(project?.jobTarget?.jobDescription.trim());
@@ -155,11 +260,10 @@ export function DocumentsScreen() {
   const [savedMessage, setSavedMessage] = useState<string | undefined>();
   const [generationError, setGenerationError] = useState<string | undefined>();
   const [activeGeneration, setActiveGeneration] = useState<
-    | "general_cv"
-    | "tailored_cv"
-    | "general_cover_letter"
-    | "tailored_cover_letter"
-    | undefined
+    ActiveGeneration | undefined
+  >();
+  const [generationPhase, setGenerationPhase] = useState<
+    GenerationPhase | undefined
   >();
 
   const resolveDocumentLanguage = (): "de" | "en" =>
@@ -209,7 +313,7 @@ export function DocumentsScreen() {
     });
 
     if (!payload.success || !payload.data) {
-      throw new Error(payload.error?.message ?? "Job analysis failed");
+      throw createGenerationError(payload.error, "Job analysis failed");
     }
 
     return payload.data;
@@ -222,10 +326,12 @@ export function DocumentsScreen() {
     }
 
     setActiveGeneration("general_cv");
+    setGenerationPhase("preparing");
     setGenerationError(undefined);
     setSavedMessage(undefined);
 
     try {
+      setGenerationPhase("generating_cv");
       const payload = await generateCv({
         candidateProfile: selectedProject.candidateProfile,
         options: {
@@ -236,9 +342,11 @@ export function DocumentsScreen() {
       });
 
       if (!payload.success || !payload.data) {
-        throw new Error(payload.error?.message ?? "CV generation failed");
+        throw createGenerationError(payload.error, "CV generation failed");
       }
 
+      setGenerationPhase("checking_response");
+      setGenerationPhase("saving");
       await saveGeneratedDocuments({ cv: payload.data });
       setCvDraft(cvToText(payload.data));
       setSavedMessage("General CV generated and saved locally");
@@ -248,6 +356,7 @@ export function DocumentsScreen() {
       );
     } finally {
       setActiveGeneration(undefined);
+      setGenerationPhase(undefined);
     }
   };
 
@@ -263,11 +372,14 @@ export function DocumentsScreen() {
     }
 
     setActiveGeneration("tailored_cv");
+    setGenerationPhase("preparing");
     setGenerationError(undefined);
     setSavedMessage(undefined);
 
     try {
+      setGenerationPhase("analyzing_job");
       const jobAnalysis = await ensureJobAnalysis();
+      setGenerationPhase("generating_cv");
       const payload = await generateCv({
         candidateProfile: selectedProject.candidateProfile,
         jobTarget: selectedProject.jobTarget,
@@ -280,9 +392,14 @@ export function DocumentsScreen() {
       });
 
       if (!payload.success || !payload.data) {
-        throw new Error(payload.error?.message ?? "Tailored CV generation failed");
+        throw createGenerationError(
+          payload.error,
+          "Tailored CV generation failed"
+        );
       }
 
+      setGenerationPhase("checking_response");
+      setGenerationPhase("saving");
       await saveGeneratedDocuments({ cv: payload.data }, jobAnalysis);
       setCvDraft(cvToText(payload.data));
       setSavedMessage("Tailored CV generated and saved locally");
@@ -292,6 +409,7 @@ export function DocumentsScreen() {
       );
     } finally {
       setActiveGeneration(undefined);
+      setGenerationPhase(undefined);
     }
   };
 
@@ -302,10 +420,12 @@ export function DocumentsScreen() {
     }
 
     setActiveGeneration("general_cover_letter");
+    setGenerationPhase("preparing");
     setGenerationError(undefined);
     setSavedMessage(undefined);
 
     try {
+      setGenerationPhase("generating_cover_letter");
       const payload = await generateCoverLetter({
         candidateProfile: selectedProject.candidateProfile,
         options: {
@@ -315,11 +435,14 @@ export function DocumentsScreen() {
       });
 
       if (!payload.success || !payload.data) {
-        throw new Error(
-          payload.error?.message ?? "Cover letter generation failed"
+        throw createGenerationError(
+          payload.error,
+          "Cover letter generation failed"
         );
       }
 
+      setGenerationPhase("checking_response");
+      setGenerationPhase("saving");
       await saveGeneratedDocuments({
         coverLetter: payload.data
       });
@@ -331,6 +454,7 @@ export function DocumentsScreen() {
       );
     } finally {
       setActiveGeneration(undefined);
+      setGenerationPhase(undefined);
     }
   };
 
@@ -346,11 +470,14 @@ export function DocumentsScreen() {
     }
 
     setActiveGeneration("tailored_cover_letter");
+    setGenerationPhase("preparing");
     setGenerationError(undefined);
     setSavedMessage(undefined);
 
     try {
+      setGenerationPhase("analyzing_job");
       const jobAnalysis = await ensureJobAnalysis();
+      setGenerationPhase("generating_cover_letter");
       const payload = await generateCoverLetter({
         candidateProfile: selectedProject.candidateProfile,
         jobTarget: selectedProject.jobTarget,
@@ -362,11 +489,14 @@ export function DocumentsScreen() {
       });
 
       if (!payload.success || !payload.data) {
-        throw new Error(
-          payload.error?.message ?? "Cover letter generation failed"
+        throw createGenerationError(
+          payload.error,
+          "Cover letter generation failed"
         );
       }
 
+      setGenerationPhase("checking_response");
+      setGenerationPhase("saving");
       await saveGeneratedDocuments(
         {
           coverLetter: payload.data
@@ -381,6 +511,7 @@ export function DocumentsScreen() {
       );
     } finally {
       setActiveGeneration(undefined);
+      setGenerationPhase(undefined);
     }
   };
 
@@ -434,6 +565,13 @@ export function DocumentsScreen() {
         .filter(Boolean)
         .join(" at ")
     : "No target role";
+  const generationStatus =
+    generationPhase && activeGeneration
+      ? {
+          label: generationLabels[activeGeneration],
+          ...generationPhaseCopy[generationPhase]
+        }
+      : undefined;
 
   return (
     <AppShell
@@ -498,6 +636,24 @@ export function DocumentsScreen() {
               </p>
             </div>
           </div>
+
+          {generationStatus ? (
+            <div
+              aria-live="polite"
+              className="mt-4 flex items-start gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3 text-sm text-blue-950"
+              role="status"
+            >
+              <span className="mt-0.5 size-4 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-action" />
+              <div>
+                <p className="font-semibold">
+                  {generationStatus.label}: {generationStatus.title}
+                </p>
+                <p className="mt-1 leading-6">
+                  {generationStatus.description}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-5 grid grid-cols-2 gap-4 border-t border-slate-200 pt-5">
             <div className="rounded-md border border-slate-200 bg-white p-4">
@@ -602,8 +758,8 @@ export function DocumentsScreen() {
               </p>
               <p className="mt-1 leading-6">{generationError}</p>
               <p className="mt-2 text-xs font-medium text-red-800">
-                Prüfe den AI Status, ob Ollama erreichbar ist und ein Modell
-                geladen ist. Bei einem Timeout kann ein kleineres Modell helfen.
+                Prüfe AI Status, geladenes Modell, Kontextfenster und Timeout.
+                Für lange Profile ist ein Cloud-Modell oft stabiler.
               </p>
             </div>
           ) : null}

@@ -87,17 +87,25 @@ const modelQuerySchema = z
     model: modelSchema.optional()
   })
   .optional();
+const runtimeOptionsSchema = z
+  .object({
+    contextWindow: z.number().int().positive().optional(),
+    timeoutMs: z.number().int().positive().optional()
+  })
+  .optional();
 
 const extractProfileRequestSchema = z.object({
   text: z.string().trim().min(1),
   language: languageSchema,
-  model: modelSchema.optional()
+  model: modelSchema.optional(),
+  runtime: runtimeOptionsSchema
 });
 
 const analyzeJobRequestSchema = z.object({
   jobDescription: z.string().trim().min(1),
   language: languageSchema,
-  model: modelSchema.optional()
+  model: modelSchema.optional(),
+  runtime: runtimeOptionsSchema
 });
 
 const modelControlRequestSchema = z.object({
@@ -110,6 +118,7 @@ const generateCvRequestSchema = z.object({
   jobTarget: z.record(z.string(), z.unknown()).optional(),
   jobAnalysis: z.record(z.string(), z.unknown()).optional(),
   model: modelSchema.optional(),
+  runtime: runtimeOptionsSchema,
   options: z.object({
     language: languageSchema,
     length: z.literal("one_page"),
@@ -122,6 +131,7 @@ const generateCoverLetterRequestSchema = z.object({
   jobTarget: z.record(z.string(), z.unknown()).optional(),
   jobAnalysis: z.record(z.string(), z.unknown()).optional(),
   model: modelSchema.optional(),
+  runtime: runtimeOptionsSchema,
   options: z.object({
     language: languageSchema,
     tone: z.enum(["professional", "modern", "conservative", "confident"])

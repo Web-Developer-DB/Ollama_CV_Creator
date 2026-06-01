@@ -60,3 +60,44 @@ export const includesKnownFact = (
       knownFact.includes(normalizedValue)
   );
 };
+
+export const collectCandidateSkillEvidence = (
+  candidateProfile: CandidateProfile
+): string[] =>
+  compactFacts([
+    candidateProfile.summary,
+    ...candidateProfile.skills.technical,
+    ...candidateProfile.skills.soft,
+    ...candidateProfile.skills.tools,
+    ...candidateProfile.skills.languages,
+    ...candidateProfile.skills.methods,
+    ...candidateProfile.experiences.flatMap((experience) => [
+      experience.role,
+      experience.description,
+      ...(experience.responsibilities ?? []),
+      ...(experience.achievements ?? []),
+      ...(experience.technologies ?? [])
+    ]),
+    ...candidateProfile.education.flatMap((education) => [
+      education.institution,
+      education.degree,
+      education.field,
+      ...(education.details ?? [])
+    ]),
+    ...candidateProfile.projects.flatMap((project) => [
+      project.name,
+      project.role,
+      project.description,
+      ...(project.highlights ?? []),
+      ...(project.technologies ?? [])
+    ]),
+    ...candidateProfile.languages.flatMap((language) => [
+      language.language,
+      language.proficiency,
+      language.details
+    ]),
+    ...candidateProfile.certificates.flatMap((certificate) => [
+      certificate.name,
+      certificate.issuer
+    ])
+  ]);

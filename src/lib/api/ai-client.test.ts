@@ -4,6 +4,7 @@ import {
   generateCv,
   getAiStatus
 } from "@/lib/api/ai-client";
+import { defaultRuntimeSettings } from "@/lib/ai/runtime-settings";
 import type { DesktopApi } from "@/types/electron";
 import type { OllamaStatus } from "@/types/api";
 
@@ -127,7 +128,10 @@ describe("AI client", () => {
 
     await expect(extractProfile(request)).resolves.toEqual(profileResponse);
 
-    expect(extractProfileMock).toHaveBeenCalledWith(request);
+    expect(extractProfileMock).toHaveBeenCalledWith({
+      ...request,
+      runtime: defaultRuntimeSettings
+    });
     expect(global.fetch).not.toHaveBeenCalled();
   });
 

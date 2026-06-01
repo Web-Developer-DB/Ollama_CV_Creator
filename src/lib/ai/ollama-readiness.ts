@@ -1,8 +1,12 @@
 import { getAiConfig, type AiConfig } from "@/config/ai-config";
+import {
+  createOllamaGetHeaders,
+  isOllamaCloudHost
+} from "@/lib/ai/ollama-http";
 import type { ApiErrorCode } from "@/types/api";
 
 type OllamaReadinessOptions = Partial<
-  Pick<AiConfig, "baseUrl" | "model" | "timeoutMs">
+  Pick<AiConfig, "baseUrl" | "model" | "timeoutMs" | "apiKey">
 >;
 
 type OllamaReadinessErrorCode = Extract<
@@ -40,7 +44,9 @@ const createRuntimeConfig = (
   return {
     ...runtimeConfig,
     ...options,
-    baseUrl: (options.baseUrl ?? runtimeConfig.baseUrl).replace(/\/+$/, "")
+    baseUrl: (options.baseUrl ?? runtimeConfig.baseUrl)
+      .replace(/\/+$/, "")
+      .replace(/\/api$/i, "")
   };
 };
 
@@ -88,6 +94,20 @@ const collectModelNames = (body: OllamaModelsResponse): string[] => {
   );
 };
 
+const readOllamaError = async (response: Response): Promise<string> => {
+  try {
+    const payload = (await response.json()) as unknown;
+
+    if (isRecord(payload) && typeof payload.error === "string") {
+      return payload.error;
+    }
+  } catch {
+    // Fall through to HTTP status text.
+  }
+
+  return `Ollama returned HTTP ${response.status}`;
+};
+
 const createNotReady = (
   config: AiConfig,
   model: string | undefined,
@@ -128,6 +148,7 @@ export const checkOllamaReadiness = async (
 ): Promise<OllamaReadiness> => {
   const config = createRuntimeConfig(options);
   const requestedModel = config.model?.trim() || undefined;
+  const isCloudHost = isOllamaCloudHost(config.baseUrl);
   const timeoutController = createTimeoutController(config.timeoutMs);
   let installedModels: string[] = [];
   let loadedModels: string[] = [];
@@ -136,33 +157,66 @@ export const checkOllamaReadiness = async (
     const tagsResponse = await fetch(`${config.baseUrl}/api/tags`, {
       method: "GET",
       cache: "no-store",
+      headers: createOllamaGetHeaders(config),
       signal: timeoutController.signal
     });
 
     if (!tagsResponse.ok) {
+      const errorMessage = await readOllamaError(tagsResponse);
+
       return createNotReady(
         config,
         requestedModel,
         "OLLAMA_UNAVAILABLE",
-        `Ollama model list returned HTTP ${tagsResponse.status}. Open AI Status, verify Ollama is running, then try again.`
+        `${errorMessage}. Open AI Status, verify Ollama is running, then try again.`
       );
     }
 
     const tagsBody = (await tagsResponse.json()) as OllamaModelsResponse;
     installedModels = collectModelNames(tagsBody);
 
-    const psResponse = await fetch(`${config.baseUrl}/api/ps`, {
-      method: "GET",
-      cache: "no-store",
-      signal: timeoutController.signal
-    });
+    if (isCloudHost) {
+      const cloudModel =
+        requestedModel ??
+        installedModels.find((model) => !model.endsWith("-cloud")) ??
+        installedModels[0];
 
-    if (!psResponse.ok) {
+      if (cloudModel && installedModels.includes(cloudModel)) {
+        return {
+          ready: true,
+          baseUrl: config.baseUrl,
+          model: cloudModel,
+          installedModels,
+          loadedModels: []
+        };
+      }
+
       return createNotReady(
         config,
         requestedModel,
         "AI_MODEL_NOT_READY",
-        `Loaded model status returned HTTP ${psResponse.status}. Open AI Status and verify the selected model.`,
+        requestedModel
+          ? `${describeModel(requestedModel)} is not available on Ollama Cloud. Select a cloud model from AI Status, then try again.`
+          : "No Ollama Cloud model is available. Verify OLLAMA_API_KEY and the cloud model list.",
+        installedModels
+      );
+    }
+
+    const psResponse = await fetch(`${config.baseUrl}/api/ps`, {
+      method: "GET",
+      cache: "no-store",
+      headers: createOllamaGetHeaders(config),
+      signal: timeoutController.signal
+    });
+
+    if (!psResponse.ok) {
+      const errorMessage = await readOllamaError(psResponse);
+
+      return createNotReady(
+        config,
+        requestedModel,
+        "AI_MODEL_NOT_READY",
+        `${errorMessage}. Open AI Status and verify the selected model.`,
         installedModels
       );
     }

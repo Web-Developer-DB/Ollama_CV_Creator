@@ -32,7 +32,8 @@ describe("ImportScreen", () => {
       projects: [],
       selectedProjectId: undefined,
       isLoading: false,
-      error: undefined
+      error: undefined,
+      hasLoadedProjects: true
     });
   });
 
@@ -153,8 +154,10 @@ describe("ImportScreen", () => {
     await user.click(screen.getByRole("button", { name: "Extract profile" }));
 
     await waitFor(() => {
-      const [project] = useProjectStore.getState().projects;
+      const projects = useProjectStore.getState().projects;
+      const [project] = projects;
 
+      expect(projects).toHaveLength(1);
       expect(project).toMatchObject({
         status: "profile_extracted",
         candidateProfile: {
@@ -165,6 +168,49 @@ describe("ImportScreen", () => {
       });
     });
     expect(screen.getByText(/Profile extracted/)).toBeInTheDocument();
+  });
+
+  it("saves the current context before checking the model during extraction", async () => {
+    const user = userEvent.setup();
+    global.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            baseUrl: "http://127.0.0.1:11434",
+            configuredModel: "",
+            reachable: true,
+            selectedModelAvailable: false,
+            selectedModelLoaded: false,
+            checkedAt: "2026-06-01T12:00:00.000Z",
+            models: [],
+            loadedModels: []
+          }
+        }),
+        { status: 200 }
+      )
+    );
+
+    render(<ImportScreen />);
+
+    await user.clear(screen.getByLabelText("Candidate context"));
+    await user.type(
+      screen.getByLabelText("Candidate context"),
+      "Saved before extraction"
+    );
+    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+
+    await waitFor(() => {
+      const [project] = useProjectStore.getState().projects;
+
+      expect(project).toMatchObject({
+        status: "text_imported",
+        rawInput: {
+          text: "Saved before extraction"
+        }
+      });
+    });
+    expect(await screen.findByText(/No Ollama model is loaded/)).toBeInTheDocument();
   });
 
   it("uses the loaded Ollama model for readiness and extraction", async () => {

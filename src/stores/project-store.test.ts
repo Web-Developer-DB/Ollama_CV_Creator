@@ -39,7 +39,8 @@ describe("project store", () => {
       projects: [],
       selectedProjectId: undefined,
       isLoading: false,
-      error: undefined
+      error: undefined,
+      hasLoadedProjects: false
     });
   });
 
@@ -60,6 +61,8 @@ describe("project store", () => {
     await useProjectStore.getState().loadProjects();
 
     expect(useProjectStore.getState().projects).toEqual([project]);
+    expect(useProjectStore.getState().selectedProjectId).toBe("project-1");
+    expect(useProjectStore.getState().hasLoadedProjects).toBe(true);
   });
 
   it("deletes a project and clears selection", async () => {

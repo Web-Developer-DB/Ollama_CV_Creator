@@ -260,8 +260,35 @@ describe("DocumentsScreen", () => {
       "Dokument konnte nicht erstellt werden"
     );
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Die KI-Anfrage hat zu lange gedauert."
+      "Die KI-Anfrage hat das Zeitlimit erreicht."
     );
+  });
+
+  it("shows a live generation status while creating a CV", async () => {
+    const user = userEvent.setup();
+    let resolveCv!: (value: Awaited<ReturnType<typeof generateCv>>) => void;
+    generateCv.mockReturnValue(
+      new Promise((resolve) => {
+        resolveCv = resolve;
+      })
+    );
+
+    render(<DocumentsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Create general CV" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "CV-Erstellung läuft"
+    );
+
+    resolveCv({
+      success: true,
+      data: generatedCv
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
   });
 
   it("generates a tailored CV and creates job analysis when missing", async () => {

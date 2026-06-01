@@ -72,6 +72,12 @@ TASK-023 completed. The template pack now includes Modern, Classic, Minimal, Exe
 
 TASK-039 completed. The document creation flow now connects reviewed profiles directly to document generation. The Write Documents screen offers general CV, tailored CV, general cover letter, and tailored cover letter actions; tailored actions automatically create job analysis when it is missing. Profile now links to document creation, Design shows a clear empty state until documents exist, and AI Status persists the currently loaded model when local selection was stale.
 
+Ad-hoc profile persistence fix completed. The app shell now hydrates projects from local storage on startup, selects the first stored project when no selection exists, and profile extraction now saves the candidate context before checking the model while updating the same project record with the extracted profile instead of creating a second project.
+
+Ad-hoc Ollama runtime controls completed. AI Status now stores context-window and timeout presets, marks `*-cloud` models as cloud-backed through the local Ollama host, and all LLM routes receive the selected runtime options. The Write Documents screen now shows live generation phases and maps timeout, JSON, schema, model-readiness, and hallucination errors into clearer UI messages.
+
+Ad-hoc direct Ollama Cloud API support completed. `OLLAMA_BASE_URL=https://ollama.com/api` is normalized to the cloud host, `OLLAMA_API_KEY` is sent only to Ollama Cloud requests, cloud-host models are treated as ready without local `/api/ps`, and Ollama JSON error payloads are surfaced in client/status diagnostics.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -139,7 +145,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 159 tests
+- npm run test: passed, 174 tests
 - npm run build: passed
 - electron Ollama shutdown cleanup tests: passed
 - electron desktop storage tests: passed
@@ -156,4 +162,4 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-05-31: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, the full LLM model selection audit, Electron Ollama shutdown cleanup, TASK-036 Desktop Storage Migration, TASK-023 Template Pack, and TASK-039 Document Creation UX Flow. Next recommended task is TASK-037 Desktop Export Flow.
+2026-06-01: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, the full LLM model selection audit, Electron Ollama shutdown cleanup, TASK-036 Desktop Storage Migration, TASK-023 Template Pack, TASK-039 Document Creation UX Flow, the CV schema normalization fix, the profile persistence/hydration fix, the Ollama CV JSON compatibility/diagnostics fix, the Ollama runtime/cloud development controls, and direct Ollama Cloud API support via environment configuration. Next recommended task is TASK-037 Desktop Export Flow.

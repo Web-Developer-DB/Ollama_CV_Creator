@@ -11,6 +11,7 @@ type ProjectStoreState = {
   selectedProjectId?: string;
   isLoading: boolean;
   error?: string;
+  hasLoadedProjects: boolean;
 };
 
 type ProjectStoreActions = {
@@ -25,20 +26,41 @@ export type ProjectStore = ProjectStoreState & ProjectStoreActions;
 const toErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "Storage operation failed";
 
-export const useProjectStore = create<ProjectStore>((set) => ({
+export const useProjectStore = create<ProjectStore>((set, get) => ({
   projects: [],
   selectedProjectId: undefined,
   isLoading: false,
   error: undefined,
+  hasLoadedProjects: false,
 
   loadProjects: async () => {
+    if (get().hasLoadedProjects) {
+      return;
+    }
+
     set({ isLoading: true, error: undefined });
 
     try {
       const projects = await listProjects();
-      set({ projects, isLoading: false });
+      const currentSelectedProjectId = get().selectedProjectId;
+      const selectedProjectStillExists = projects.some(
+        (project) => project.id === currentSelectedProjectId
+      );
+
+      set({
+        projects,
+        selectedProjectId: selectedProjectStillExists
+          ? currentSelectedProjectId
+          : projects[0]?.id,
+        isLoading: false,
+        hasLoadedProjects: true
+      });
     } catch (error) {
-      set({ error: toErrorMessage(error), isLoading: false });
+      set({
+        error: toErrorMessage(error),
+        isLoading: false,
+        hasLoadedProjects: true
+      });
     }
   },
 
@@ -68,6 +90,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       });
     } catch (error) {
       set({ error: toErrorMessage(error), isLoading: false });
+      throw error;
     }
   },
 
@@ -84,6 +107,7 @@ export const useProjectStore = create<ProjectStore>((set) => ({
       }));
     } catch (error) {
       set({ error: toErrorMessage(error), isLoading: false });
+      throw error;
     }
   },
 

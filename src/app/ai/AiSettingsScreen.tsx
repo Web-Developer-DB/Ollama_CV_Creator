@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { readStoredModel, storeSelectedModel } from "@/lib/ai/selected-model";
+import {
+  contextWindowPresets,
+  readStoredRuntimeSettings,
+  storeRuntimeSettings,
+  timeoutPresets
+} from "@/lib/ai/runtime-settings";
 import { controlAiModel, getAiStatus } from "@/lib/api/ai-client";
 import type {
   ModelControlAction,
@@ -11,6 +17,12 @@ import type {
 
 const formatSize = (size: number | undefined): string =>
   size === undefined ? "Unknown" : `${(size / 1_000_000_000).toFixed(1)} GB`;
+
+const formatContextWindow = (value: number): string =>
+  value >= 1024 ? `${value / 1024}k tokens` : `${value} tokens`;
+
+const formatTimeout = (value: number): string =>
+  `${Math.round(value / 60_000)} min`;
 
 const formatDate = (value: string | undefined): string => {
   if (!value) {
@@ -70,6 +82,9 @@ const pickSelectedModel = (status: OllamaStatus): string => {
 export function AiSettingsScreen() {
   const [status, setStatus] = useState<OllamaStatus>();
   const [selectedModel, setSelectedModel] = useState("");
+  const [runtimeSettings, setRuntimeSettings] = useState(() =>
+    readStoredRuntimeSettings()
+  );
   const [isChecking, setIsChecking] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [requestError, setRequestError] = useState<string>();
@@ -137,11 +152,38 @@ export function AiSettingsScreen() {
       : "text-slate-950";
   const modelStatus = modelIsReady ? "Ready" : "Not ready";
   const isControllingModel = Boolean(controlAction);
+  const selectedContextPreset = contextWindowPresets.find(
+    (preset) => preset.value === runtimeSettings.contextWindow
+  );
+  const selectedTimeoutPreset = timeoutPresets.find(
+    (preset) => preset.value === runtimeSettings.timeoutMs
+  );
+  const isCloudModel =
+    /(?:^|[:_-])cloud(?:$|[:_-])/.test(selectedModel) ||
+    Boolean(status?.baseUrl.includes("ollama.com"));
 
   const handleSelectModel = (model: string) => {
     setSelectedModel(model);
     storeSelectedModel(model);
     setControlMessage(undefined);
+  };
+
+  const handleContextWindowChange = (value: string) => {
+    setRuntimeSettings(
+      storeRuntimeSettings({
+        ...runtimeSettings,
+        contextWindow: Number(value)
+      })
+    );
+  };
+
+  const handleTimeoutChange = (value: string) => {
+    setRuntimeSettings(
+      storeRuntimeSettings({
+        ...runtimeSettings,
+        timeoutMs: Number(value)
+      })
+    );
   };
 
   const handleModelControl = async (action: ModelControlAction) => {
@@ -192,6 +234,10 @@ export function AiSettingsScreen() {
         {
           label: "Models",
           value: `${loadedModelCount}/${installedModelCount} loaded`
+        },
+        {
+          label: "Runtime",
+          value: formatContextWindow(runtimeSettings.contextWindow)
         }
       ]}
       title="AI Status"
@@ -307,6 +353,73 @@ export function AiSettingsScreen() {
                 <span className="size-4 animate-spin rounded-full border-2 border-blue-200 border-t-action" />
               ) : null}
               {controlMessage}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-md border border-slate-200 bg-white p-5">
+          <div className="grid grid-cols-2 gap-5">
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Context window
+              <select
+                className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
+                onChange={(event) =>
+                  handleContextWindowChange(event.target.value)
+                }
+                value={runtimeSettings.contextWindow}
+              >
+                {contextWindowPresets.map((preset) => (
+                  <option key={preset.id} value={preset.value}>
+                    {preset.label} - {formatContextWindow(preset.value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              AI timeout
+              <select
+                className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
+                onChange={(event) => handleTimeoutChange(event.target.value)}
+                value={runtimeSettings.timeoutMs}
+              >
+                {timeoutPresets.map((preset) => (
+                  <option key={preset.id} value={preset.value}>
+                    {preset.label} - {preset.summary}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <dl className="mt-5 grid grid-cols-3 gap-4 border-t border-slate-200 pt-5">
+            <div>
+              <dt className="text-sm font-medium text-slate-500">Context</dt>
+              <dd className="mt-1 text-base font-semibold text-slate-950">
+                {selectedContextPreset?.summary ?? "Custom"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-slate-500">Timeout</dt>
+              <dd className="mt-1 text-base font-semibold text-slate-950">
+                {selectedTimeoutPreset?.summary ??
+                  formatTimeout(runtimeSettings.timeoutMs)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm font-medium text-slate-500">
+                Model class
+              </dt>
+              <dd className="mt-1 text-base font-semibold text-slate-950">
+                {isCloudModel ? "Cloud" : "Local"}
+              </dd>
+            </div>
+          </dl>
+
+          {isCloudModel ? (
+            <p className="mt-5 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-950">
+              Cloud model via local Ollama. Large context is available by
+              default for cloud models.
             </p>
           ) : null}
         </section>

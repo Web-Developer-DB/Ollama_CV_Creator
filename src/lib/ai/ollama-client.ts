@@ -1,4 +1,5 @@
 import { getAiConfig, type AiConfig } from "@/config/ai-config";
+import { createOllamaHeaders } from "@/lib/ai/ollama-http";
 import { checkOllamaReadiness } from "@/lib/ai/ollama-readiness";
 import type { ApiErrorCode } from "@/types/api";
 
@@ -17,9 +18,15 @@ type OllamaGenerateResponse = {
   response?: unknown;
   thinking?: unknown;
   done?: unknown;
+  done_reason?: unknown;
+  prompt_eval_count?: unknown;
+  eval_count?: unknown;
+  total_duration?: unknown;
 };
 
-type OllamaClientOptions = Partial<Pick<AiConfig, "baseUrl" | "model" | "timeoutMs">>;
+type OllamaClientOptions = Partial<
+  Pick<AiConfig, "baseUrl" | "model" | "timeoutMs" | "apiKey">
+>;
 
 export class OllamaClientError extends Error {
   code: ApiErrorCode;
@@ -47,6 +54,23 @@ const isAbortError = (error: unknown): boolean =>
   error instanceof DOMException
     ? error.name === "AbortError"
     : error instanceof Error && error.name === "AbortError";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const readOllamaError = async (response: Response): Promise<string> => {
+  try {
+    const payload = (await response.json()) as unknown;
+
+    if (isRecord(payload) && typeof payload.error === "string") {
+      return payload.error;
+    }
+  } catch {
+    // Fall through to the HTTP status based message.
+  }
+
+  return `Ollama returned HTTP ${response.status}`;
+};
 
 const createRequestBody = (
   request: OllamaGenerateRequest,
@@ -80,7 +104,9 @@ const requestOllama = async (
   const config: AiConfig = {
     ...runtimeConfig,
     ...options,
-    baseUrl: (options.baseUrl ?? runtimeConfig.baseUrl).replace(/\/+$/, "")
+    baseUrl: (options.baseUrl ?? runtimeConfig.baseUrl)
+      .replace(/\/+$/, "")
+      .replace(/\/api$/i, "")
   };
   const readiness = await checkOllamaReadiness({
     ...config,
@@ -96,9 +122,7 @@ const requestOllama = async (
   try {
     response = await fetch(`${config.baseUrl}/api/generate`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: createOllamaHeaders(config),
       body: createRequestBody({ ...request, model: readiness.model }, config),
       signal: timeoutController.signal
     });
@@ -116,9 +140,11 @@ const requestOllama = async (
   }
 
   if (!response.ok) {
+    const errorMessage = await readOllamaError(response);
+
     throw new OllamaClientError(
       "OLLAMA_UNAVAILABLE",
-      "Ollama returned an error"
+      errorMessage
     );
   }
 

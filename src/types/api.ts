@@ -29,10 +29,16 @@ export type ApiResponse<T> = {
   error?: ApiError;
 };
 
+export type AiRuntimeOptions = {
+  contextWindow?: number;
+  timeoutMs?: number;
+};
+
 export type ExtractProfileRequest = {
   text: string;
   language: "de" | "en";
   model?: string;
+  runtime?: AiRuntimeOptions;
 };
 
 export type ExtractProfileResponse = ApiResponse<CandidateProfile>;
@@ -41,6 +47,7 @@ export type AnalyzeJobRequest = {
   jobDescription: string;
   language: "de" | "en";
   model?: string;
+  runtime?: AiRuntimeOptions;
 };
 
 export type AnalyzeJobResponse = ApiResponse<JobAnalysis>;
@@ -50,6 +57,7 @@ export type GenerateCVRequest = {
   jobTarget?: JobTarget;
   jobAnalysis?: JobAnalysis;
   model?: string;
+  runtime?: AiRuntimeOptions;
   options: {
     language: "de" | "en";
     length: "one_page";
@@ -64,6 +72,7 @@ export type GenerateCoverLetterRequest = {
   jobTarget?: JobTarget;
   jobAnalysis?: JobAnalysis;
   model?: string;
+  runtime?: AiRuntimeOptions;
   options: {
     language: "de" | "en";
     tone: JobTarget["tone"];

@@ -56,7 +56,8 @@ describe("ProfileScreen", () => {
       projects: [projectWithProfile],
       selectedProjectId: projectWithProfile.id,
       isLoading: false,
-      error: undefined
+      error: undefined,
+      hasLoadedProjects: true
     });
   });
 
@@ -87,7 +88,8 @@ describe("ProfileScreen", () => {
       projects: [],
       selectedProjectId: undefined,
       isLoading: false,
-      error: undefined
+      error: undefined,
+      hasLoadedProjects: true
     });
 
     render(<ProfileScreen />);
@@ -101,7 +103,8 @@ describe("ProfileScreen", () => {
         projects: [projectWithProfile],
         selectedProjectId: projectWithProfile.id,
         isLoading: false,
-        error: undefined
+        error: undefined,
+        hasLoadedProjects: true
       });
     });
 

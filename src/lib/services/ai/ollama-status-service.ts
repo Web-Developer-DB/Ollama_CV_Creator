@@ -1,4 +1,8 @@
 import { getAiConfig } from "@/config/ai-config";
+import {
+  createOllamaGetHeaders,
+  isOllamaCloudHost
+} from "@/lib/ai/ollama-http";
 import { createSuccessResponse } from "@/lib/services/api-response";
 import type {
   ApiResponse,
@@ -98,6 +102,20 @@ const createUnavailableStatus = (
     error
   });
 
+const readOllamaError = async (response: Response): Promise<string> => {
+  try {
+    const payload = (await response.json()) as unknown;
+
+    if (isRecord(payload) && typeof payload.error === "string") {
+      return payload.error;
+    }
+  } catch {
+    // Fall through to HTTP status text.
+  }
+
+  return `Ollama returned HTTP ${response.status}`;
+};
+
 export const getOllamaStatus = async (
   options: { model?: string } = {}
 ): Promise<ApiResponse<OllamaStatus>> => {
@@ -110,6 +128,7 @@ export const getOllamaStatus = async (
     model: requestedModel
   };
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
+  const isCloudHost = isOllamaCloudHost(baseUrl);
   const baseStatus: Omit<OllamaStatus, "error"> = {
     baseUrl,
     configuredModel: config.model ?? "",
@@ -126,13 +145,16 @@ export const getOllamaStatus = async (
     const tagsResponse = await fetch(`${baseUrl}/api/tags`, {
       method: "GET",
       cache: "no-store",
+      headers: createOllamaGetHeaders(config),
       signal: timeoutController.signal
     });
 
     if (!tagsResponse.ok) {
+      const errorMessage = await readOllamaError(tagsResponse);
+
       return createUnavailableStatus(
         baseStatus,
-        `Ollama returned HTTP ${tagsResponse.status}`
+        errorMessage
       );
     }
 
@@ -148,18 +170,52 @@ export const getOllamaStatus = async (
       ? installedModels.some((model) => model.name === requestedModel)
       : false;
 
+    if (isCloudHost) {
+      const resolvedModel =
+        hasExplicitModel || requestedModel
+          ? (requestedModel ?? "")
+          : (installedModels[0]?.name ?? "");
+      const cloudModels = installedModels.map((model) => ({
+        ...model,
+        loaded: model.name === resolvedModel
+      }));
+
+      return createSuccessResponse({
+        ...baseStatus,
+        configuredModel: resolvedModel,
+        reachable: true,
+        selectedModelAvailable:
+          Boolean(resolvedModel) &&
+          installedModels.some((model) => model.name === resolvedModel),
+        selectedModelLoaded:
+          Boolean(resolvedModel) &&
+          installedModels.some((model) => model.name === resolvedModel),
+        models: cloudModels,
+        loadedModels: resolvedModel
+          ? [
+              {
+                name: resolvedModel
+              }
+            ]
+          : []
+      });
+    }
+
     const psResponse = await fetch(`${baseUrl}/api/ps`, {
       method: "GET",
       cache: "no-store",
+      headers: createOllamaGetHeaders(config),
       signal: timeoutController.signal
     });
 
     if (!psResponse.ok) {
+      const errorMessage = await readOllamaError(psResponse);
+
       return createSuccessResponse({
         ...baseStatus,
         reachable: true,
         selectedModelAvailable: requestedModelAvailable,
-        error: `Ollama loaded model status returned HTTP ${psResponse.status}`,
+        error: errorMessage,
         models: installedModels
       });
     }

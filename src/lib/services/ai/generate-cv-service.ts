@@ -5,10 +5,12 @@ import {
   OllamaClientError
 } from "@/lib/ai/ollama-client";
 import {
+  collectCandidateSkillEvidence,
   compactFacts,
   hasCandidateFacts,
   hasText,
-  includesKnownFact
+  includesKnownFact,
+  normalizeFact
 } from "@/lib/services/ai/candidate-facts";
 import {
   createErrorResponse,
@@ -21,7 +23,11 @@ import {
   jobTargetSchema,
   templateStyleSchema
 } from "@/lib/validation/schemas";
-import type { ApiResponse, GenerateCVRequest } from "@/types/api";
+import type {
+  AiRuntimeOptions,
+  ApiResponse,
+  GenerateCVRequest
+} from "@/types/api";
 import type {
   CVSection,
   CVSectionType,
@@ -35,11 +41,25 @@ const generateCVRequestSchema = z.object({
   jobTarget: jobTargetSchema.optional(),
   jobAnalysis: jobAnalysisSchema.optional(),
   model: z.string().trim().min(1).optional(),
+  runtime: z
+    .object({
+      contextWindow: z.number().int().positive().optional(),
+      timeoutMs: z.number().int().positive().optional()
+    })
+    .optional(),
   options: z.object({
     language: z.enum(["de", "en"]),
     length: z.literal("one_page"),
     style: templateStyleSchema
   })
+});
+
+const createOllamaOptions = (
+  model: string | undefined,
+  runtime: AiRuntimeOptions | undefined
+) => ({
+  ...(model ? { model } : {}),
+  ...(runtime?.timeoutMs ? { timeoutMs: runtime.timeoutMs } : {})
 });
 
 const cvSectionTypes: CVSectionType[] = [
@@ -79,6 +99,7 @@ const readStringArray = (value: unknown): string[] => {
             readString(
               readRecordValue(item, [
                 "text",
+                "content",
                 "body",
                 "description",
                 "title",
@@ -210,13 +231,28 @@ const normalizeSectionItem = (
     )
   ];
   const title = readString(
-    readRecordValue(value, ["title", "role", "degree", "name", "language"])
+    readRecordValue(value, [
+      "title",
+      "role",
+      "position",
+      "degree",
+      "name",
+      "language"
+    ])
   );
   const subtitle = readString(
     readRecordValue(value, ["subtitle", "company", "institution", "issuer"])
   );
   const body =
-    readString(readRecordValue(value, ["body", "description", "summary"])) ??
+    readString(
+      readRecordValue(value, [
+        "body",
+        "content",
+        "text",
+        "description",
+        "summary"
+      ])
+    ) ??
     (readStringArray(readRecordValue(value, ["details"])).join("\n") ||
       undefined) ??
     undefined;
@@ -288,8 +324,21 @@ const normalizeSection = (
     return undefined;
   }
 
-  const title = readString(value.title) ?? fallbackTitle;
-  const sectionType = normalizeSectionType(value.type, title, fallbackType);
+  const title =
+    readString(
+      readRecordValue(value, [
+        "title",
+        "sectionTitle",
+        "section_title",
+        "heading",
+        "name"
+      ])
+    ) ?? fallbackTitle;
+  const sectionType = normalizeSectionType(
+    readRecordValue(value, ["type", "sectionType", "section_type", "kind"]),
+    title,
+    fallbackType
+  );
   const items = readSectionItems(value, sectionType);
 
   return items.length > 0
@@ -379,7 +428,9 @@ const normalizeGeneratedCV = (
   }
 
   const meta = isRecord(root.meta) ? root.meta : {};
-  const generatedAt = readString(meta.generatedAt);
+  const generatedAt = readString(
+    readRecordValue(meta, ["generatedAt", "generated_at"])
+  );
 
   return {
     id: normalizeGeneratedId("generated-cv", root.id),
@@ -434,19 +485,29 @@ const hasUnknownEmployer = (
     });
 };
 
-const collectKnownSkills = (candidateProfile: CandidateProfile): string[] =>
+const genericSkillLabels = new Set(
   compactFacts([
-    ...candidateProfile.skills.technical,
-    ...candidateProfile.skills.soft,
-    ...candidateProfile.skills.tools,
-    ...candidateProfile.skills.languages,
-    ...candidateProfile.skills.methods,
-    ...candidateProfile.experiences.flatMap(
-      (experience) => experience.technologies ?? []
-    ),
-    ...candidateProfile.projects.flatMap((project) => project.technologies ?? []),
-    ...candidateProfile.languages.map((language) => language.language)
-  ]);
+    "skills",
+    "skill",
+    "technical skills",
+    "soft skills",
+    "tools",
+    "methods",
+    "languages",
+    "technologies",
+    "technology stack",
+    "fachliche faehigkeiten",
+    "fachliche fähigkeiten",
+    "technische faehigkeiten",
+    "technische fähigkeiten",
+    "werkzeuge",
+    "methoden",
+    "sprachen"
+  ])
+);
+
+const isGenericSkillLabel = (value: string): boolean =>
+  genericSkillLabels.has(normalizeFact(value));
 
 const splitSkillText = (value: string): string[] =>
   value
@@ -459,23 +520,37 @@ const collectGeneratedSkillValues = (item: DocumentSectionItem): string[] => [
   ...item.bullets.flatMap(splitSkillText)
 ];
 
-const hasUnknownSkill = (
+const collectUnknownSkillValues = (
   generatedCV: GeneratedCV,
   candidateProfile: CandidateProfile
-): boolean => {
-  const knownSkills = collectKnownSkills(candidateProfile);
+): string[] => {
+  const knownSkills = collectCandidateSkillEvidence(candidateProfile);
   const generatedSkillValues = generatedCV.sections
     .filter((section) => section.type === "skills")
     .flatMap((section) => section.items)
     .flatMap(collectGeneratedSkillValues);
 
   if (generatedSkillValues.length === 0) {
-    return false;
+    return [];
   }
 
-  return generatedSkillValues.some(
-    (skillValue) => !includesKnownFact(skillValue, knownSkills)
+  return Array.from(
+    new Set(
+      generatedSkillValues.filter(
+        (skillValue) =>
+          !isGenericSkillLabel(skillValue) &&
+          !includesKnownFact(skillValue, knownSkills)
+      )
+    )
   );
+};
+
+const formatUnknownSkillMessage = (unknownSkills: string[]): string => {
+  const preview = unknownSkills.slice(0, 5).join(", ");
+
+  return preview
+    ? `Generated CV contains a skill not present in the candidate profile: ${preview}`
+    : "Generated CV contains a skill not present in the candidate profile";
 };
 
 export const generateCv = async (
@@ -498,12 +573,17 @@ export const generateCv = async (
     );
   }
 
-  const prompt = buildGenerateCVPrompt(request);
+  const prompt = {
+    ...buildGenerateCVPrompt(request),
+    ...(request.runtime?.contextWindow
+      ? { numCtx: request.runtime.contextWindow }
+      : {})
+  };
 
   try {
     const aiCV = await generateOllamaJson<unknown>(
       prompt,
-      request.model ? { model: request.model } : undefined
+      createOllamaOptions(request.model, request.runtime)
     );
     const directParsedCV = generatedCVSchema.safeParse(aiCV);
     const parsedCV = directParsedCV.success
@@ -524,10 +604,16 @@ export const generateCv = async (
       );
     }
 
-    if (hasUnknownSkill(parsedCV.data, request.candidateProfile)) {
+    const unknownSkills = collectUnknownSkillValues(
+      parsedCV.data,
+      request.candidateProfile
+    );
+
+    if (unknownSkills.length > 0) {
       return createErrorResponse(
         "HALLUCINATION_DETECTED",
-        "Generated CV contains a skill not present in the candidate profile"
+        formatUnknownSkillMessage(unknownSkills),
+        { unknownSkills }
       );
     }
 

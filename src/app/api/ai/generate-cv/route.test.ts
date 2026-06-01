@@ -223,6 +223,82 @@ describe("POST /api/ai/generate-cv", () => {
     expect(payload.data.meta.generatedAt).toEqual(expect.any(String));
   });
 
+  it("normalizes snake_case CV section keys from local models", async () => {
+    generateOllamaJson.mockResolvedValue({
+      id: "cv-snake",
+      title: "Frontend Engineer CV",
+      language: "en",
+      sections: [
+        {
+          section_type: "skills",
+          section_title: "Skills",
+          entries: [
+            {
+              name: "Technical skills",
+              content: "React, TypeScript"
+            }
+          ]
+        }
+      ],
+      meta: {
+        generated_at: "2026-05-24T00:00:00.000Z"
+      }
+    });
+
+    const response = await POST(createRequest(requestBody));
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        sections: [
+          {
+            type: "skills",
+            title: "Skills",
+            items: [
+              {
+                title: "Technical skills",
+                body: "React, TypeScript"
+              }
+            ]
+          }
+        ],
+        meta: {
+          generatedAt: "2026-05-24T00:00:00.000Z"
+        }
+      }
+    });
+  });
+
+  it("accepts generated skill wording backed by profile experience facts", async () => {
+    generateOllamaJson.mockResolvedValue({
+      ...validCV,
+      sections: [
+        {
+          id: "section-skills",
+          type: "skills",
+          title: "Skills",
+          items: [
+            {
+              id: "item-skills-1",
+              title: "Professional focus",
+              bullets: ["Frontend engineering"]
+            }
+          ]
+        }
+      ]
+    });
+
+    const response = await POST(createRequest(requestBody));
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true
+    });
+  });
+
   it("rejects an empty candidate", async () => {
     const response = await POST(
       createRequest({
@@ -314,7 +390,11 @@ describe("POST /api/ai/generate-cv", () => {
     expect(payload).toMatchObject({
       success: false,
       error: {
-        code: "HALLUCINATION_DETECTED"
+        code: "HALLUCINATION_DETECTED",
+        message: expect.stringContaining("Rust"),
+        details: {
+          unknownSkills: ["Rust"]
+        }
       }
     });
   });

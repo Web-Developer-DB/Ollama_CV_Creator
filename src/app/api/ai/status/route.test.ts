@@ -206,6 +206,68 @@ describe("GET /api/ai/status", () => {
     });
   });
 
+  it("reports direct Ollama Cloud models as ready without local ps", async () => {
+    vi.stubEnv("OLLAMA_BASE_URL", "https://ollama.com/api");
+    vi.stubEnv("OLLAMA_API_KEY", "cloud-key");
+    global.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          models: [{ name: "gpt-oss:120b" }]
+        }),
+        { status: 200 }
+      )
+    );
+
+    const response = await GET(createRequest("?model=gpt-oss%3A120b"));
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        baseUrl: "https://ollama.com",
+        reachable: true,
+        configuredModel: "gpt-oss:120b",
+        selectedModelAvailable: true,
+        selectedModelLoaded: true,
+        loadedModels: [{ name: "gpt-oss:120b" }],
+        models: [
+          {
+            name: "gpt-oss:120b",
+            loaded: true
+          }
+        ]
+      }
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://ollama.com/api/tags",
+      expect.objectContaining({
+        headers: {
+          Authorization: "Bearer cloud-key"
+        }
+      })
+    );
+  });
+
+  it("uses Ollama error messages from status responses", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "invalid api key" }), {
+        status: 401
+      })
+    );
+
+    const response = await GET(createRequest());
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        reachable: false,
+        error: "invalid api key"
+      }
+    });
+  });
+
   it("reports unavailable Ollama without failing the status endpoint", async () => {
     global.fetch = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
 

@@ -1,4 +1,5 @@
 import type {
+  AiRuntimeOptions,
   AnalyzeJobRequest,
   AnalyzeJobResponse,
   ApiErrorCode,
@@ -14,6 +15,7 @@ import type {
   OllamaStatus
 } from "@/types/api";
 import { readStoredModel } from "@/lib/ai/selected-model";
+import { readStoredRuntimeSettings } from "@/lib/ai/runtime-settings";
 
 const desktopApi = () =>
   typeof window === "undefined" ? undefined : window.desktopApi;
@@ -115,12 +117,19 @@ export const getAiStatus = async (
   return readJsonResponse<OllamaStatus>(response);
 };
 
-const withSelectedModel = <TRequest extends { model?: string }>(
+const withAiDefaults = <
+  TRequest extends { model?: string; runtime?: AiRuntimeOptions }
+>(
   request: TRequest
 ): TRequest => {
   const selectedModel = request.model?.trim() || readStoredModel();
+  const runtime = request.runtime ?? readStoredRuntimeSettings();
 
-  return selectedModel ? { ...request, model: selectedModel } : request;
+  return {
+    ...request,
+    ...(selectedModel ? { model: selectedModel } : {}),
+    runtime
+  };
 };
 
 export const controlAiModel = async (
@@ -137,7 +146,7 @@ export const extractProfile = async (
   request: ExtractProfileRequest
 ): Promise<ExtractProfileResponse> => {
   const api = desktopApi();
-  const requestWithModel = withSelectedModel(request);
+  const requestWithModel = withAiDefaults(request);
 
   return api?.ai
     ? api.ai.extractProfile(requestWithModel)
@@ -148,7 +157,7 @@ export const analyzeJob = async (
   request: AnalyzeJobRequest
 ): Promise<AnalyzeJobResponse> => {
   const api = desktopApi();
-  const requestWithModel = withSelectedModel(request);
+  const requestWithModel = withAiDefaults(request);
 
   return api?.ai
     ? api.ai.analyzeJob(requestWithModel)
@@ -159,7 +168,7 @@ export const generateCv = async (
   request: GenerateCVRequest
 ): Promise<GenerateCVResponse> => {
   const api = desktopApi();
-  const requestWithModel = withSelectedModel(request);
+  const requestWithModel = withAiDefaults(request);
 
   return api?.ai
     ? api.ai.generateCv(requestWithModel)
@@ -170,7 +179,7 @@ export const generateCoverLetter = async (
   request: GenerateCoverLetterRequest
 ): Promise<GenerateCoverLetterResponse> => {
   const api = desktopApi();
-  const requestWithModel = withSelectedModel(request);
+  const requestWithModel = withAiDefaults(request);
 
   return api?.ai
     ? api.ai.generateCoverLetter(requestWithModel)

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getAiConfig } from "@/config/ai-config";
+import { createOllamaHeaders } from "@/lib/ai/ollama-http";
 import {
   createErrorResponse,
   createSuccessResponse
@@ -48,9 +49,7 @@ export const controlOllamaModel = async (
   try {
     const response = await fetch(`${baseUrl}/api/generate`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: createOllamaHeaders(config),
       body: JSON.stringify({
         model,
         prompt: "",

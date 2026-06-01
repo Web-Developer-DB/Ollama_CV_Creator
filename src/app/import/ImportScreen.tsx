@@ -236,6 +236,16 @@ export function ImportScreen() {
     setExtractionPhase("checking_model");
 
     try {
+      const contextProject = createProject(
+        trimmedText,
+        new Date().toISOString(),
+        selectedProject?.candidateProfile
+          ? selectedProject.status
+          : "text_imported"
+      );
+
+      await saveProject(contextProject);
+
       const readiness = await checkAiReadiness();
 
       if (!readiness.ready) {
@@ -261,12 +271,13 @@ export function ImportScreen() {
       }
 
       const now = new Date().toISOString();
-      const project = createProject(
-        trimmedText,
-        now,
-        "profile_extracted",
-        payload.data
-      );
+      const project: ApplicationProject = {
+        ...contextProject,
+        title: createProjectTitle(trimmedText, payload.data),
+        status: "profile_extracted",
+        updatedAt: now,
+        candidateProfile: payload.data
+      };
 
       await saveProject(project);
       setSavedMessage("Profile extracted and saved locally");

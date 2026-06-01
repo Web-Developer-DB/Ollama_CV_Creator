@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Header, type HeaderMetric } from "./Header";
+import { ProjectHydrator } from "./ProjectHydrator";
 import { Sidebar } from "./Sidebar";
 
 type AppShellProps = Readonly<{
@@ -21,6 +22,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <main className="min-h-screen overflow-x-hidden bg-paper px-3 py-3 text-ink">
+      <ProjectHydrator />
       <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] w-full max-w-[1510px] grid-cols-[244px_minmax(0,1fr)] overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-window">
         <Sidebar />
         <section className="min-w-0 bg-slate-50/60 px-8 py-7">

@@ -196,12 +196,55 @@ describe("AI services", () => {
     expect(payload).toMatchObject({
       success: false,
       error: {
-        code: "HALLUCINATION_DETECTED"
+        code: "HALLUCINATION_DETECTED",
+        message: expect.stringContaining("Rust"),
+        details: {
+          unknownSkills: ["Rust"]
+        }
       }
     });
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.any(Object),
       { model: selectedModel }
+    );
+  });
+
+  it("passes runtime options to CV generation", async () => {
+    generateOllamaJson.mockResolvedValue({
+      ...generatedCv,
+      sections: [
+        {
+          id: "section-skills",
+          type: "skills",
+          title: "Skills",
+          items: [
+            {
+              id: "item-skills-1",
+              title: "Technical skills",
+              bullets: ["React, TypeScript"]
+            }
+          ]
+        }
+      ]
+    });
+
+    const payload = await generateCv({
+      ...cvRequest,
+      model: selectedModel,
+      runtime: {
+        contextWindow: 16384,
+        timeoutMs: 300000
+      }
+    });
+
+    expect(payload).toMatchObject({
+      success: true
+    });
+    expect(generateOllamaJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        numCtx: 16384
+      }),
+      { model: selectedModel, timeoutMs: 300000 }
     );
   });
 

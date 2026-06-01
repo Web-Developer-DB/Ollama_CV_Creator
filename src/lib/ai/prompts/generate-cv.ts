@@ -65,6 +65,8 @@ Return this JSON shape:
 
 Constraints:
 - Keep the CV to ${options.length}.
+- Use exactly the JSON keys shown above. Every section must use "type"; do not use "section_type", "sectionType", or other aliases.
+- Section "type" must be exactly one of: summary, experience, education, skills, projects, languages, certificates, custom.
 - Use the ${options.style} style as writing direction only; do not add design data.
 - Do not include employers unless they appear in candidate_profile.
 - Do not include skills unless they appear in candidate_profile.
