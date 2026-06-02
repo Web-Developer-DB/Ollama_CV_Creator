@@ -46,6 +46,26 @@ const writeJsonFile = async (filePath, value, fsImpl) => {
   await fsImpl.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 };
 
+const createCorruptStorageFilePath = (filePath) =>
+  `${filePath}.corrupt-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+
+const archiveCorruptStorageFile = async (filePath, fsImpl) => {
+  const corruptFilePath = createCorruptStorageFilePath(filePath);
+
+  try {
+    await fsImpl.rename(filePath, corruptFilePath);
+  } catch (error) {
+    if (!error || error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  return corruptFilePath;
+};
+
+const isRecoverableProjectFileError = (error) =>
+  error instanceof SyntaxError || error instanceof z.ZodError;
+
 const mergeProjects = (existingProjects, importedProjects) => {
   const projectsById = new Map();
 
@@ -77,6 +97,12 @@ const createProjectStorage = ({
       return projectArraySchema.parse(parsedValue);
     } catch (error) {
       if (error && error.code === "ENOENT") {
+        return [];
+      }
+
+      if (isRecoverableProjectFileError(error)) {
+        await archiveCorruptStorageFile(resolvedStorageFilePath, fsImpl);
+
         return [];
       }
 

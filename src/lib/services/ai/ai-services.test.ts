@@ -185,7 +185,7 @@ describe("AI services", () => {
     );
   });
 
-  it("guards generated CVs against unsupported skills", async () => {
+  it("falls back to a source-backed CV when generated CVs contain unsupported skills", async () => {
     generateOllamaJson.mockResolvedValue(generatedCv);
 
     const payload = await generateCv({
@@ -194,15 +194,14 @@ describe("AI services", () => {
     });
 
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "HALLUCINATION_DETECTED",
-        message: expect.stringContaining("Rust"),
-        details: {
-          unknownSkills: ["Rust"]
+      success: true,
+      data: {
+        meta: {
+          warnings: [expect.stringMatching(/rust/i), expect.any(String)]
         }
       }
     });
+    expect(JSON.stringify(payload.data?.sections)).not.toContain("Rust");
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.any(Object),
       { model: selectedModel }
@@ -248,7 +247,7 @@ describe("AI services", () => {
     );
   });
 
-  it("guards cover letters against unsupported job skills", async () => {
+  it("falls back to a source-backed letter when generated letters contain unsupported job skills", async () => {
     generateOllamaJson.mockResolvedValue(generatedCoverLetter);
 
     const payload = await generateCoverLetter({
@@ -257,11 +256,17 @@ describe("AI services", () => {
     });
 
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "HALLUCINATION_DETECTED"
+      success: true,
+      data: {
+        meta: {
+          warnings: [expect.stringMatching(/rust/i), expect.any(String)]
+        },
+        recipient: {
+          company: "Target GmbH"
+        }
       }
     });
+    expect(JSON.stringify(payload.data?.body)).not.toContain("Rust");
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.any(Object),
       { model: selectedModel }

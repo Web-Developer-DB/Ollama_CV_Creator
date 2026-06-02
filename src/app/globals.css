@@ -70,3 +70,26 @@ textarea {
     @apply inline-block size-2 rounded-full;
   }
 }
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  [data-testid="document-page-cv"],
+  [data-testid="document-page-cover-letter"] {
+    width: 210mm !important;
+    height: 297mm !important;
+    max-width: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always;
+  }
+}

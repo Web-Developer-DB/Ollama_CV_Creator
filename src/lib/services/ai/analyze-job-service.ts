@@ -10,6 +10,7 @@ import {
   createErrorResponse,
   createSuccessResponse
 } from "@/lib/services/api-response";
+import { resolveContextWindow } from "@/lib/services/ai/context-window";
 import { jobAnalysisSchema } from "@/lib/validation/schemas";
 import type {
   AiRuntimeOptions,
@@ -53,15 +54,22 @@ export const analyzeJob = async (
 
   const request: AnalyzeJobRequest = parsedRequest.data;
   const prompt = {
-    ...buildAnalyzeJobPrompt(request),
-    ...(request.runtime?.contextWindow
-      ? { numCtx: request.runtime.contextWindow }
-      : {})
+    ...buildAnalyzeJobPrompt(request)
+  };
+  const runtimePrompt = {
+    ...prompt,
+    numCtx: resolveContextWindow({
+      texts: [prompt.system, prompt.prompt],
+      runtime: request.runtime,
+      minimum: 8192,
+      expectedOutputTokens: 2048,
+      overheadTokens: 1024
+    })
   };
 
   try {
     const aiAnalysis = await generateOllamaJson<unknown>(
-      prompt,
+      runtimePrompt,
       createOllamaOptions(request.model, request.runtime)
     );
     const parsedAnalysis = jobAnalysisSchema.safeParse(aiAnalysis);

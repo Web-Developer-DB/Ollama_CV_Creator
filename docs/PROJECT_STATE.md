@@ -183,3 +183,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 2026-06-02: Completed TASK-042 Semantic Fact Validation, TASK-043 Missing Data UX and Document Warnings, and TASK-044 Prompt Rewrite for No-Invention Document Generation. Next recommended task is TASK-037 Desktop Export Flow.
 
 2026-06-02: Completed an architecture/code-clean audit with module-boundary comments, a focused Documents screen helper extraction, an updated architecture overview, and the new CODE_AGENT_MAP.md onboarding map. Next recommended task is TASK-037 Desktop Export Flow.
+
+2026-06-02: Started TASK-045 A4 CV Page Renderer and TASK-046 Modern CV Visual Components. Follow-up document-design tasks are recorded as TASK-047 CV Template Design Pack, TASK-048 One-Page / Two-Page Fit Logic, and TASK-049 Print-Perfect Preview and Export.
+
+2026-06-02: Completed TASK-045 A4 CV Page Renderer and TASK-046 Modern CV Visual Components. CV previews now render as DIN A4 pages with source-backed contact data, section icons, timeline styling for experience/education, skill chips, two-page preview support, and print-oriented A4 CSS. Next recommended task is TASK-047 CV Template Design Pack, followed by TASK-048 One-Page / Two-Page Fit Logic.

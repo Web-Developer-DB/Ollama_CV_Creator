@@ -7,7 +7,8 @@ import {
   OllamaClientError
 } from "@/lib/ai/ollama-client";
 import {
-  hasCandidateFacts
+  hasCandidateFacts,
+  hasText
 } from "@/lib/services/ai/candidate-facts";
 import {
   isRecord,
@@ -29,6 +30,7 @@ import {
   createErrorResponse,
   createSuccessResponse
 } from "@/lib/services/api-response";
+import { resolveContextWindow } from "@/lib/services/ai/context-window";
 import {
   candidateProfileSchema,
   generatedCVSchema,
@@ -42,6 +44,7 @@ import type {
   GenerateCVRequest
 } from "@/types/api";
 import type {
+  CVContact,
   CVSection,
   CVSectionType,
   DocumentSectionItem,
@@ -454,6 +457,7 @@ const normalizeGeneratedCV = (
       readString(root.language) === "en" || readString(root.language) === "de"
         ? (readString(root.language) as "en" | "de")
         : request.options.language,
+    contact: createCvContact(request.candidateProfile),
     summary: readString(root.summary),
     sections,
     meta: {
@@ -467,6 +471,199 @@ const normalizeGeneratedCV = (
     }
   };
 };
+
+const createCvContact = (
+  profile: GenerateCVRequest["candidateProfile"]
+): CVContact | undefined => {
+  const contact: CVContact = {
+    email: profile.personalInfo.email,
+    phone: profile.personalInfo.phone,
+    location: profile.personalInfo.location,
+    website: profile.personalInfo.website,
+    linkedin: profile.personalInfo.linkedin,
+    github: profile.personalInfo.github,
+    portfolio: profile.personalInfo.portfolio
+  };
+
+  return Object.values(contact).some(hasText) ? contact : undefined;
+};
+
+const attachProfileContact = (
+  cv: GeneratedCV,
+  request: GenerateCVRequest
+): GeneratedCV => ({
+  ...cv,
+  contact: createCvContact(request.candidateProfile)
+});
+
+const createDateRange = (
+  startDate: string | undefined,
+  endDate: string | undefined
+): string | undefined => [startDate, endDate].filter(hasText).join(" - ") || undefined;
+
+const createFallbackSection = (
+  type: CVSectionType,
+  title: string,
+  items: DocumentSectionItem[]
+): CVSection | undefined =>
+  items.length > 0
+    ? {
+        id: `section-${type}`,
+        type,
+        title,
+        items
+      }
+    : undefined;
+
+const createFallbackGeneratedCV = (
+  request: GenerateCVRequest,
+  warnings: string[]
+): GeneratedCV => {
+  const profile = request.candidateProfile;
+  const language = request.options.language;
+  const summaryItems: DocumentSectionItem[] = profile.summary
+    ? [
+        {
+          id: "item-summary-1",
+          body: profile.summary,
+          bullets: []
+        }
+      ]
+    : [];
+  const sections = [
+    createFallbackSection(
+      "summary",
+      language === "de" ? "Profil" : "Profile",
+      summaryItems
+    ),
+    createFallbackSection(
+      "experience",
+      language === "de" ? "Berufserfahrung" : "Experience",
+      profile.experiences.map((experience, index) => ({
+        id: `item-experience-${index + 1}`,
+        title: experience.role,
+        subtitle: experience.company,
+        dateRange: createDateRange(experience.startDate, experience.endDate),
+        body: experience.description,
+        bullets: [
+          ...experience.responsibilities,
+          ...experience.achievements,
+          ...(experience.technologies && experience.technologies.length > 0
+            ? [
+                `${language === "de" ? "Technologien" : "Technologies"}: ${experience.technologies.join(", ")}`
+              ]
+            : [])
+        ].slice(0, 7)
+      }))
+    ),
+    createFallbackSection(
+      "skills",
+      language === "de" ? "Fähigkeiten" : "Skills",
+      [
+        { title: "Technical skills", values: profile.skills.technical },
+        { title: "Soft skills", values: profile.skills.soft },
+        { title: "Tools", values: profile.skills.tools },
+        { title: "Methods", values: profile.skills.methods },
+        { title: "Languages", values: profile.skills.languages }
+      ].flatMap((category, index) =>
+        category.values.length > 0
+          ? [
+              {
+                id: `item-skills-${index + 1}`,
+                title: category.title,
+                bullets: [category.values.join(", ")]
+              }
+            ]
+          : []
+      )
+    ),
+    createFallbackSection(
+      "projects",
+      language === "de" ? "Projekte" : "Projects",
+      profile.projects.map((project, index) => ({
+        id: `item-project-${index + 1}`,
+        title: project.name,
+        subtitle: project.role,
+        dateRange: createDateRange(project.startDate, project.endDate),
+        body: project.description,
+        bullets: [
+          ...project.highlights,
+          ...(project.technologies && project.technologies.length > 0
+            ? [
+                `${language === "de" ? "Technologien" : "Technologies"}: ${project.technologies.join(", ")}`
+              ]
+            : [])
+        ]
+      }))
+    ),
+    createFallbackSection(
+      "education",
+      language === "de" ? "Ausbildung" : "Education",
+      profile.education.map((education, index) => ({
+        id: `item-education-${index + 1}`,
+        title: [education.degree, education.field].filter(hasText).join(" "),
+        subtitle: education.institution,
+        dateRange: createDateRange(education.startDate, education.endDate),
+        body: education.location,
+        bullets: education.details ?? []
+      }))
+    ),
+    createFallbackSection(
+      "certificates",
+      language === "de" ? "Zertifikate" : "Certificates",
+      profile.certificates.map((certificate, index) => ({
+        id: `item-certificate-${index + 1}`,
+        title: certificate.name,
+        subtitle: certificate.issuer,
+        dateRange: createDateRange(
+          certificate.issueDate,
+          certificate.expirationDate
+        ),
+        bullets: []
+      }))
+    ),
+    createFallbackSection(
+      "languages",
+      language === "de" ? "Sprachen" : "Languages",
+      profile.languages.map((profileLanguage, index) => ({
+        id: `item-language-${index + 1}`,
+        title: profileLanguage.language,
+        subtitle: profileLanguage.proficiency,
+        body: profileLanguage.details,
+        bullets: []
+      }))
+    )
+  ].filter((section): section is CVSection => Boolean(section));
+
+  return {
+    id: "generated-cv-fallback",
+    title: profile.personalInfo.fullName
+      ? `${profile.personalInfo.fullName} CV`
+      : language === "de"
+        ? "Lebenslauf"
+        : "Curriculum Vitae",
+    language,
+    contact: createCvContact(profile),
+    summary: profile.summary,
+    sections,
+    meta: {
+      generatedAt: new Date().toISOString(),
+      model: request.model,
+      warnings
+    }
+  };
+};
+
+const createFallbackCvResponse = (
+  request: GenerateCVRequest,
+  warnings: string[]
+): ApiResponse<GeneratedCV> =>
+  createSuccessResponse(
+    attachDocumentWarnings(
+      createFallbackGeneratedCV(request, warnings),
+      collectMissingDataWarnings(request.candidateProfile, "cv", request.jobTarget)
+    )
+  );
 
 export const generateCv = async (
   input: unknown
@@ -489,15 +686,22 @@ export const generateCv = async (
   }
 
   const prompt = {
-    ...buildGenerateCVPrompt(request),
-    ...(request.runtime?.contextWindow
-      ? { numCtx: request.runtime.contextWindow }
-      : {})
+    ...buildGenerateCVPrompt(request)
+  };
+  const runtimePrompt = {
+    ...prompt,
+    numCtx: resolveContextWindow({
+      texts: [prompt.system, prompt.prompt],
+      runtime: request.runtime,
+      minimum: 8192,
+      expectedOutputTokens: 3072,
+      overheadTokens: 1024
+    })
   };
 
   try {
     const aiCV = await generateOllamaJson<unknown>(
-      prompt,
+      runtimePrompt,
       createOllamaOptions(request.model, request.runtime)
     );
 
@@ -511,28 +715,30 @@ export const generateCv = async (
     });
 
     if (!parsedCV.success) {
-      return parsedCV.response;
+      return createFallbackCvResponse(request, [
+        "Das KI-Ergebnis hatte kein gültiges CV-Schema. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+      ]);
     }
+    const cvWithProfileContact = attachProfileContact(parsedCV.data, request);
 
     // Block only unsupported generated facts. Missing source data becomes a
     // warning below so users can still edit a useful draft.
     const semanticFactValidation = validateGeneratedCvFacts(
-      parsedCV.data,
+      cvWithProfileContact,
       request.candidateProfile
     );
 
     if (hasSemanticFactErrors(semanticFactValidation)) {
-      return createErrorResponse(
-        "HALLUCINATION_DETECTED",
+      return createFallbackCvResponse(request, [
         formatSemanticFactErrorMessage(semanticFactValidation),
-        semanticFactValidation
-      );
+        "Die KI-Antwort wurde verworfen. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+      ]);
     }
 
     // Warnings travel with the generated document and are displayed in the
     // Documents screen without turning the draft into a failed generation.
     const cvWithWarnings = attachDocumentWarnings(
-      parsedCV.data,
+      cvWithProfileContact,
       collectMissingDataWarnings(
         request.candidateProfile,
         "cv",
@@ -543,6 +749,14 @@ export const generateCv = async (
     return createSuccessResponse(cvWithWarnings);
   } catch (error) {
     if (error instanceof OllamaClientError) {
+      if (error.code === "INVALID_AI_JSON" || error.code === "AI_TIMEOUT") {
+        return createFallbackCvResponse(request, [
+          error.code === "AI_TIMEOUT"
+            ? "Die KI-Anfrage hat zu lange gedauert. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+            : "Die KI hat kein gültiges JSON erzeugt. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+        ]);
+      }
+
       return createErrorResponse(error.code, error.message);
     }
 

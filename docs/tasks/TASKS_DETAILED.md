@@ -393,3 +393,58 @@ Acceptance:
 - templates support role-specific emphasis without inventing facts
 - document editing remains ergonomic before export
 - PDF output matches preview closely
+
+## TASK-045: A4 CV Page Renderer
+
+Goal:
+Render generated CVs as real DIN A4 document pages instead of long web panels.
+
+Requirements:
+- CV preview uses A4 page proportions and print-friendly dimensions
+- first page and continuation pages have distinct but consistent structure
+- renderer supports one-page and two-page CV direction as a foundation
+- page preview remains responsive inside the desktop app without horizontal overflow
+- export can reuse the same renderer later
+
+## TASK-046: Modern CV Visual Components
+
+Goal:
+Create reusable, professional visual building blocks for modern CV templates.
+
+Requirements:
+- contact row with icons when verified contact data exists
+- section headers with icons and strong visual hierarchy
+- timeline treatment for experience and education
+- skill chips instead of plain comma text where possible
+- template-specific typography, accent color, spacing, and density
+- no invented facts; visual elements only render supplied document data
+
+## TASK-047: CV Template Design Pack
+
+Goal:
+Finalize multiple contemporary CV styles on top of the A4 renderer.
+
+Requirements:
+- Modern, Classic, Minimal, Executive, Technical, and Compact variants
+- each template has a clear audience and distinct visual rhythm
+- templates stay serious, printable, and suitable for current applications
+
+## TASK-048: One-Page / Two-Page Fit Logic
+
+Goal:
+Control how much verified content is shown for one-page and two-page CVs.
+
+Requirements:
+- page limit modes: one page, two pages, auto
+- compacting strategy for long profiles
+- user-visible fit state and document warnings when content is compressed
+
+## TASK-049: Print-Perfect Preview and Export
+
+Goal:
+Make PDF output match the A4 preview closely.
+
+Requirements:
+- print stylesheet and page sizing
+- desktop PDF export uses the shared document renderer
+- visual smoke checks for page boundaries and overflow

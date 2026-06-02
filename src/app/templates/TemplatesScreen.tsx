@@ -177,7 +177,7 @@ export function TemplatesScreen() {
     <AppShell
       metrics={[
         { label: "Project status", value: "Design" },
-        { label: "Document look", value: "Live preview" },
+        { label: "Document look", value: "A4 preview" },
         { label: "Template", value: selectedTemplate }
       ]}
       title="Document Design"
@@ -190,7 +190,7 @@ export function TemplatesScreen() {
                 Design-Vorlagen
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Wähle ein Design für deinen Lebenslauf.
+                Wähle ein modernes DIN-A4-Design für Lebenslauf und Anschreiben.
               </p>
             </div>
             <label className="grid gap-2 text-xs font-semibold text-slate-500">
@@ -213,7 +213,7 @@ export function TemplatesScreen() {
             </label>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
             {visibleTemplates.map((template) => {
               const isSelected = template.id === selectedTemplate;
 

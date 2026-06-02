@@ -66,6 +66,7 @@ export const createCVFromText = (
   id: existingCV?.id ?? createId(),
   title: existingCV?.title ?? "Edited CV",
   language: existingCV?.language ?? "de",
+  contact: existingCV?.contact,
   summary: text,
   sections:
     existingCV?.sections.length === 0 || !existingCV?.sections

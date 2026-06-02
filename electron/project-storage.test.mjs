@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -115,5 +115,31 @@ describe("desktop project storage", () => {
     await expect(readFile(storage.storageFilePath(), "utf8")).resolves.toContain(
       "Existing"
     );
+  });
+
+  it("archives corrupt project JSON and starts with an empty list", async () => {
+    const corruptContent = `${JSON.stringify([
+      createProject("project-1", "First")
+    ])}\ntrailing broken fragment`;
+
+    await writeFile(storage.storageFilePath(), corruptContent, "utf8");
+
+    await expect(storage.listProjects()).resolves.toEqual([]);
+
+    const files = await readdir(tempDirectory);
+    const corruptFiles = files.filter((fileName) =>
+      fileName.startsWith("projects.json.corrupt-")
+    );
+
+    expect(corruptFiles).toHaveLength(1);
+    await expect(
+      readFile(path.join(tempDirectory, corruptFiles[0]), "utf8")
+    ).resolves.toBe(corruptContent);
+
+    await storage.saveProject(createProject("project-2", "Recovered"));
+
+    await expect(storage.listProjects()).resolves.toEqual([
+      createProject("project-2", "Recovered")
+    ]);
   });
 });

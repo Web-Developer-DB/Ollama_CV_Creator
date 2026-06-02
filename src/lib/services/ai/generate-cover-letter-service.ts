@@ -30,6 +30,7 @@ import {
   createErrorResponse,
   createSuccessResponse
 } from "@/lib/services/api-response";
+import { resolveContextWindow } from "@/lib/services/ai/context-window";
 import {
   candidateProfileSchema,
   generatedCoverLetterSchema,
@@ -230,6 +231,105 @@ const hasReasonableLength = (coverLetter: GeneratedCoverLetter): boolean =>
   coverLetter.body.length <= 4 &&
   countWords(collectLetterText(coverLetter)) <= 450;
 
+const joinReadable = (values: string[]): string => values.filter(hasText).join(", ");
+
+const isText = (value: string | undefined): value is string => hasText(value);
+
+const createFallbackGeneratedCoverLetter = (
+  request: GenerateCoverLetterRequest,
+  warnings: string[]
+): GeneratedCoverLetter => {
+  const profile = request.candidateProfile;
+  const language = request.options.language;
+  const targetRole = request.jobTarget?.title;
+  const targetCompany = request.jobTarget?.company;
+  const isGerman = language === "de";
+  const primaryExperience = profile.experiences.find(
+    (experience) =>
+      hasText(experience.role) ||
+      hasText(experience.company) ||
+      experience.responsibilities.length > 0
+  );
+  const technicalSkills = joinReadable(profile.skills.technical.slice(0, 8));
+  const methods = joinReadable(profile.skills.methods.slice(0, 5));
+  const experienceFacts = [
+    primaryExperience?.role,
+    primaryExperience?.company,
+    primaryExperience?.responsibilities[0]
+  ].filter(isText);
+  const body = [
+    profile.summary,
+    experienceFacts.length > 0
+      ? isGerman
+        ? `Meine Erfahrung umfasst ${joinReadable(experienceFacts)}.`
+        : `My experience includes ${joinReadable(experienceFacts)}.`
+      : undefined,
+    technicalSkills
+      ? isGerman
+        ? `Technisch arbeite ich mit ${technicalSkills}.`
+        : `Technically, I work with ${technicalSkills}.`
+      : undefined,
+    methods
+      ? isGerman
+        ? `Ergänzend bringe ich Erfahrung mit ${methods} mit.`
+        : `I also bring experience with ${methods}.`
+      : undefined
+  ].filter((paragraph): paragraph is string => hasText(paragraph));
+
+  return {
+    id: "generated-cover-letter-fallback",
+    language,
+    recipient: targetCompany ? { company: targetCompany } : undefined,
+    subject: targetRole
+      ? isGerman
+        ? `Bewerbung als ${targetRole}`
+        : `Application for ${targetRole}`
+      : isGerman
+        ? "Bewerbung"
+        : "Application",
+    greeting: isGerman ? "Sehr geehrte Damen und Herren," : "Dear hiring team,",
+    opening: targetRole
+      ? isGerman
+        ? `hiermit bewerbe ich mich als ${targetRole}${targetCompany ? ` bei ${targetCompany}` : ""}.`
+        : `I am applying for the ${targetRole} role${targetCompany ? ` at ${targetCompany}` : ""}.`
+      : isGerman
+        ? "hiermit sende ich Ihnen meine Bewerbungsunterlagen."
+        : "I am sending my application documents for your review.",
+    body:
+      body.length > 0
+        ? body.slice(0, 3)
+        : [
+            isGerman
+              ? "Die beigefügten Profildaten enthalten belegte Erfahrungen und Fähigkeiten."
+              : "The attached profile data contains verified experience and skills."
+          ],
+    closing: isGerman
+      ? "Ich freue mich auf die Möglichkeit, meine Unterlagen weiter zu erläutern."
+      : "I would welcome the opportunity to discuss my application further.",
+    signature: profile.personalInfo.fullName,
+    meta: {
+      generatedAt: new Date().toISOString(),
+      model: request.model,
+      warnings
+    }
+  };
+};
+
+const createFallbackCoverLetterResponse = (
+  request: GenerateCoverLetterRequest,
+  warnings: string[]
+): ApiResponse<GeneratedCoverLetter> =>
+  createSuccessResponse(
+    attachDocumentWarnings(
+      createFallbackGeneratedCoverLetter(request, warnings),
+      collectMissingDataWarnings(
+        request.candidateProfile,
+        "cover_letter",
+        request.jobTarget
+      )
+    )
+  );
+
 export const generateCoverLetter = async (
   input: unknown
 ): Promise<ApiResponse<GeneratedCoverLetter>> => {
@@ -251,15 +351,22 @@ export const generateCoverLetter = async (
   }
 
   const prompt = {
-    ...buildGenerateCoverLetterPrompt(request),
-    ...(request.runtime?.contextWindow
-      ? { numCtx: request.runtime.contextWindow }
-      : {})
+    ...buildGenerateCoverLetterPrompt(request)
+  };
+  const runtimePrompt = {
+    ...prompt,
+    numCtx: resolveContextWindow({
+      texts: [prompt.system, prompt.prompt],
+      runtime: request.runtime,
+      minimum: 8192,
+      expectedOutputTokens: 2048,
+      overheadTokens: 1024
+    })
   };
 
   try {
     const aiCoverLetter = await generateOllamaJson<unknown>(
-      prompt,
+      runtimePrompt,
       createOllamaOptions(request.model, request.runtime)
     );
 
@@ -274,21 +381,21 @@ export const generateCoverLetter = async (
     });
 
     if (!parsedCoverLetter.success) {
-      return parsedCoverLetter.response;
+      return createFallbackCoverLetterResponse(request, [
+        "Das KI-Ergebnis hatte kein gültiges Anschreiben-Schema. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+      ]);
     }
 
     if (!usesTargetCompanyAndRole(parsedCoverLetter.data, request.jobTarget)) {
-      return createErrorResponse(
-        "BUSINESS_RULE_FAILED",
-        "Generated cover letter must use the target company and role when present"
-      );
+      return createFallbackCoverLetterResponse(request, [
+        "Die KI-Antwort hat Zielrolle oder Unternehmen nicht korrekt verwendet. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+      ]);
     }
 
     if (!hasReasonableLength(parsedCoverLetter.data)) {
-      return createErrorResponse(
-        "BUSINESS_RULE_FAILED",
-        "Generated cover letter is too long"
-      );
+      return createFallbackCoverLetterResponse(request, [
+        "Die KI-Antwort war zu lang. Die App hat einen kompakten belegten Entwurf direkt aus dem Profil erstellt."
+      ]);
     }
 
     // Semantic validation catches invented job-skill claims and unknown
@@ -301,11 +408,10 @@ export const generateCoverLetter = async (
     );
 
     if (hasSemanticFactErrors(semanticFactValidation)) {
-      return createErrorResponse(
-        "HALLUCINATION_DETECTED",
+      return createFallbackCoverLetterResponse(request, [
         formatSemanticFactErrorMessage(semanticFactValidation),
-        semanticFactValidation
-      );
+        "Die KI-Antwort wurde verworfen. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+      ]);
     }
 
     // Missing profile details are user-facing warnings, not generation blockers.
@@ -321,6 +427,14 @@ export const generateCoverLetter = async (
     return createSuccessResponse(coverLetterWithWarnings);
   } catch (error) {
     if (error instanceof OllamaClientError) {
+      if (error.code === "INVALID_AI_JSON" || error.code === "AI_TIMEOUT") {
+        return createFallbackCoverLetterResponse(request, [
+          error.code === "AI_TIMEOUT"
+            ? "Die KI-Anfrage hat zu lange gedauert. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+            : "Die KI hat kein gültiges JSON erzeugt. Die App hat einen belegten Entwurf direkt aus dem Profil erstellt."
+        ]);
+      }
+
       return createErrorResponse(error.code, error.message);
     }
 

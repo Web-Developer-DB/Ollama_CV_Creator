@@ -114,6 +114,13 @@ const validCV: GeneratedCV = {
   }
 };
 
+const validCVWithProfileContact: GeneratedCV = {
+  ...validCV,
+  contact: {
+    email: "ada@example.com"
+  }
+};
+
 const createRequest = (body: unknown): Request =>
   new Request("http://localhost/api/ai/generate-cv", {
     method: "POST",
@@ -144,7 +151,7 @@ describe("POST /api/ai/generate-cv", () => {
     expect(response.status).toBe(200);
     expect(payload).toEqual({
       success: true,
-      data: validCV
+      data: validCVWithProfileContact
     });
     expect(generateOllamaJson).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -169,7 +176,7 @@ describe("POST /api/ai/generate-cv", () => {
     expect(response.status).toBe(200);
     expect(payload).toEqual({
       success: true,
-      data: validCV
+      data: validCVWithProfileContact
     });
     expect(promptRequest.prompt).toContain("general professional");
     expect(promptRequest.prompt).toContain("None provided");
@@ -518,7 +525,7 @@ describe("POST /api/ai/generate-cv", () => {
     expect(generateOllamaJson).not.toHaveBeenCalled();
   });
 
-  it("rejects generated CVs with new employers", async () => {
+  it("falls back to a source-backed CV when generated CVs contain new employers", async () => {
     generateOllamaJson.mockResolvedValue({
       ...validCV,
       sections: [
@@ -541,16 +548,19 @@ describe("POST /api/ai/generate-cv", () => {
     const response = await POST(createRequest(requestBody));
     const payload = await readJson(response);
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "HALLUCINATION_DETECTED"
+      success: true,
+      data: {
+        meta: {
+          warnings: [expect.stringContaining("Invented Corp"), expect.any(String)]
+        }
       }
     });
+    expect(JSON.stringify(payload.data.sections)).not.toContain("Invented Corp");
   });
 
-  it("rejects generated CVs with new skills", async () => {
+  it("falls back to a source-backed CV when generated CVs contain new skills", async () => {
     generateOllamaJson.mockResolvedValue({
       ...validCV,
       sections: [
@@ -572,20 +582,19 @@ describe("POST /api/ai/generate-cv", () => {
     const response = await POST(createRequest(requestBody));
     const payload = await readJson(response);
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "HALLUCINATION_DETECTED",
-        message: expect.stringContaining("Rust"),
-        details: {
-          unknownSkills: ["Rust"]
+      success: true,
+      data: {
+        meta: {
+          warnings: [expect.stringMatching(/rust/i), expect.any(String)]
         }
       }
     });
+    expect(JSON.stringify(payload.data.sections)).not.toContain("Rust");
   });
 
-  it("rejects generated CVs with unsupported certificates and dates", async () => {
+  it("falls back to a source-backed CV when generated CVs contain unsupported certificates and dates", async () => {
     generateOllamaJson.mockResolvedValue({
       ...validCV,
       sections: [
@@ -609,17 +618,21 @@ describe("POST /api/ai/generate-cv", () => {
     const response = await POST(createRequest(requestBody));
     const payload = await readJson(response);
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "HALLUCINATION_DETECTED",
-        details: {
-          unknownCertificates: ["AWS Solutions Architect", "2024"],
-          unknownDates: ["2024"]
+      success: true,
+      data: {
+        meta: {
+          warnings: [
+            expect.stringContaining("AWS Solutions Architect"),
+            expect.any(String)
+          ]
         }
       }
     });
+    expect(JSON.stringify(payload.data.sections)).not.toContain(
+      "AWS Solutions Architect"
+    );
   });
 
   it("returns a clear error when the configured model is not loaded", async () => {

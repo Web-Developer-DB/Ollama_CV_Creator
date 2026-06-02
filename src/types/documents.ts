@@ -37,10 +37,21 @@ export type CVSection = {
   items: DocumentSectionItem[];
 };
 
+export type CVContact = {
+  email?: string;
+  phone?: string;
+  location?: string;
+  website?: string;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+};
+
 export type GeneratedCV = {
   id: string;
   title?: string;
   language: DocumentLanguage;
+  contact?: CVContact;
   summary?: string;
   sections: CVSection[];
   meta: GeneratedDocumentMeta;

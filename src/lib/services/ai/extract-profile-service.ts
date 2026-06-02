@@ -10,6 +10,7 @@ import {
   createErrorResponse,
   createSuccessResponse
 } from "@/lib/services/api-response";
+import { resolveContextWindow } from "@/lib/services/ai/context-window";
 import { normalizeCandidateProfileOutput } from "@/lib/services/ai/profile-normalization";
 import { candidateProfileSchema } from "@/lib/validation/schemas";
 import type {
@@ -46,6 +47,12 @@ const hasTextList = (items?: string[]): boolean =>
   items?.some(hasTextValue) ?? false;
 
 const lineBreakPattern = /\r?\n/;
+
+const normalizeHeading = (value: string): string =>
+  value
+    .trim()
+    .replace(/:$/, "")
+    .toLowerCase();
 
 const hasMeaningfulCandidateProfile = (profile: CandidateProfile): boolean => {
   const hasPersonalInfo = Object.values(profile.personalInfo).some(hasTextValue);
@@ -138,6 +145,59 @@ const hasMeaningfulCertificate = (
     certificate.url
   ].some(hasTextValue);
 
+const hasMeaningfulExperience = (
+  experience: CandidateProfile["experiences"][number]
+): boolean =>
+  [
+    experience.company,
+    experience.role,
+    experience.location,
+    experience.startDate,
+    experience.endDate,
+    experience.description
+  ].some(hasTextValue) ||
+  hasTextList(experience.responsibilities) ||
+  hasTextList(experience.achievements) ||
+  hasTextList(experience.technologies);
+
+const hasMeaningfulProject = (
+  project: CandidateProfile["projects"][number]
+): boolean =>
+  [
+    project.name,
+    project.role,
+    project.description,
+    project.startDate,
+    project.endDate,
+    project.url
+  ].some(hasTextValue) ||
+  hasTextList(project.highlights) ||
+  hasTextList(project.technologies);
+
+const extractLabeledValue = (text: string, labels: string[]): string | undefined => {
+  for (const label of labels) {
+    const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const value = text.match(
+      new RegExp(`(?:^|\\n)${escapedLabel}:\\s*([^\\n]+)`, "i")
+    )?.[1];
+
+    if (value?.trim()) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+};
+
+const isValidEmail = (value: string): boolean =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+const extractEmailValue = (text: string): string | undefined => {
+  const email = extractLabeledValue(text, ["Email", "E-Mail", "Mail"]);
+
+  return email && isValidEmail(email) ? email : undefined;
+};
+
 const extractNamedLine = (text: string): string | undefined => {
   const explicitName = text.match(
     /(?:^|\n)(?:demo candidate context|candidate context|name|full name):\s*([^\n]+)/i
@@ -146,16 +206,21 @@ const extractNamedLine = (text: string): string | undefined => {
   return explicitName?.trim();
 };
 
-const extractSectionLines = (text: string, heading: string): string[] => {
+const extractSectionLines = (text: string, heading: string | string[]): string[] => {
   const lines = text.split(lineBreakPattern);
   const sectionLines: string[] = [];
+  const headings = (Array.isArray(heading) ? heading : [heading]).map(
+    normalizeHeading
+  );
   let isCollecting = false;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    const isHeading = /^[A-Z][A-Za-z ,&-]+:\s*$/.test(trimmedLine);
+    const isHeading =
+      /^[A-ZÄÖÜ][A-Za-zÄÖÜäöüß ,&/()-]+:\s*$/.test(trimmedLine);
+    const normalizedLine = normalizeHeading(trimmedLine);
 
-    if (trimmedLine.toLowerCase() === `${heading.toLowerCase()}:`) {
+    if (headings.includes(normalizedLine)) {
       isCollecting = true;
       continue;
     }
@@ -172,11 +237,8 @@ const extractSectionLines = (text: string, heading: string): string[] => {
   return sectionLines;
 };
 
-const extractLabeledList = (text: string, label: string): string[] => {
-  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const value = text.match(
-    new RegExp(`(?:^|\\n)${escapedLabel}:\\s*([^\\n]+)`, "i")
-  )?.[1];
+const extractLabeledList = (text: string, label: string | string[]): string[] => {
+  const value = extractLabeledValue(text, Array.isArray(label) ? label : [label]);
 
   return value ? splitTextList(value) : [];
 };
@@ -226,7 +288,15 @@ const extractEducationFromText = (
     "School education",
     "College and preparatory education",
     "Vocational education",
-    "University education"
+    "University education",
+    "Education",
+    "Schulbildung",
+    "Schule",
+    "Berufsausbildung",
+    "Ausbildung",
+    "Studium",
+    "Universität",
+    "Hochschule"
   ];
   const entries: CandidateProfile["education"] = [];
 
@@ -239,7 +309,7 @@ const extractEducationFromText = (
     for (const line of lines) {
       const trimmedLine = line.trim();
       const dateMatch = trimmedLine.match(
-        /^(\d{4})\s*[-–]\s*(\d{4}|present|current)\s+(.+)$/i
+        /^(\d{4})\s*[-–]\s*(\d{4}|present|current|heute|aktuell)\s+(.+)$/i
       );
 
       if (dateMatch) {
@@ -272,11 +342,20 @@ const extractEducationFromText = (
 };
 
 const extractSkillsFromText = (text: string): CandidateProfile["skills"] => ({
-  technical: extractLabeledList(text, "Technical skills"),
-  soft: extractLabeledList(text, "Soft skills"),
-  tools: extractLabeledList(text, "Tools"),
+  technical: extractLabeledList(text, [
+    "Technical skills",
+    "Technische Fähigkeiten",
+    "Technische Skills",
+    "Fachliche Fähigkeiten"
+  ]),
+  soft: extractLabeledList(text, [
+    "Soft skills",
+    "Soft Skills",
+    "Soziale Kompetenzen"
+  ]),
+  tools: extractLabeledList(text, ["Tools", "Werkzeuge"]),
   languages: [],
-  methods: extractLabeledList(text, "Methods")
+  methods: extractLabeledList(text, ["Methods", "Methoden", "Arbeitsmethoden"])
 });
 
 const proficiencyByText: Record<string, LanguageProficiency> = {
@@ -290,7 +369,7 @@ const proficiencyByText: Record<string, LanguageProficiency> = {
 const extractLanguagesFromText = (
   text: string
 ): CandidateProfile["languages"] =>
-  extractSectionLines(text, "Languages").flatMap((line, index) => {
+  extractSectionLines(text, ["Languages", "Sprachen"]).flatMap((line, index) => {
     const languageMatch = line
       .trim()
       .match(/^(.+?)\s+(basic|intermediate|advanced|fluent|native)$/i);
@@ -311,8 +390,14 @@ const extractLanguagesFromText = (
 const extractCertificatesFromText = (
   text: string
 ): CandidateProfile["certificates"] =>
-  extractSectionLines(text, "Continuing education and certifications").flatMap(
-    (line, index) => {
+  extractSectionLines(text, [
+    "Continuing education and certifications",
+    "Certificates",
+    "Certifications",
+    "Weiterbildung und Zertifikate",
+    "Zertifikate",
+    "Fortbildungen"
+  ]).flatMap((line, index) => {
       const certificateMatch = line
         .trim()
         .match(/^(\d{4})\s+([^:,]+?)(?:,\s*([^:]+))?(?::|$)/);
@@ -329,20 +414,254 @@ const extractCertificatesFromText = (
           issueDate: certificateMatch[1]
         }
       ];
+    });
+
+const extractPersonalInfoFromText = (
+  text: string
+): CandidateProfile["personalInfo"] => {
+  const fullName = extractNamedLine(text);
+  const email = extractEmailValue(text);
+  const phone = extractLabeledValue(text, ["Phone", "Telefon", "Mobile"]);
+  const location = extractLabeledValue(text, ["Location", "Ort", "Adresse"]);
+  const website = extractLabeledValue(text, ["Website"]);
+  const linkedin = extractLabeledValue(text, ["LinkedIn", "Linkedin"]);
+  const github = extractLabeledValue(text, ["GitHub", "Github"]);
+  const portfolio = extractLabeledValue(text, ["Portfolio"]);
+
+  return {
+    ...(fullName ? { fullName } : {}),
+    ...(email ? { email } : {}),
+    ...(phone ? { phone } : {}),
+    ...(location ? { location } : {}),
+    ...(website ? { website } : {}),
+    ...(linkedin ? { linkedin } : {}),
+    ...(github ? { github } : {}),
+    ...(portfolio ? { portfolio } : {})
+  };
+};
+
+const extractSummaryFromText = (text: string): string | undefined => {
+  const summaryLines = extractSectionLines(text, [
+    "Profile summary",
+    "Summary",
+    "Profil",
+    "Kurzprofil",
+    "Zusammenfassung"
+  ])
+    .map((line) => line.trim().replace(/^[-•]\s*/, ""))
+    .filter(Boolean);
+
+  if (summaryLines.length > 0) {
+    return summaryLines.join(" ");
+  }
+
+  return text
+    .split(lineBreakPattern)
+    .map((line) => line.trim())
+    .find((line) => line.length > 60 && !line.includes(":"));
+};
+
+const parseRoleCompanyLocation = (
+  value: string
+): Pick<
+  CandidateProfile["experiences"][number],
+  "role" | "company" | "location"
+> => {
+  const parts = value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return {
+    role: parts[0],
+    company: parts[1],
+    location: parts.slice(2).join(", ") || undefined
+  };
+};
+
+const extractExperiencesFromText = (
+  text: string
+): CandidateProfile["experiences"] => {
+  const lines = extractSectionLines(text, [
+    "Professional experience",
+    "Work experience",
+    "Experience",
+    "Berufserfahrung",
+    "Berufliche Erfahrung",
+    "Arbeitserfahrung"
+  ]);
+  const entries: CandidateProfile["experiences"] = [];
+  let currentEntry:
+    | (CandidateProfile["experiences"][number] & {
+        responsibilities: string[];
+        achievements: string[];
+      })
+    | undefined;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    const dateMatch = trimmedLine.match(
+      /^(\d{4})\s*[-–]\s*(\d{4}|present|current|heute|aktuell)\s+(.+)$/i
+    );
+
+    if (dateMatch) {
+      if (currentEntry) {
+        entries.push(currentEntry);
+      }
+
+      currentEntry = {
+        id: `experience-${entries.length + 1}`,
+        startDate: dateMatch[1],
+        endDate: dateMatch[2],
+        responsibilities: [],
+        achievements: [],
+        ...parseRoleCompanyLocation(dateMatch[3])
+      };
+      continue;
     }
+
+    const detail = trimmedLine.replace(/^[-•]\s*/, "").trim();
+    if (!currentEntry || !detail) {
+      continue;
+    }
+
+    const technologies = detail.match(/^(?:Technologies|Technologien):\s*(.+)$/i);
+    if (technologies) {
+      currentEntry.technologies = splitTextList(technologies[1]);
+      continue;
+    }
+
+    currentEntry.responsibilities.push(detail);
+  }
+
+  if (currentEntry) {
+    entries.push(currentEntry);
+  }
+
+  return entries;
+};
+
+const extractProjectsFromText = (text: string): CandidateProfile["projects"] => {
+  const lines = extractSectionLines(text, [
+    "Selected projects",
+    "Projects",
+    "Ausgewählte Projekte",
+    "Projekte"
+  ]);
+  const entries: CandidateProfile["projects"] = [];
+  let currentEntry:
+    | (CandidateProfile["projects"][number] & { highlights: string[] })
+    | undefined;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
+      continue;
+    }
+
+    if (!/^[-•]/.test(trimmedLine)) {
+      if (currentEntry) {
+        entries.push(currentEntry);
+      }
+
+      const parts = trimmedLine
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      currentEntry = {
+        id: `project-${entries.length + 1}`,
+        name: parts[0],
+        description: parts.slice(1).join(", ") || undefined,
+        highlights: []
+      };
+      continue;
+    }
+
+    const detail = trimmedLine.replace(/^[-•]\s*/, "").trim();
+    if (!currentEntry || !detail) {
+      continue;
+    }
+
+    const role = detail.match(/^Role:\s*(.+)$/i);
+    if (role) {
+      currentEntry.role = role[1].replace(/\.$/, "");
+      continue;
+    }
+
+    const technologies = detail.match(/^(?:Technologies|Technologien):\s*(.+)$/i);
+    if (technologies) {
+      currentEntry.technologies = splitTextList(technologies[1]);
+      continue;
+    }
+
+    currentEntry.highlights.push(detail);
+  }
+
+  if (currentEntry) {
+    entries.push(currentEntry);
+  }
+
+  return entries;
+};
+
+const createFallbackProfileFromText = (
+  text: string,
+  language: "de" | "en",
+  warnings: string[]
+): CandidateProfile =>
+  backfillProfileFromText(
+    {
+      personalInfo: extractPersonalInfoFromText(text),
+      summary: extractSummaryFromText(text),
+      experiences: extractExperiencesFromText(text),
+      education: extractEducationFromText(text),
+      skills: extractSkillsFromText(text),
+      projects: extractProjectsFromText(text),
+      languages: extractLanguagesFromText(text),
+      certificates: extractCertificatesFromText(text),
+      extractionMeta: {
+        language,
+        extractedAt: new Date().toISOString(),
+        uncertainFields: [],
+        warnings
+      }
+    },
+    text
   );
+
+const mergeMissingPersonalInfo = (
+  current: CandidateProfile["personalInfo"],
+  extracted: CandidateProfile["personalInfo"]
+): CandidateProfile["personalInfo"] => ({
+  fullName: current.fullName ?? extracted.fullName,
+  email: current.email ?? extracted.email,
+  phone: current.phone ?? extracted.phone,
+  location: current.location ?? extracted.location,
+  website: current.website ?? extracted.website,
+  linkedin: current.linkedin ?? extracted.linkedin,
+  github: current.github ?? extracted.github,
+  portfolio: current.portfolio ?? extracted.portfolio
+});
 
 const backfillProfileFromText = (
   profile: CandidateProfile,
   text: string
 ): CandidateProfile => {
-  const extractedName = profile.personalInfo.fullName
+  const extractedPersonalInfo = extractPersonalInfoFromText(text);
+  const extractedSummary = hasTextValue(profile.summary)
     ? undefined
-    : extractNamedLine(text);
+    : extractSummaryFromText(text);
+  const extractedExperiences = profile.experiences.some(hasMeaningfulExperience)
+    ? undefined
+    : extractExperiencesFromText(text);
   const extractedEducation = profile.education.some(hasMeaningfulEducation)
     ? undefined
     : extractEducationFromText(text);
   const extractedSkills = extractSkillsFromText(text);
+  const extractedProjects = profile.projects.some(hasMeaningfulProject)
+    ? undefined
+    : extractProjectsFromText(text);
   const extractedLanguages = profile.languages.some((language) =>
     hasTextValue(language.language)
   )
@@ -356,10 +675,15 @@ const backfillProfileFromText = (
 
   return {
     ...profile,
-    personalInfo: {
-      ...profile.personalInfo,
-      ...(extractedName ? { fullName: extractedName } : {})
-    },
+    personalInfo: mergeMissingPersonalInfo(
+      profile.personalInfo,
+      extractedPersonalInfo
+    ),
+    summary: profile.summary ?? extractedSummary,
+    experiences:
+      extractedExperiences && extractedExperiences.length > 0
+        ? extractedExperiences
+        : profile.experiences,
     education:
       extractedEducation && extractedEducation.length > 0
         ? extractedEducation
@@ -381,6 +705,10 @@ const backfillProfileFromText = (
         ? profile.skills.methods
         : extractedSkills.methods
     },
+    projects:
+      extractedProjects && extractedProjects.length > 0
+        ? extractedProjects
+        : profile.projects,
     languages:
       extractedLanguages && extractedLanguages.length > 0
         ? extractedLanguages
@@ -403,6 +731,48 @@ const createOllamaOptions = (
 const parseAiProfile = (aiProfile: unknown) =>
   candidateProfileSchema.safeParse(normalizeCandidateProfileOutput(aiProfile));
 
+const backfillValidatedProfile = (
+  profile: CandidateProfile,
+  text: string
+): CandidateProfile | undefined => {
+  const backfilledProfile = backfillProfileFromText(profile, text);
+  const parsedBackfilledProfile = candidateProfileSchema.safeParse(backfilledProfile);
+
+  return parsedBackfilledProfile.success
+    ? parsedBackfilledProfile.data
+    : undefined;
+};
+
+const createValidatedFallbackProfile = (
+  request: ExtractProfileRequest,
+  warnings: string[]
+): CandidateProfile | undefined => {
+  const fallbackProfile = createFallbackProfileFromText(
+    request.text,
+    request.language,
+    warnings
+  );
+  const parsedFallback = candidateProfileSchema.safeParse(fallbackProfile);
+
+  return parsedFallback.success && hasMeaningfulCandidateProfile(parsedFallback.data)
+    ? parsedFallback.data
+    : undefined;
+};
+
+const createFallbackProfileResponse = (
+  request: ExtractProfileRequest,
+  warning: string
+): ApiResponse<CandidateProfile> => {
+  const fallbackProfile = createValidatedFallbackProfile(request, [warning]);
+
+  return fallbackProfile
+    ? createSuccessResponse(fallbackProfile)
+    : createErrorResponse(
+        "BUSINESS_RULE_FAILED",
+        "AI did not extract usable candidate profile data. Add more candidate context or try another model."
+      );
+};
+
 export const extractProfile = async (
   input: unknown
 ): Promise<ApiResponse<CandidateProfile>> => {
@@ -413,9 +783,16 @@ export const extractProfile = async (
 
   const request: ExtractProfileRequest = parsedRequest.data;
   const basePrompt = buildExtractProfilePrompt(request);
+  const contextWindow = resolveContextWindow({
+    texts: [basePrompt.system, basePrompt.prompt],
+    runtime: request.runtime,
+    minimum: basePrompt.numCtx,
+    expectedOutputTokens: basePrompt.numPredict,
+    overheadTokens: 1536
+  });
   const prompt = {
     ...basePrompt,
-    numCtx: request.runtime?.contextWindow ?? basePrompt.numCtx
+    numCtx: contextWindow
   };
 
   try {
@@ -428,13 +805,13 @@ export const extractProfile = async (
     // schema checks the canonical CandidateProfile shape.
     let parsedProfile = parseAiProfile(aiProfile);
     let profile = parsedProfile.success
-      ? backfillProfileFromText(parsedProfile.data, request.text)
+      ? backfillValidatedProfile(parsedProfile.data, request.text)
       : undefined;
 
     if (!parsedProfile.success) {
-      return createErrorResponse(
-        "SCHEMA_VALIDATION_FAILED",
-        "AI response did not match the candidate profile schema"
+      return createFallbackProfileResponse(
+        request,
+        "Das KI-Profil hatte ein ungültiges Schema. Die App hat belegte Daten konservativ aus dem Rohtext übernommen."
       );
     }
 
@@ -447,7 +824,13 @@ export const extractProfile = async (
       });
       const runtimeRecoveryPrompt = {
         ...recoveryPrompt,
-        numCtx: request.runtime?.contextWindow ?? recoveryPrompt.numCtx
+        numCtx: resolveContextWindow({
+          texts: [recoveryPrompt.system, recoveryPrompt.prompt],
+          runtime: request.runtime,
+          minimum: recoveryPrompt.numCtx,
+          expectedOutputTokens: recoveryPrompt.numPredict,
+          overheadTokens: 1536
+        })
       };
       const recoveryAiProfile = await generateOllamaJson<unknown>(
         runtimeRecoveryPrompt,
@@ -456,27 +839,36 @@ export const extractProfile = async (
 
       parsedProfile = parseAiProfile(recoveryAiProfile);
       profile = parsedProfile.success
-        ? backfillProfileFromText(parsedProfile.data, request.text)
+        ? backfillValidatedProfile(parsedProfile.data, request.text)
         : undefined;
 
       if (!parsedProfile.success) {
-        return createErrorResponse(
-          "SCHEMA_VALIDATION_FAILED",
-          "AI response did not match the candidate profile schema"
+        return createFallbackProfileResponse(
+          request,
+          "Das KI-Recovery-Profil hatte ein ungültiges Schema. Die App hat belegte Daten konservativ aus dem Rohtext übernommen."
         );
       }
     }
 
     if (!profile || !hasMeaningfulCandidateProfile(profile)) {
-      return createErrorResponse(
-        "BUSINESS_RULE_FAILED",
-        "AI did not extract usable candidate profile data. Add more candidate context or try another model."
+      return createFallbackProfileResponse(
+        request,
+        "Das KI-Profil war leer. Die App hat belegte Daten konservativ aus dem Rohtext übernommen."
       );
     }
 
     return createSuccessResponse(profile);
   } catch (error) {
     if (error instanceof OllamaClientError) {
+      if (error.code === "INVALID_AI_JSON" || error.code === "AI_TIMEOUT") {
+        return createFallbackProfileResponse(
+          request,
+          error.code === "AI_TIMEOUT"
+            ? "Die KI-Anfrage hat zu lange gedauert. Die App hat belegte Daten konservativ aus dem Rohtext übernommen."
+            : "Die KI hat kein gültiges JSON erzeugt. Die App hat belegte Daten konservativ aus dem Rohtext übernommen."
+        );
+      }
+
       return createErrorResponse(error.code, error.message);
     }
 

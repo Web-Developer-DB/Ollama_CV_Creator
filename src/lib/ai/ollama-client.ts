@@ -211,6 +211,87 @@ const stripJsonFences = (value: string): string =>
 const normalizeGeneratedJsonText = (value: string): string =>
   stripJsonFences(value.replace(/<think>[\s\S]*?<\/think>/gi, ""));
 
+const removeTrailingCommas = (value: string): string =>
+  value.replace(/,\s*([}\]])/g, "$1");
+
+const appendMissingJsonClosers = (
+  value: string,
+  startIndex: number
+): string | undefined => {
+  const matchingBrace: Record<string, string> = {
+    "{": "}",
+    "[": "]"
+  };
+  const stack: string[] = [];
+  let isInsideString = false;
+  let isEscaped = false;
+  let candidate = "";
+
+  for (let index = startIndex; index < value.length; index += 1) {
+    const character = value[index];
+    candidate += character;
+
+    if (isInsideString) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (character === "\\") {
+        isEscaped = true;
+      } else if (character === "\"") {
+        isInsideString = false;
+      }
+
+      continue;
+    }
+
+    if (character === "\"") {
+      isInsideString = true;
+      continue;
+    }
+
+    if (character === "{" || character === "[") {
+      stack.push(matchingBrace[character]);
+      continue;
+    }
+
+    if (character === "}" || character === "]") {
+      if (stack.at(-1) !== character) {
+        return undefined;
+      }
+
+      stack.pop();
+    }
+  }
+
+  if (stack.length === 0) {
+    return candidate;
+  }
+
+  if (isInsideString) {
+    candidate += "\"";
+  }
+
+  return removeTrailingCommas(`${candidate}${stack.reverse().join("")}`);
+};
+
+const createRepairCandidates = (value: string): string[] => {
+  const candidates: string[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+
+    if (character !== "{" && character !== "[") {
+      continue;
+    }
+
+    const candidate = appendMissingJsonClosers(value, index);
+    if (candidate && !candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  }
+
+  return candidates;
+};
+
 const findBalancedJsonCandidate = (
   value: string,
   startIndex: number
@@ -265,7 +346,13 @@ const findBalancedJsonCandidate = (
 };
 
 const collectJsonCandidates = (value: string): string[] => {
-  const candidates = [value];
+  const candidates = [value, removeTrailingCommas(value)];
+
+  for (const repairCandidate of createRepairCandidates(value)) {
+    if (!candidates.includes(repairCandidate)) {
+      candidates.push(repairCandidate);
+    }
+  }
 
   for (let index = 0; index < value.length; index += 1) {
     const character = value[index];
@@ -277,6 +364,10 @@ const collectJsonCandidates = (value: string): string[] => {
     const candidate = findBalancedJsonCandidate(value, index);
     if (candidate && !candidates.includes(candidate)) {
       candidates.push(candidate);
+      const withoutTrailingCommas = removeTrailingCommas(candidate);
+      if (!candidates.includes(withoutTrailingCommas)) {
+        candidates.push(withoutTrailingCommas);
+      }
     }
   }
 

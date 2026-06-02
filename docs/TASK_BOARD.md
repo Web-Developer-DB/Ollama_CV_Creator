@@ -7,6 +7,9 @@
 - TASK-038: Professional CV and Cover Letter Design System
 - TASK-025: Styled PDF Export
 - TASK-026: JSON Project Export
+- TASK-047: CV Template Design Pack
+- TASK-048: One-Page / Two-Page Fit Logic
+- TASK-049: Print-Perfect Preview and Export
 - TASK-027: Desktop Packaging
 - TASK-028: Security Review
 - TASK-029: MVP E2E Flow
@@ -61,6 +64,8 @@ _None_
 - TASK-042: Semantic Fact Validation
 - TASK-043: Missing Data UX and Document Warnings
 - TASK-044: Prompt Rewrite for No-Invention Document Generation
+- TASK-045: A4 CV Page Renderer
+- TASK-046: Modern CV Visual Components
 
 ## BLOCKED
 

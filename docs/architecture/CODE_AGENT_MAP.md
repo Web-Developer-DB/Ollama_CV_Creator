@@ -53,7 +53,7 @@ Reusable rendering components.
 
 - `components/layout`: app shell, sidebar, header, and project hydration.
 - `components/ui`: small primitives such as button, badge, panel, icon.
-- `components/templates/DocumentTemplate.tsx`: printable CV and cover-letter preview renderer.
+- `components/templates/DocumentTemplate.tsx`: printable A4 CV and cover-letter preview renderer with contact icons, timeline sections, skill chips, and template styling.
 - `components/dashboard/DashboardAiStatus.tsx`: compact AI readiness card for the dashboard.
 
 ### `src/lib/ai`
@@ -72,6 +72,7 @@ Low-level Ollama and prompt infrastructure.
 Framework-independent AI service layer. This is where business logic belongs.
 
 - `extract-profile-service.ts`: raw text -> `CandidateProfile`.
+- `context-window.ts`: automatic Ollama context-window estimation per request.
 - `profile-normalization.ts`: tolerant LLM profile output normalization.
 - `analyze-job-service.ts`: job description -> tailoring guidance.
 - `generate-cv-service.ts`: profile -> generated CV with validation and warnings.
@@ -105,6 +106,10 @@ Canonical data contracts.
 - `project.ts`: top-level persisted project.
 - `api.ts`: route, service, and IPC request/response contracts.
 - `templates.ts`: presentation-only design model.
+
+`GeneratedCV.contact` is copied from the verified candidate profile by the CV
+generation service. The renderer should display it, but LLM output should not be
+trusted as a source of contact facts.
 
 ### `src/lib/validation`
 
@@ -147,10 +152,24 @@ ImportScreen
   -> extract-profile-service
   -> buildExtractProfilePrompt
   -> generateOllamaJson
+  -> repair fenced/truncated JSON where possible
   -> normalizeCandidateProfileOutput
   -> candidateProfileSchema
   -> backfill clear facts from raw source text
+  -> fall back to conservative source-text extraction when AI JSON is unusable
   -> replace active project with candidateProfile
+```
+
+## Document Generation Resilience
+
+```txt
+DocumentsScreen action
+  -> generate CV / cover letter service
+  -> ask selected Ollama model for structured JSON
+  -> normalize recoverable aliases
+  -> reject unsupported generated facts
+  -> fall back to a deterministic source-backed draft instead of blocking
+  -> attach warnings so the user can review what happened
 ```
 
 ## Storage Flow
@@ -180,6 +199,8 @@ Candidate import
   explicit, but future large additions should extract smaller local modules.
 - `DocumentsScreen.tsx` now delegates pure draft conversion to
   `document-drafts.ts`.
+- See `docs/architecture/LLM_MODULE_AUDIT.md` for the detailed AI pipeline
+  audit, resilience strategy, and remaining risks.
 
 ## Change Guidelines
 

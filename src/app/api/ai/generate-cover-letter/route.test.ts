@@ -147,7 +147,7 @@ describe("POST /api/ai/generate-cover-letter", () => {
     );
   });
 
-  it("rejects invented facts", async () => {
+  it("falls back to a source-backed letter when generated letters contain invented facts", async () => {
     generateOllamaJson.mockResolvedValue({
       ...validCoverLetter,
       body: [
@@ -158,13 +158,16 @@ describe("POST /api/ai/generate-cover-letter", () => {
     const response = await POST(createRequest(requestBody));
     const payload = await readJson(response);
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "HALLUCINATION_DETECTED"
+      success: true,
+      data: {
+        meta: {
+          warnings: [expect.stringMatching(/rust/i), expect.any(String)]
+        }
       }
     });
+    expect(JSON.stringify(payload.data.body)).not.toContain("Rust");
   });
 
   it("accepts translated backed skills in tailored cover letters", async () => {
@@ -275,7 +278,7 @@ describe("POST /api/ai/generate-cover-letter", () => {
     });
   });
 
-  it("rejects invented companies with semantic fact details", async () => {
+  it("falls back to a source-backed letter when generated letters contain invented companies", async () => {
     generateOllamaJson.mockResolvedValue({
       ...validCoverLetter,
       body: [
@@ -286,16 +289,22 @@ describe("POST /api/ai/generate-cover-letter", () => {
     const response = await POST(createRequest(requestBody));
     const payload = await readJson(response);
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "HALLUCINATION_DETECTED",
-        details: {
-          unknownEmployers: ["Invented Corp"]
+      success: true,
+      data: {
+        meta: {
+          warnings: [expect.stringContaining("Invented Corp"), expect.any(String)]
         }
       }
     });
+    expect(
+      JSON.stringify([
+        payload.data.opening,
+        ...payload.data.body,
+        payload.data.closing
+      ])
+    ).not.toContain("Invented Corp");
   });
 
   it("returns a general cover letter without a job target", async () => {
@@ -366,7 +375,7 @@ describe("POST /api/ai/generate-cover-letter", () => {
     });
   });
 
-  it("rejects unreasonable length", async () => {
+  it("falls back to a compact source-backed letter when the model output is too long", async () => {
     const longParagraph = Array.from({ length: 451 }, () => "word").join(" ");
     generateOllamaJson.mockResolvedValue({
       ...validCoverLetter,
@@ -376,13 +385,16 @@ describe("POST /api/ai/generate-cover-letter", () => {
     const response = await POST(createRequest(requestBody));
     const payload = await readJson(response);
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "BUSINESS_RULE_FAILED"
+      success: true,
+      data: {
+        meta: {
+          warnings: [expect.stringContaining("zu lang")]
+        }
       }
     });
+    expect(payload.data.body.length).toBeLessThanOrEqual(4);
   });
 
   it("returns a clear error when the configured model is not loaded", async () => {

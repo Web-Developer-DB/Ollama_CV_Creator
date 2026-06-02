@@ -20,6 +20,10 @@ const projectWithDocuments: ApplicationProject = {
       id: "cv-1",
       title: "Frontend Engineer CV",
       language: "en",
+      contact: {
+        email: "ada@example.com",
+        linkedin: "linkedin.com/in/ada"
+      },
       summary: "Frontend engineer focused on accessible React applications.",
       sections: [],
       meta: {
@@ -122,7 +126,8 @@ describe("TemplatesScreen", () => {
     expect(
       screen.queryByTestId("document-page-cover-letter")
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Frontend Engineer CV")).toBeInTheDocument();
+    expect(screen.getAllByText("Frontend Engineer").length).toBeGreaterThan(0);
+    expect(screen.getByText("ada@example.com")).toBeInTheDocument();
   });
 
   it("filters templates by category", async () => {

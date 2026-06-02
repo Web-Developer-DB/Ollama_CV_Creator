@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OllamaClientError } from "@/lib/ai/ollama-client";
+import { sampleCandidateContext } from "@/lib/demo/sample-candidate-context";
 import type { CandidateProfile } from "@/types/profile";
 import { POST } from "./route";
 
@@ -87,21 +88,39 @@ describe("POST /api/ai/extract-profile", () => {
     expect(generateOllamaJson).not.toHaveBeenCalled();
   });
 
-  it("handles invalid AI JSON", async () => {
+  it("falls back to source-text extraction when Ollama returns invalid JSON", async () => {
     generateOllamaJson.mockRejectedValue(
       new OllamaClientError("INVALID_AI_JSON", "Invalid JSON")
     );
 
     const response = await POST(
-      createRequest({ text: "Ada writes TypeScript.", language: "en" })
+      createRequest({
+        language: "en",
+        text: `Demo candidate context: Ada Lovelace
+
+Profile summary:
+Ada writes TypeScript applications.
+
+Skills:
+Technical skills: TypeScript, React`
+      })
     );
     const payload = await readJson(response);
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(200);
     expect(payload).toMatchObject({
-      success: false,
-      error: {
-        code: "INVALID_AI_JSON"
+      success: true,
+      data: {
+        personalInfo: {
+          fullName: "Ada Lovelace"
+        },
+        summary: "Ada writes TypeScript applications.",
+        skills: {
+          technical: ["TypeScript", "React"]
+        },
+        extractionMeta: {
+          warnings: [expect.stringContaining("kein gültiges JSON")]
+        }
       }
     });
   });
@@ -129,7 +148,7 @@ describe("POST /api/ai/extract-profile", () => {
     });
   });
 
-  it("handles schema validation failure", async () => {
+  it("returns a clear error when schema recovery has no source facts", async () => {
     generateOllamaJson.mockResolvedValue([]);
 
     const response = await POST(
@@ -137,11 +156,11 @@ describe("POST /api/ai/extract-profile", () => {
     );
     const payload = await readJson(response);
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(422);
     expect(payload).toMatchObject({
       success: false,
       error: {
-        code: "SCHEMA_VALIDATION_FAILED"
+        code: "BUSINESS_RULE_FAILED"
       }
     });
   });
@@ -279,6 +298,142 @@ English fluent`
       ]
     });
     expect(generateOllamaJson).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not backfill invalid raw email addresses into a valid profile", async () => {
+    generateOllamaJson.mockResolvedValue({
+      personalInfo: {
+        fullName: "Nora Stein"
+      },
+      experiences: [],
+      education: [],
+      skills: {
+        technical: ["TypeScript"],
+        soft: [],
+        tools: [],
+        languages: [],
+        methods: []
+      },
+      projects: [],
+      languages: [],
+      certificates: []
+    });
+
+    const response = await POST(
+      createRequest({
+        language: "en",
+        text: `Demo candidate context: Nora Stein
+Email: not-an-email
+Phone: +49 30 1234567
+
+Profile summary:
+Nora builds accessible TypeScript applications.`
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.data.personalInfo).toMatchObject({
+      fullName: "Nora Stein",
+      phone: "+49 30 1234567"
+    });
+    expect(payload.data.personalInfo.email).toBeUndefined();
+  });
+
+  it("backfills missing experience and projects from source text when the model returns a valid incomplete profile", async () => {
+    generateOllamaJson.mockResolvedValue({
+      personalInfo: {
+        fullName: "Nora Stein"
+      },
+      experiences: [],
+      education: [],
+      skills: {
+        technical: ["TypeScript", "React"],
+        soft: [],
+        tools: [],
+        languages: [],
+        methods: []
+      },
+      projects: [],
+      languages: [],
+      certificates: []
+    });
+
+    const response = await POST(
+      createRequest({
+        text: sampleCandidateContext,
+        language: "de"
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.data.personalInfo).toMatchObject({
+      fullName: "Nora Stein",
+      phone: "+49 30 1234567",
+      location: "Berlin",
+      linkedin: "linkedin.com/in/nora-stein-demo"
+    });
+    expect(payload.data.experiences[0]).toMatchObject({
+      role: "Senior Frontend Engineer",
+      company: "Acme Health GmbH",
+      location: "Berlin",
+      startDate: "2023",
+      endDate: "2026"
+    });
+    expect(payload.data.experiences[0].responsibilities).toContain(
+      "Led frontend delivery for a patient onboarding and document workflow used by clinics and insurance partners."
+    );
+    expect(payload.data.experiences[0].technologies).toEqual([
+      "React",
+      "TypeScript",
+      "Next.js",
+      "Tailwind CSS",
+      "Zustand",
+      "REST APIs",
+      "Zod",
+      "Vitest",
+      "Playwright",
+      "Figma",
+      "GitHub Actions."
+    ]);
+    expect(payload.data.projects[0]).toMatchObject({
+      name: "Patient document workflow",
+      role: "frontend lead",
+      technologies: [
+        "React",
+        "Next.js",
+        "TypeScript",
+        "Zod",
+        "Tailwind CSS",
+        "Playwright."
+      ]
+    });
+    expect(payload.data.experiences).toHaveLength(4);
+    expect(payload.data.projects).toHaveLength(3);
+    expect(generateOllamaJson).toHaveBeenCalledTimes(1);
+  });
+
+  it("automatically raises the Ollama context window for long candidate text", async () => {
+    generateOllamaJson.mockResolvedValue(validProfile);
+
+    const response = await POST(
+      createRequest({
+        text: [sampleCandidateContext, sampleCandidateContext].join("\n\n"),
+        language: "de"
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(generateOllamaJson).toHaveBeenCalledWith(
+      expect.objectContaining({
+        numCtx: expect.any(Number)
+      }),
+      { timeoutMs: 120_000 }
+    );
+    expect(
+      (generateOllamaJson.mock.calls[0][0] as { numCtx: number }).numCtx
+    ).toBeGreaterThan(8192);
   });
 
   it("normalizes nullable optional fields from local LLM output", async () => {

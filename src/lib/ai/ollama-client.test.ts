@@ -226,6 +226,39 @@ describe("Ollama client", () => {
     ).resolves.toEqual({ ok: true });
   });
 
+  it("repairs truncated JSON when the model omits closing braces", async () => {
+    global.fetch = createReadyGenerateFetchMock({
+      response: "{\"profile\":{\"name\":\"Ada\",\"skills\":[\"TypeScript\"]",
+      done: true
+    });
+
+    await expect(
+      generateOllamaJson<{ profile: { name: string; skills: string[] } }>({
+        prompt: "Return JSON",
+        system: "Return valid JSON only"
+      })
+    ).resolves.toEqual({
+      profile: {
+        name: "Ada",
+        skills: ["TypeScript"]
+      }
+    });
+  });
+
+  it("repairs trailing commas in generated JSON", async () => {
+    global.fetch = createReadyGenerateFetchMock({
+      response: "{\"ok\":true,\"items\":[\"React\",],}",
+      done: true
+    });
+
+    await expect(
+      generateOllamaJson<{ ok: boolean; items: string[] }>({
+        prompt: "Return JSON",
+        system: "Return valid JSON only"
+      })
+    ).resolves.toEqual({ ok: true, items: ["React"] });
+  });
+
   it("uses Ollama thinking text when reasoning models return an empty response", async () => {
     global.fetch = createReadyGenerateFetchMock({
       response: "",

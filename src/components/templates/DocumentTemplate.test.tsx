@@ -7,6 +7,12 @@ const cv: GeneratedCV = {
   id: "cv-1",
   title: "Frontend Engineer CV",
   language: "en",
+  contact: {
+    email: "ada@example.com",
+    phone: "+49 30 1234567",
+    location: "Berlin",
+    linkedin: "linkedin.com/in/ada"
+  },
   summary: "Frontend engineer focused on accessible React applications.",
   sections: [
     {
@@ -102,9 +108,54 @@ describe("DocumentTemplate", () => {
     expect(screen.getByTestId("document-page-cover-letter")).toBeInTheDocument();
     expect(screen.getByText("Curriculum vitae")).toBeInTheDocument();
     expect(screen.getByText("Cover letter")).toBeInTheDocument();
+    expect(screen.getByText("ada@example.com")).toBeInTheDocument();
+    expect(screen.getByText("+49 30 1234567")).toBeInTheDocument();
     expect(
       screen.getByText("Frontend engineer focused on accessible React applications.")
     ).toBeInTheDocument();
     expect(screen.getByText("Application for Frontend Engineer")).toBeInTheDocument();
+  });
+
+  it("renders long CVs as two A4 preview pages", () => {
+    const longCv: GeneratedCV = {
+      ...cv,
+      sections: [
+        {
+          id: "experience-long",
+          type: "experience",
+          title: "Experience",
+          items: Array.from({ length: 8 }, (_, index) => ({
+            id: `experience-${index + 1}`,
+            title: `Frontend Engineer ${index + 1}`,
+            subtitle: "Acme GmbH",
+            dateRange: "2020 - 2026",
+            body: "Built accessible React applications for complex workflows.",
+            bullets: [
+              "Created reusable interface systems.",
+              "Improved document workflow usability.",
+              "Supported validation and release quality.",
+              "Collaborated with product and engineering teams."
+            ]
+          }))
+        },
+        {
+          id: "skills",
+          type: "skills",
+          title: "Skills",
+          items: [
+            {
+              id: "skills-1",
+              title: "Technical skills",
+              bullets: ["React, TypeScript, Next.js, Playwright, Zod"]
+            }
+          ]
+        }
+      ]
+    };
+
+    render(<DocumentTemplate cv={longCv} previewMode="cv" template="technical" />);
+
+    expect(screen.getAllByTestId("document-page-cv")).toHaveLength(2);
+    expect(screen.getAllByText("Page 2 / 2").length).toBeGreaterThan(0);
   });
 });

@@ -31,6 +31,7 @@ import type {
   CoverLetterRecipient,
   CVSection,
   CVSectionType,
+  CVContact,
   DocumentLanguage,
   DocumentSectionItem,
   ExportDocumentType,
@@ -280,10 +281,21 @@ export const cvSectionSchema: z.ZodType<CVSection> = z.object({
   items: z.array(documentSectionItemSchema)
 });
 
+export const cvContactSchema: z.ZodType<CVContact> = z.object({
+  email: z.string().email().optional(),
+  phone: optionalString,
+  location: optionalString,
+  website: optionalString,
+  linkedin: optionalString,
+  github: optionalString,
+  portfolio: optionalString
+});
+
 export const generatedCVSchema: z.ZodType<GeneratedCV> = z.object({
   id: requiredString,
   title: optionalString,
   language: documentLanguageSchema,
+  contact: cvContactSchema.optional(),
   summary: optionalString,
   sections: z.array(cvSectionSchema),
   meta: generatedDocumentMetaSchema
