@@ -271,6 +271,62 @@ describe("POST /api/ai/generate-cv", () => {
     });
   });
 
+  it("normalizes wrapped resume output with top-level document aliases", async () => {
+    generateOllamaJson.mockResolvedValue({
+      generated_cv: {
+        title: "Frontend Engineer CV",
+        language: "en",
+        work_history: [
+          {
+            position: "Frontend Engineer",
+            employer: "Acme GmbH",
+            start: 2022,
+            tasks: ["Built accessible React components"]
+          }
+        ],
+        skills: {
+          technical_skills: ["React", "TypeScript"]
+        },
+        meta: {
+          generated_at: "2026-05-24T00:00:00.000Z"
+        }
+      }
+    });
+
+    const response = await POST(createRequest(requestBody));
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        title: "Frontend Engineer CV",
+        sections: [
+          {
+            type: "experience",
+            items: [
+              {
+                title: "Frontend Engineer",
+                subtitle: "Acme GmbH",
+                dateRange: "2022",
+                bullets: ["Built accessible React components"]
+              }
+            ]
+          },
+          {
+            type: "skills",
+            items: [
+              {
+                title: "Technical skills",
+                bullets: ["React, TypeScript"]
+              }
+            ]
+          }
+        ]
+      }
+    });
+  });
+
   it("accepts generated skill wording backed by profile experience facts", async () => {
     generateOllamaJson.mockResolvedValue({
       ...validCV,
@@ -296,6 +352,136 @@ describe("POST /api/ai/generate-cv", () => {
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
       success: true
+    });
+  });
+
+  it("accepts translated skill labels when they are backed by profile skills", async () => {
+    generateOllamaJson.mockResolvedValue({
+      ...validCV,
+      language: "de",
+      sections: [
+        {
+          id: "section-skills",
+          type: "skills",
+          title: "Fähigkeiten",
+          items: [
+            {
+              id: "item-skills-1",
+              title: "Technische Fähigkeiten",
+              bullets: [
+                "GraphQL (Grundlagen), SQL (Grundlagen), PHP (Grundlagen), Barrierefreiheit, Schema-Validierung, Komponententest"
+              ]
+            },
+            {
+              id: "item-skills-2",
+              title: "Soft Skills",
+              bullets: [
+                "Stakeholder-Kommunikation, strukturierte Problemlösung, Produkt-Thinking, Workshop-Moderation, sorgfältige Dokumentation, bereichsübergreifende Zusammenarbeit"
+              ]
+            }
+          ]
+        }
+      ]
+    });
+
+    const response = await POST(
+      createRequest({
+        ...requestBody,
+        candidateProfile: {
+          ...requestBody.candidateProfile,
+          skills: {
+            technical: [
+              "GraphQL basics",
+              "SQL basics",
+              "PHP basics",
+              "accessibility",
+              "schema validation",
+              "component testing"
+            ],
+            soft: [
+              "stakeholder communication",
+              "structured problem solving",
+              "product thinking",
+              "workshop facilitation",
+              "careful documentation",
+              "cross-functional collaboration"
+            ],
+            tools: [],
+            languages: [],
+            methods: []
+          }
+        },
+        options: {
+          ...requestBody.options,
+          language: "de"
+        }
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true
+    });
+  });
+
+  it("generates a draft when useful profile facts exist but personal details are missing", async () => {
+    generateOllamaJson.mockResolvedValue({
+      id: "minimal-cv",
+      language: "en",
+      sections: [
+        {
+          id: "section-skills",
+          type: "skills",
+          title: "Skills",
+          items: [
+            {
+              id: "item-skills-1",
+              title: "Technical skills",
+              bullets: ["React"]
+            }
+          ]
+        }
+      ],
+      meta: {
+        generatedAt: "2026-05-24T00:00:00.000Z"
+      }
+    });
+
+    const response = await POST(
+      createRequest({
+        candidateProfile: {
+          personalInfo: {},
+          experiences: [],
+          education: [],
+          skills: {
+            technical: ["React"],
+            soft: [],
+            tools: [],
+            languages: [],
+            methods: []
+          },
+          projects: [],
+          languages: [],
+          certificates: []
+        },
+        options: requestBody.options
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        id: "minimal-cv",
+        meta: {
+          warnings: expect.arrayContaining([
+            expect.stringContaining("Name fehlt"),
+            expect.stringContaining("Kontaktmöglichkeit fehlt")
+          ])
+        }
+      }
     });
   });
 
@@ -394,6 +580,43 @@ describe("POST /api/ai/generate-cv", () => {
         message: expect.stringContaining("Rust"),
         details: {
           unknownSkills: ["Rust"]
+        }
+      }
+    });
+  });
+
+  it("rejects generated CVs with unsupported certificates and dates", async () => {
+    generateOllamaJson.mockResolvedValue({
+      ...validCV,
+      sections: [
+        ...validCV.sections,
+        {
+          id: "section-certificates",
+          type: "certificates",
+          title: "Certificates",
+          items: [
+            {
+              id: "item-certificate-1",
+              title: "AWS Solutions Architect",
+              dateRange: "2024",
+              bullets: []
+            }
+          ]
+        }
+      ]
+    });
+
+    const response = await POST(createRequest(requestBody));
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(422);
+    expect(payload).toMatchObject({
+      success: false,
+      error: {
+        code: "HALLUCINATION_DETECTED",
+        details: {
+          unknownCertificates: ["AWS Solutions Architect", "2024"],
+          unknownDates: ["2024"]
         }
       }
     });

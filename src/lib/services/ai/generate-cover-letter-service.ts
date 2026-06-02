@@ -5,13 +5,25 @@ import {
   OllamaClientError
 } from "@/lib/ai/ollama-client";
 import {
-  collectCandidateSkillEvidence,
-  compactFacts,
   hasCandidateFacts,
   hasText,
-  includesKnownFact,
   normalizeFact
 } from "@/lib/services/ai/candidate-facts";
+import {
+  isRecord,
+  parseLlmDocumentOutput,
+  readRecordValue,
+  readString,
+  readStringArray,
+  splitParagraphText
+} from "@/lib/services/ai/llm-document-pipeline";
+import {
+  attachDocumentWarnings,
+  collectMissingDataWarnings,
+  formatSemanticFactErrorMessage,
+  hasSemanticFactErrors,
+  validateGeneratedCoverLetterFacts
+} from "@/lib/services/ai/semantic-fact-validation";
 import {
   createErrorResponse,
   createSuccessResponse
@@ -29,8 +41,7 @@ import type {
   GenerateCoverLetterRequest
 } from "@/types/api";
 import type { GeneratedCoverLetter } from "@/types/documents";
-import type { JobAnalysis, JobTarget } from "@/types/job";
-import type { CandidateProfile } from "@/types/profile";
+import type { JobTarget } from "@/types/job";
 
 const generateCoverLetterRequestSchema = z.object({
   candidateProfile: candidateProfileSchema,
@@ -56,6 +67,125 @@ const createOllamaOptions = (
   ...(model ? { model } : {}),
   ...(runtime?.timeoutMs ? { timeoutMs: runtime.timeoutMs } : {})
 });
+
+const unwrapGeneratedCoverLetter = (value: unknown): unknown => {
+  if (!isRecord(value)) {
+    return value;
+  }
+
+  const wrapped = readRecordValue(value, [
+    "coverLetter",
+    "cover_letter",
+    "generatedCoverLetter",
+    "generated_cover_letter",
+    "generatedLetter",
+    "generated_letter",
+    "coverLetterDraft",
+    "cover_letter_draft",
+    "letter",
+    "document",
+    "data"
+  ]);
+
+  return isRecord(wrapped) ? wrapped : value;
+};
+
+const normalizeRecipient = (value: unknown) => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const addressLines = readStringArray(
+    readRecordValue(value, ["addressLines", "address_lines", "address"])
+  );
+  const recipient = {
+    company: readString(value.company),
+    contactName: readString(
+      readRecordValue(value, ["contactName", "contact_name", "name"])
+    ),
+    ...(addressLines.length > 0 ? { addressLines } : {})
+  };
+
+  return recipient.company || recipient.contactName || recipient.addressLines
+    ? recipient
+    : undefined;
+};
+
+const normalizeGeneratedCoverLetter = (
+  value: unknown,
+  request: GenerateCoverLetterRequest
+): GeneratedCoverLetter | undefined => {
+  const root = unwrapGeneratedCoverLetter(value);
+
+  if (!isRecord(root)) {
+    return undefined;
+  }
+
+  const fullLetterText = readString(
+    readRecordValue(root, ["letter", "text", "content", "message"])
+  );
+  const fullLetterParagraphs = fullLetterText
+    ? splitParagraphText(fullLetterText)
+    : [];
+  const greetingFromText =
+    fullLetterParagraphs[0] && /^dear|^sehr geehrte/i.test(fullLetterParagraphs[0])
+      ? fullLetterParagraphs.shift()
+      : undefined;
+  const bodyParagraphs = [
+    ...readStringArray(
+      readRecordValue(root, [
+        "body",
+        "paragraphs",
+        "bodyParagraphs",
+        "body_paragraphs"
+      ]),
+      splitParagraphText
+    ),
+    ...fullLetterParagraphs
+  ];
+  const opening =
+    readString(readRecordValue(root, ["opening", "introduction"])) ??
+    bodyParagraphs.shift();
+  const defaultClosing =
+    request.options.language === "de"
+      ? "Mit freundlichen Grüßen"
+      : "Sincerely,";
+  const closing =
+    readString(readRecordValue(root, ["closing", "closingParagraph"])) ??
+    bodyParagraphs.pop() ??
+    defaultClosing;
+  const meta = isRecord(root.meta) ? root.meta : {};
+  const generatedAt = readString(
+    readRecordValue(meta, ["generatedAt", "generated_at"])
+  );
+
+  if (!opening) {
+    return undefined;
+  }
+
+  return {
+    id: readString(root.id) ?? "generated-cover-letter",
+    language:
+      readString(root.language) === "en" || readString(root.language) === "de"
+        ? (readString(root.language) as "en" | "de")
+        : request.options.language,
+    recipient: normalizeRecipient(root.recipient),
+    subject: readString(root.subject),
+    greeting: readString(root.greeting) ?? greetingFromText,
+    opening,
+    body: bodyParagraphs,
+    closing,
+    signature:
+      readString(root.signature) ?? request.candidateProfile.personalInfo.fullName,
+    meta: {
+      generatedAt:
+        generatedAt && !Number.isNaN(Date.parse(generatedAt))
+          ? generatedAt
+          : new Date().toISOString(),
+      warnings: readStringArray(meta.warnings)
+    }
+  };
+};
 
 const collectLetterText = (coverLetter: GeneratedCoverLetter): string =>
   [
@@ -98,55 +228,6 @@ const hasReasonableLength = (coverLetter: GeneratedCoverLetter): boolean =>
   coverLetter.body.length <= 4 &&
   countWords(collectLetterText(coverLetter)) <= 450;
 
-const collectJobSkillSignals = (jobAnalysis: JobAnalysis): string[] =>
-  compactFacts([
-    ...jobAnalysis.requiredSkills,
-    ...jobAnalysis.optionalSkills,
-    ...jobAnalysis.softSkills
-  ]);
-
-const mentionsUnsupportedJobSkill = (
-  coverLetter: GeneratedCoverLetter,
-  candidateProfile: CandidateProfile,
-  jobAnalysis: JobAnalysis | undefined
-): boolean => {
-  if (!jobAnalysis) {
-    return false;
-  }
-
-  const knownSkills = collectCandidateSkillEvidence(candidateProfile);
-  const unsupportedJobSkills = collectJobSkillSignals(jobAnalysis).filter(
-    (skill) => !includesKnownFact(skill, knownSkills)
-  );
-  const letterText = normalizeFact(collectLetterText(coverLetter));
-
-  return unsupportedJobSkills.some((skill) => letterText.includes(skill));
-};
-
-const collectAllowedCompanies = (
-  candidateProfile: CandidateProfile,
-  jobTarget: JobTarget | undefined
-): string[] =>
-  compactFacts([
-    ...candidateProfile.experiences.map((experience) => experience.company),
-    jobTarget?.company
-  ]);
-
-const companyLikePattern =
-  /\b[A-Z][A-Za-z0-9&.-]*(?:\s+[A-Z][A-Za-z0-9&.-]*)*\s+(?:GmbH|AG|Inc|LLC|Ltd|Corp|Corporation|Company)\b/g;
-
-const mentionsUnknownCompany = (
-  coverLetter: GeneratedCoverLetter,
-  candidateProfile: CandidateProfile,
-  jobTarget: JobTarget | undefined
-): boolean => {
-  const allowedCompanies = collectAllowedCompanies(candidateProfile, jobTarget);
-  const letterText = collectLetterText(coverLetter);
-  const companies = letterText.match(companyLikePattern) ?? [];
-
-  return companies.some((company) => !includesKnownFact(company, allowedCompanies));
-};
-
 export const generateCoverLetter = async (
   input: unknown
 ): Promise<ApiResponse<GeneratedCoverLetter>> => {
@@ -179,14 +260,17 @@ export const generateCoverLetter = async (
       prompt,
       createOllamaOptions(request.model, request.runtime)
     );
-    const parsedCoverLetter =
-      generatedCoverLetterSchema.safeParse(aiCoverLetter);
+
+    const parsedCoverLetter = parseLlmDocumentOutput({
+      value: aiCoverLetter,
+      schema: generatedCoverLetterSchema,
+      normalize: (value) => normalizeGeneratedCoverLetter(value, request),
+      schemaErrorMessage:
+        "AI response did not match the generated cover letter schema"
+    });
 
     if (!parsedCoverLetter.success) {
-      return createErrorResponse(
-        "SCHEMA_VALIDATION_FAILED",
-        "AI response did not match the generated cover letter schema"
-      );
+      return parsedCoverLetter.response;
     }
 
     if (!usesTargetCompanyAndRole(parsedCoverLetter.data, request.jobTarget)) {
@@ -203,25 +287,31 @@ export const generateCoverLetter = async (
       );
     }
 
-    if (
-      mentionsUnsupportedJobSkill(
-        parsedCoverLetter.data,
-        request.candidateProfile,
-        request.jobAnalysis
-      ) ||
-      mentionsUnknownCompany(
-        parsedCoverLetter.data,
-        request.candidateProfile,
-        request.jobTarget
-      )
-    ) {
+    const semanticFactValidation = validateGeneratedCoverLetterFacts(
+      parsedCoverLetter.data,
+      request.candidateProfile,
+      request.jobTarget,
+      request.jobAnalysis
+    );
+
+    if (hasSemanticFactErrors(semanticFactValidation)) {
       return createErrorResponse(
         "HALLUCINATION_DETECTED",
-        "Generated cover letter contains facts not present in the candidate profile"
+        formatSemanticFactErrorMessage(semanticFactValidation),
+        semanticFactValidation
       );
     }
 
-    return createSuccessResponse(parsedCoverLetter.data);
+    const coverLetterWithWarnings = attachDocumentWarnings(
+      parsedCoverLetter.data,
+      collectMissingDataWarnings(
+        request.candidateProfile,
+        "cover_letter",
+        request.jobTarget
+      )
+    );
+
+    return createSuccessResponse(coverLetterWithWarnings);
   } catch (error) {
     if (error instanceof OllamaClientError) {
       return createErrorResponse(error.code, error.message);

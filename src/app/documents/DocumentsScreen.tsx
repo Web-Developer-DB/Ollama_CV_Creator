@@ -99,6 +99,14 @@ const readUnknownSkills = (details: unknown): string[] =>
       )
     : [];
 
+const readStringDetailList = (details: unknown, key: string): string[] =>
+  isRecord(details) && Array.isArray(details[key])
+    ? details[key].filter(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0
+      )
+    : [];
+
 const toGenerationErrorMessage = (fallback: string, error: unknown): string => {
   if (!(error instanceof Error)) {
     return fallback;
@@ -106,9 +114,38 @@ const toGenerationErrorMessage = (fallback: string, error: unknown): string => {
 
   const apiError = error as GenerationApiError;
   const unknownSkills = readUnknownSkills(apiError.details);
+  const unknownEmployers = readStringDetailList(
+    apiError.details,
+    "unknownEmployers"
+  );
+  const unknownCertificates = readStringDetailList(
+    apiError.details,
+    "unknownCertificates"
+  );
+  const unknownEducationFacts = readStringDetailList(
+    apiError.details,
+    "unknownEducationFacts"
+  );
+  const unknownDates = readStringDetailList(apiError.details, "unknownDates");
 
   if (unknownSkills.length > 0) {
     return `Das Modell hat nicht belegte Skills erzeugt: ${unknownSkills.join(", ")}. Prüfe die Profildaten oder entferne diese Begriffe aus der Antwort.`;
+  }
+
+  if (unknownEmployers.length > 0) {
+    return `Das Modell hat nicht belegte Firmen oder Arbeitgeber erzeugt: ${unknownEmployers.join(", ")}. Nutze nur Firmen aus Profil oder Zielrolle.`;
+  }
+
+  if (unknownCertificates.length > 0) {
+    return `Das Modell hat nicht belegte Zertifikate erzeugt: ${unknownCertificates.join(", ")}. Ergänze sie im Profil oder entferne sie aus dem Dokument.`;
+  }
+
+  if (unknownEducationFacts.length > 0) {
+    return `Das Modell hat nicht belegte Ausbildungsdaten erzeugt: ${unknownEducationFacts.join(", ")}. Prüfe Ausbildungseinträge im Profil.`;
+  }
+
+  if (unknownDates.length > 0) {
+    return `Das Modell hat nicht belegte Datumswerte erzeugt: ${unknownDates.join(", ")}. Ergänze die Daten im Profil oder entferne sie aus dem Dokument.`;
   }
 
   switch (apiError.code) {
@@ -183,6 +220,16 @@ const hasTargetRole = (project: ApplicationProject | undefined): boolean =>
 
 const hasProfile = (project: ApplicationProject | undefined): boolean =>
   Boolean(project?.candidateProfile);
+
+const collectStoredDocumentWarnings = (
+  documents: GeneratedDocuments | undefined
+): string[] =>
+  Array.from(
+    new Set([
+      ...(documents?.cv?.meta.warnings ?? []),
+      ...(documents?.coverLetter?.meta.warnings ?? [])
+    ])
+  );
 
 const createCVFromText = (
   text: string,
@@ -572,6 +619,9 @@ export function DocumentsScreen() {
           ...generationPhaseCopy[generationPhase]
         }
       : undefined;
+  const documentWarnings = collectStoredDocumentWarnings(
+    selectedProject?.generatedDocuments
+  );
 
   return (
     <AppShell
@@ -747,6 +797,20 @@ export function DocumentsScreen() {
               General CV and general cover letter are ready. Add a target role
               to generate tailored documents.
             </p>
+          ) : null}
+          {documentWarnings.length > 0 ? (
+            <div
+              aria-label="Document warnings"
+              className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950"
+              role="note"
+            >
+              <p className="font-semibold">Dokument enthält Hinweise</p>
+              <ul className="mt-2 grid gap-1">
+                {documentWarnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
           ) : null}
           {generationError ? (
             <div

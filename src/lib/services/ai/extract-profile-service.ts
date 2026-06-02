@@ -8,6 +8,7 @@ import {
   createErrorResponse,
   createSuccessResponse
 } from "@/lib/services/api-response";
+import { normalizeCandidateProfileOutput } from "@/lib/services/ai/profile-normalization";
 import { candidateProfileSchema } from "@/lib/validation/schemas";
 import type {
   AiRuntimeOptions,
@@ -30,49 +31,11 @@ const extractProfileRequestSchema = z.object({
 
 const EXTRACTION_TIMEOUT_MS = 120_000;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const removeNullValues = (value: unknown): unknown => {
-  if (Array.isArray(value)) {
-    return value
-      .filter((item) => item !== null && item !== "")
-      .map((item) => removeNullValues(item));
-  }
-
-  if (!isRecord(value)) {
-    return value;
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([key, nestedValue]) =>
-      nestedValue === null || nestedValue === ""
-        ? []
-        : [[key, removeNullValues(nestedValue)]]
-    )
-  );
-};
-
 const splitTextList = (value: string): string[] =>
   value
     .split(/[,;\n•]+/)
     .map((item) => item.trim())
     .filter(Boolean);
-
-const readStringArray = (value: unknown): string[] => {
-  if (typeof value === "string") {
-    return splitTextList(value);
-  }
-
-  return Array.isArray(value)
-    ? value.flatMap((item) =>
-        typeof item === "string" ? splitTextList(item) : []
-      )
-    : [];
-};
-
-const readRecordArray = (value: unknown): Array<Record<string, unknown>> =>
-  Array.isArray(value) ? value.filter(isRecord) : [];
 
 const hasTextValue = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0;
@@ -81,76 +44,6 @@ const hasTextList = (items?: string[]): boolean =>
   items?.some(hasTextValue) ?? false;
 
 const lineBreakPattern = /\r?\n/;
-
-const withGeneratedId = (
-  value: Record<string, unknown>,
-  prefix: string,
-  index: number
-): Record<string, unknown> => ({
-  ...value,
-  id:
-    typeof value.id === "string" && value.id
-      ? value.id
-      : `${prefix}-${index + 1}`
-});
-
-const normalizeCandidateProfile = (value: unknown): unknown => {
-  const normalizedValue = removeNullValues(value);
-
-  if (!isRecord(normalizedValue)) {
-    return normalizedValue;
-  }
-
-  const skills = isRecord(normalizedValue.skills) ? normalizedValue.skills : {};
-  const extractionMeta = isRecord(normalizedValue.extractionMeta)
-    ? {
-        ...normalizedValue.extractionMeta,
-        uncertainFields: readStringArray(
-          normalizedValue.extractionMeta.uncertainFields
-        )
-      }
-    : undefined;
-
-  return {
-    ...normalizedValue,
-    personalInfo: isRecord(normalizedValue.personalInfo)
-      ? normalizedValue.personalInfo
-      : {},
-    experiences: readRecordArray(normalizedValue.experiences).map(
-      (experience, index) => ({
-        ...withGeneratedId(experience, "experience", index),
-        responsibilities: readStringArray(experience.responsibilities),
-        achievements: readStringArray(experience.achievements),
-        technologies: readStringArray(experience.technologies)
-      })
-    ),
-    education: readRecordArray(normalizedValue.education).map(
-      (education, index) => ({
-        ...withGeneratedId(education, "education", index),
-        details: readStringArray(education.details)
-      })
-    ),
-    skills: {
-      technical: readStringArray(skills.technical),
-      soft: readStringArray(skills.soft),
-      tools: readStringArray(skills.tools),
-      languages: readStringArray(skills.languages),
-      methods: readStringArray(skills.methods)
-    },
-    projects: readRecordArray(normalizedValue.projects).map((project, index) => ({
-      ...withGeneratedId(project, "project", index),
-      highlights: readStringArray(project.highlights),
-      technologies: readStringArray(project.technologies)
-    })),
-    languages: readRecordArray(normalizedValue.languages).map((language, index) =>
-      withGeneratedId(language, "language", index)
-    ),
-    certificates: readRecordArray(normalizedValue.certificates).map(
-      (certificate, index) => withGeneratedId(certificate, "certificate", index)
-    ),
-    ...(extractionMeta ? { extractionMeta } : {})
-  };
-};
 
 const hasMeaningfulCandidateProfile = (profile: CandidateProfile): boolean => {
   const hasPersonalInfo = Object.values(profile.personalInfo).some(hasTextValue);
@@ -506,7 +399,7 @@ const createOllamaOptions = (
 });
 
 const parseAiProfile = (aiProfile: unknown) =>
-  candidateProfileSchema.safeParse(normalizeCandidateProfile(aiProfile));
+  candidateProfileSchema.safeParse(normalizeCandidateProfileOutput(aiProfile));
 
 export const extractProfile = async (
   input: unknown

@@ -56,6 +56,11 @@ _None_
 - TASK-036: Desktop Storage Migration
 - TASK-023: Template Pack
 - TASK-039: Document Creation UX Flow
+- TASK-040: Unified LLM Document Pipeline
+- TASK-041: Tolerant Profile and Document Normalization
+- TASK-042: Semantic Fact Validation
+- TASK-043: Missing Data UX and Document Warnings
+- TASK-044: Prompt Rewrite for No-Invention Document Generation
 
 ## BLOCKED
 

@@ -246,7 +246,8 @@ export const generatedDocumentMetaSchema: z.ZodType<GeneratedDocumentMeta> =
   z.object({
     generatedAt: timestampString,
     model: optionalString,
-    sourceProjectId: optionalString
+    sourceProjectId: optionalString,
+    warnings: z.array(z.string()).optional()
   });
 
 export const cvSectionTypeSchema: z.ZodType<CVSectionType> = z.enum([

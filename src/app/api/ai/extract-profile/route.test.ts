@@ -327,6 +327,133 @@ English fluent`
     expect(payload.data).not.toHaveProperty("summary");
   });
 
+  it("normalizes wrapped snake_case profile output with aliases and German language levels", async () => {
+    generateOllamaJson.mockResolvedValue({
+      candidate_profile: {
+        personal_info: {
+          full_name: "Nora Stein",
+          email: "not-an-email",
+          phone: "+49 30 1234567",
+          linkedinUrl: "linkedin.com/in/nora-stein-demo"
+        },
+        profileSummary: "Frontend engineer for accessible product workflows.",
+        work_experience: [
+          {
+            employer: "Acme Health GmbH",
+            job_title: "Senior Frontend Engineer",
+            start: 2023,
+            end: "present",
+            current: "yes",
+            tasks: "Led frontend delivery; Built accessible forms",
+            accomplishments: "Reduced user-reported form errors",
+            tech_stack: "React, TypeScript, Next.js",
+            confidence: "86"
+          }
+        ],
+        education_history: {
+          first: {
+            school: "HTW Berlin",
+            qualification: "B.Sc.",
+            field_of_study: "Medieninformatik",
+            start: 2017,
+            end: 2021,
+            subjects: "Human Computer Interaction; Web Engineering"
+          }
+        },
+        skill_set: {
+          technical_skills: "React, TypeScript",
+          soft_skills: ["Mentoring"],
+          platforms: "Figma, GitHub Actions",
+          methodologies: "Design systems; Accessibility"
+        },
+        language_skills: "Deutsch Muttersprache; Englisch fließend",
+        certifications: [
+          "Professional Scrum Master I",
+          {
+            title: "AWS Cloud Practitioner Essentials",
+            provider: "AWS",
+            year: 2023
+          }
+        ],
+        meta: {
+          language: "de",
+          uncertain_fields: "personalInfo.email",
+          confidence: 75
+        }
+      }
+    });
+
+    const response = await POST(
+      createRequest({ text: "Nora Stein profile.", language: "de" })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.data).toMatchObject({
+      personalInfo: {
+        fullName: "Nora Stein",
+        phone: "+49 30 1234567",
+        linkedin: "linkedin.com/in/nora-stein-demo"
+      },
+      summary: "Frontend engineer for accessible product workflows.",
+      experiences: [
+        {
+          company: "Acme Health GmbH",
+          role: "Senior Frontend Engineer",
+          startDate: "2023",
+          endDate: "present",
+          isCurrent: true,
+          responsibilities: ["Led frontend delivery", "Built accessible forms"],
+          achievements: ["Reduced user-reported form errors"],
+          technologies: ["React", "TypeScript", "Next.js"],
+          confidence: 0.86
+        }
+      ],
+      education: [
+        {
+          institution: "HTW Berlin",
+          degree: "B.Sc.",
+          field: "Medieninformatik",
+          startDate: "2017",
+          endDate: "2021",
+          details: ["Human Computer Interaction", "Web Engineering"]
+        }
+      ],
+      skills: {
+        technical: ["React", "TypeScript"],
+        soft: ["Mentoring"],
+        tools: ["Figma", "GitHub Actions"],
+        methods: ["Design systems", "Accessibility"]
+      },
+      languages: [
+        {
+          language: "Deutsch",
+          proficiency: "native"
+        },
+        {
+          language: "Englisch",
+          proficiency: "fluent"
+        }
+      ],
+      certificates: [
+        {
+          name: "Professional Scrum Master I"
+        },
+        {
+          name: "AWS Cloud Practitioner Essentials",
+          issuer: "AWS",
+          issueDate: "2023"
+        }
+      ],
+      extractionMeta: {
+        language: "de",
+        confidence: 0.75,
+        uncertainFields: ["personalInfo.email"]
+      }
+    });
+    expect(payload.data.personalInfo).not.toHaveProperty("email");
+  });
+
   it("normalizes large education, training and work history payloads", async () => {
     generateOllamaJson.mockResolvedValue({
       personalInfo: {

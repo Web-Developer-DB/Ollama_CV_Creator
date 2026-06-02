@@ -76,7 +76,17 @@ Ad-hoc profile persistence fix completed. The app shell now hydrates projects fr
 
 Ad-hoc Ollama runtime controls completed. AI Status now stores context-window and timeout presets, marks `*-cloud` models as cloud-backed through the local Ollama host, and all LLM routes receive the selected runtime options. The Write Documents screen now shows live generation phases and maps timeout, JSON, schema, model-readiness, and hallucination errors into clearer UI messages.
 
-Ad-hoc direct Ollama Cloud API support completed. `OLLAMA_BASE_URL=https://ollama.com/api` is normalized to the cloud host, `OLLAMA_API_KEY` is sent only to Ollama Cloud requests, cloud-host models are treated as ready without local `/api/ps`, and Ollama JSON error payloads are surfaced in client/status diagnostics.
+Ad-hoc direct Ollama Cloud API support completed. `OLLAMA_BASE_URL=https://ollama.com/api` is normalized to the cloud host, `OLLAMA_API_KEY` is sent only to Ollama Cloud requests, cloud-host models are treated as ready without local `/api/ps`, and Ollama JSON error payloads are surfaced in client/status diagnostics. Real cloud route testing with `gpt-oss:120b` passed for status, CV generation, and cover letter generation; cover letter parsing now normalizes recoverable cloud output shapes before schema validation.
+
+TASK-040 completed. CV and cover letter generation now use a shared LLM document pipeline for tolerant output parsing before schema validation. The document validators allow normal missing real-world profile fields, accept source-backed translated skill wording such as German labels for English profile skills, continue blocking genuinely unsupported skills and employers, and prompt the model to tailor by emphasis and ordering rather than inventing new facts.
+
+TASK-041 completed. Profile extraction now has a dedicated tolerant normalization module that accepts common LLM variants such as wrapped `candidate_profile` payloads, snake_case contact data, `work_experience` and `education_history`, string/object skill lists, German language proficiency labels, certificate strings, numeric dates, confidence percentages, and invalid optional emails that should be dropped instead of failing the whole profile. CV and cover letter normalization also accept more document wrapper aliases and CV item aliases such as `employer`, `tasks`, and `work_history`.
+
+TASK-042 completed. CV and cover letter generation now use semantic fact validation for source-backed skills, employers, companies, certificates, education facts, and dates. The validation still accepts faithful translations and simplified skill wording, but returns structured hallucination details for unsupported generated facts so the UI can explain exactly what needs correction.
+
+TASK-043 completed. Generated CVs and cover letters can now carry document-level warnings in `meta.warnings`. Missing real-world data such as name, contact details, summary, experience, skills, target title, or target company no longer blocks useful drafts; instead, the Documents screen shows an amber warning panel while preserving red errors for actual generation or hallucination failures.
+
+TASK-044 completed. CV and cover letter prompts now explicitly define the candidate profile as the only candidate fact source, forbid invented personal details, motivations, metrics, dates, employers, education, certificates, projects, tools, skills, and achievements, and explain that job context may only change emphasis, ordering, section choice, and wording. The prompts also tell models to leave `meta.warnings` empty because the app adds warnings after validation.
 
 ## Architecture Summary
 
@@ -145,7 +155,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 174 tests
+- npm run test: passed, 184 tests
 - npm run build: passed
 - electron Ollama shutdown cleanup tests: passed
 - electron desktop storage tests: passed
@@ -162,4 +172,10 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 
 ## Last Update
 
-2026-06-01: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, the full LLM model selection audit, Electron Ollama shutdown cleanup, TASK-036 Desktop Storage Migration, TASK-023 Template Pack, TASK-039 Document Creation UX Flow, the CV schema normalization fix, the profile persistence/hydration fix, the Ollama CV JSON compatibility/diagnostics fix, the Ollama runtime/cloud development controls, and direct Ollama Cloud API support via environment configuration. Next recommended task is TASK-037 Desktop Export Flow.
+2026-06-01: Completed TASK-035 Electron IPC Bridge for AI and Storage, TASK-022 Document Renderer v2, the loaded Ollama model selection fix, the application redesign based on the supplied frame sketch, the dashboard live AI status fix, the profile review UX redesign, the full LLM model selection audit, Electron Ollama shutdown cleanup, TASK-036 Desktop Storage Migration, TASK-023 Template Pack, TASK-039 Document Creation UX Flow, the CV schema normalization fix, the profile persistence/hydration fix, the Ollama CV JSON compatibility/diagnostics fix, the Ollama runtime/cloud development controls, direct Ollama Cloud API support via environment configuration, and the real cloud cover-letter schema normalization fix.
+
+2026-06-02: Completed TASK-040 Unified LLM Document Pipeline for tolerant CV and cover letter output parsing, source-backed translated skill validation, missing-profile-field tolerance, and stricter no-invention prompt wording. Next recommended task is TASK-037 Desktop Export Flow.
+
+2026-06-02: Completed TASK-041 Tolerant Profile and Document Normalization for wrapped/snake_case profile payloads, broader profile aliases, German language levels, confidence/date coercion, and expanded document wrapper aliases. Next recommended task is TASK-037 Desktop Export Flow.
+
+2026-06-02: Completed TASK-042 Semantic Fact Validation, TASK-043 Missing Data UX and Document Warnings, and TASK-044 Prompt Rewrite for No-Invention Document Generation. Next recommended task is TASK-037 Desktop Export Flow.

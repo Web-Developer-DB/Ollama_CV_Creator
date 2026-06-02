@@ -6,6 +6,7 @@ export type GeneratedDocumentMeta = {
   generatedAt: string;
   model?: string;
   sourceProjectId?: string;
+  warnings?: string[];
 };
 
 export type CVSectionType =

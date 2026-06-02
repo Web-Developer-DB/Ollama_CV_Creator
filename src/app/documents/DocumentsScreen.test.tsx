@@ -264,6 +264,31 @@ describe("DocumentsScreen", () => {
     );
   });
 
+  it("shows document warnings returned by generation", async () => {
+    const user = userEvent.setup();
+    generateCv.mockResolvedValue({
+      success: true,
+      data: {
+        ...generatedCv,
+        meta: {
+          ...generatedCv.meta,
+          warnings: [
+            "Name fehlt. Der Entwurf wurde ohne erfundene Signatur erstellt."
+          ]
+        }
+      }
+    });
+
+    render(<DocumentsScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Create general CV" }));
+
+    expect(await screen.findByRole("note")).toHaveTextContent(
+      "Dokument enthält Hinweise"
+    );
+    expect(screen.getByRole("note")).toHaveTextContent("Name fehlt");
+  });
+
   it("shows a live generation status while creating a CV", async () => {
     const user = userEvent.setup();
     let resolveCv!: (value: Awaited<ReturnType<typeof generateCv>>) => void;

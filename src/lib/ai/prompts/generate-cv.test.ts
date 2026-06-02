@@ -45,11 +45,14 @@ describe("generate CV prompt", () => {
     });
 
     expect(prompt.system).toContain("Never invent experience");
+    expect(prompt.system).toContain("candidate_profile is the only source");
+    expect(prompt.system).toContain("Never turn job requirements");
     expect(prompt.system).toContain("Return valid JSON only");
     expect(prompt.prompt).toContain("<candidate_profile>");
     expect(prompt.prompt).toContain("</candidate_profile>");
     expect(prompt.prompt).toContain("<job_target>");
     expect(prompt.prompt).toContain("<job_analysis>");
+    expect(prompt.prompt).toContain("Keep meta.warnings as an empty array");
     expect(prompt.temperature).toBe(0.4);
   });
 

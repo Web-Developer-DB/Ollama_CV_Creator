@@ -167,6 +167,101 @@ describe("POST /api/ai/generate-cover-letter", () => {
     });
   });
 
+  it("accepts translated backed skills in tailored cover letters", async () => {
+    generateOllamaJson.mockResolvedValue({
+      ...validCoverLetter,
+      language: "de",
+      body: [
+        "Meine Erfahrung mit Barrierefreiheit und Schema-Validierung passt gut zur Rolle bei Target GmbH."
+      ]
+    });
+
+    const response = await POST(
+      createRequest({
+        ...requestBody,
+        candidateProfile: {
+          ...requestBody.candidateProfile,
+          skills: {
+            technical: ["accessibility", "schema validation"],
+            soft: [],
+            tools: [],
+            languages: [],
+            methods: []
+          }
+        },
+        jobAnalysis: {
+          ...requestBody.jobAnalysis,
+          requiredSkills: ["Barrierefreiheit", "Schema-Validierung"],
+          gaps: []
+        },
+        options: {
+          ...requestBody.options,
+          language: "de"
+        }
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true
+    });
+  });
+
+  it("generates a cover letter draft without inventing a missing candidate name", async () => {
+    generateOllamaJson.mockResolvedValue({
+      cover_letter: {
+        id: "minimal-letter",
+        language: "en",
+        subject: "General application",
+        body: [
+          "I am writing to introduce my React frontend engineering profile."
+        ],
+        meta: {
+          generated_at: "2026-05-24T00:00:00.000Z"
+        }
+      }
+    });
+
+    const response = await POST(
+      createRequest({
+        candidateProfile: {
+          personalInfo: {},
+          experiences: [],
+          education: [],
+          skills: {
+            technical: ["React"],
+            soft: [],
+            tools: [],
+            languages: [],
+            methods: []
+          },
+          projects: [],
+          languages: [],
+          certificates: []
+        },
+        options: requestBody.options
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        id: "minimal-letter",
+        closing: "Sincerely,",
+        meta: {
+          warnings: expect.arrayContaining([
+            expect.stringContaining("Name fehlt"),
+            expect.stringContaining("Anschreiben enthält keine Signatur")
+          ])
+        }
+      }
+    });
+    expect(payload.data.signature).toBeUndefined();
+  });
+
   it("returns a valid cover letter structure", async () => {
     generateOllamaJson.mockResolvedValue(validCoverLetter);
 
@@ -177,6 +272,29 @@ describe("POST /api/ai/generate-cover-letter", () => {
     expect(payload).toEqual({
       success: true,
       data: validCoverLetter
+    });
+  });
+
+  it("rejects invented companies with semantic fact details", async () => {
+    generateOllamaJson.mockResolvedValue({
+      ...validCoverLetter,
+      body: [
+        "My React work at Acme GmbH and Invented Corp is relevant for Target GmbH."
+      ]
+    });
+
+    const response = await POST(createRequest(requestBody));
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(422);
+    expect(payload).toMatchObject({
+      success: false,
+      error: {
+        code: "HALLUCINATION_DETECTED",
+        details: {
+          unknownEmployers: ["Invented Corp"]
+        }
+      }
     });
   });
 
@@ -199,6 +317,53 @@ describe("POST /api/ai/generate-cover-letter", () => {
     });
     expect(promptRequest.prompt).toContain("general professional");
     expect(promptRequest.prompt).toContain("None provided");
+  });
+
+  it("normalizes recoverable cloud cover letter output before validation", async () => {
+    generateOllamaJson.mockResolvedValue({
+      cover_letter: {
+        id: "cloud-letter",
+        language: "en",
+        recipient: null,
+        subject: "General application",
+        greeting: "Dear hiring team,",
+        body: [
+          "I am writing to introduce my frontend engineering profile.",
+          "My React and TypeScript work at Acme GmbH focused on accessible components."
+        ],
+        closing: "Sincerely,",
+        meta: {
+          generated_at: "2026-05-24T00:00:00.000Z"
+        }
+      }
+    });
+
+    const response = await POST(
+      createRequest({
+        candidateProfile: requestBody.candidateProfile,
+        options: requestBody.options
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      success: true,
+      data: {
+        id: "cloud-letter",
+        language: "en",
+        subject: "General application",
+        opening: "I am writing to introduce my frontend engineering profile.",
+        body: [
+          "My React and TypeScript work at Acme GmbH focused on accessible components."
+        ],
+        closing: "Sincerely,",
+        signature: "Ada Lovelace",
+        meta: {
+          generatedAt: "2026-05-24T00:00:00.000Z"
+        }
+      }
+    });
   });
 
   it("rejects unreasonable length", async () => {
