@@ -1,3 +1,5 @@
+// Tolerant normalizer for profile extraction output. It accepts common LLM
+// aliases and coercions, then maps them into the canonical CandidateProfile.
 import type {
   CandidateProfile,
   LanguageProficiency,

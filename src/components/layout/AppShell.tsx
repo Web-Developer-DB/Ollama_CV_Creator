@@ -1,3 +1,5 @@
+// App-wide layout wrapper that combines persistent navigation, project
+// hydration, and the page header metrics used across all workflow screens.
 import type { ReactNode } from "react";
 import { Header, type HeaderMetric } from "./Header";
 import { ProjectHydrator } from "./ProjectHydrator";

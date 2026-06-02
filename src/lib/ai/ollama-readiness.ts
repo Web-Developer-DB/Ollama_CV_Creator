@@ -1,3 +1,5 @@
+// Ollama readiness guard used before generation. It separates host reachability,
+// installed models, loaded models, and direct cloud-host behavior.
 import { getAiConfig, type AiConfig } from "@/config/ai-config";
 import {
   createOllamaGetHeaders,

@@ -1,3 +1,5 @@
+// Template and design-settings model for visual presentation. These values
+// affect rendering/export only, not generated document facts.
 export type TemplateStyle =
   | "modern"
   | "classic"

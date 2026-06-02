@@ -1,3 +1,5 @@
+// Runtime schemas for every persisted and API-facing data shape. These schemas
+// are the boundary between untrusted AI/storage input and typed app state.
 import { z } from "zod";
 import type { ApiErrorCode } from "@/types/api";
 import type {

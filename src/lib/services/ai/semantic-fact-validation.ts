@@ -1,3 +1,5 @@
+// Semantic fact validator for generated documents. It distinguishes true
+// hallucinations from missing-data warnings and source-backed translations.
 import {
   collectCandidateSkillEvidence,
   compactFacts,

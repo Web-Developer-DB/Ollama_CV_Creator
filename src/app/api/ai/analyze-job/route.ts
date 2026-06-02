@@ -1,3 +1,5 @@
+// Thin Next.js adapter for optional job analysis. Keep route code limited to
+// request parsing and ApiResponse-to-HTTP mapping.
 import {
   createHttpJsonResponse,
   readJsonRequestBody

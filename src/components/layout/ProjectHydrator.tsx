@@ -1,5 +1,7 @@
 "use client";
 
+// Loads local projects once when the app shell mounts. Keeping this in layout
+// avoids each screen repeating storage bootstrapping logic.
 import { useEffect } from "react";
 import { useProjectStore } from "@/stores/project-store";
 

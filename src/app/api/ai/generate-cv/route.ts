@@ -1,3 +1,5 @@
+// Thin Next.js adapter for CV generation. The service performs prompt creation,
+// LLM calling, normalization, semantic validation, and warning attachment.
 import {
   createHttpJsonResponse,
   readJsonRequestBody

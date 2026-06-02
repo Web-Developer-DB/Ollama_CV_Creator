@@ -1,3 +1,5 @@
+// Electron preload bridge. It exposes a narrow desktopApi surface to the
+// renderer while keeping Node/Electron internals out of React components.
 const { contextBridge, ipcRenderer } = require("electron");
 
 const invoke = (channel, payload) => ipcRenderer.invoke(channel, payload);

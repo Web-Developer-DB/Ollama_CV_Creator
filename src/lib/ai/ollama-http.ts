@@ -1,3 +1,5 @@
+// HTTP helpers for Ollama hosts. Cloud authentication is attached only for the
+// direct ollama.com host, never for local Ollama requests.
 import type { AiConfig } from "@/config/ai-config";
 
 export const isOllamaCloudHost = (baseUrl: string): boolean => {

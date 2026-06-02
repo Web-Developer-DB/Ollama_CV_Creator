@@ -1,3 +1,4 @@
+// Small status badge primitive for labels and readiness states.
 import type { HTMLAttributes, ReactNode } from "react";
 import { classNames } from "@/lib/ui/class-names";
 

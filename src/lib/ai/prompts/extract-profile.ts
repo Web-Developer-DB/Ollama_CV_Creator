@@ -1,3 +1,5 @@
+// Prompt builder for profile extraction. It defines the canonical profile shape
+// expected from Ollama and guards against prompt injection in raw candidate text.
 type ExtractProfilePromptInput = {
   text: string;
   language: "de" | "en";

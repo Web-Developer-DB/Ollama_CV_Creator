@@ -1,3 +1,5 @@
+// Service for reporting Ollama reachability, installed model metadata, and
+// loaded model state for both local and direct cloud configurations.
 import { getAiConfig } from "@/config/ai-config";
 import {
   createOllamaGetHeaders,

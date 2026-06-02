@@ -1,3 +1,5 @@
+// Browser-local runtime presets for generation. These values are appended to AI
+// requests by the renderer client so all routes share the same context/timeout.
 import type { AiRuntimeOptions } from "@/types/api";
 
 export const runtimeSettingsStorageKey = "ollama-cv-runtime-settings";

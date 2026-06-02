@@ -1,3 +1,5 @@
+// Web fallback storage adapter backed by IndexedDB. Desktop builds prefer the
+// Electron storage bridge, but this keeps Next.js dev mode fully usable.
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { ApplicationProject } from "@/types/project";
 import { applicationProjectSchema } from "@/lib/validation/schemas";

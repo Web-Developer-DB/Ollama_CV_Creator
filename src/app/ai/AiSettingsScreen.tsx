@@ -1,5 +1,7 @@
 "use client";
 
+// Screen for Ollama connectivity, model selection, and generation runtime
+// presets. The selected model/runtime is injected into all AI client requests.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { readStoredModel, storeSelectedModel } from "@/lib/ai/selected-model";

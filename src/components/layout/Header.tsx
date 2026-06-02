@@ -1,3 +1,5 @@
+// Compact page header with optional metric cards. Screens pass status metrics
+// here instead of rebuilding header layout locally.
 export type HeaderMetric = {
   label: string;
   value: string;

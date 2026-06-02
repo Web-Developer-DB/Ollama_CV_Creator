@@ -1,3 +1,5 @@
+// IPC registration layer. It validates renderer payloads, proxies AI requests
+// through Next.js route handlers, and delegates persistent storage to desktop IO.
 const { app, ipcMain } = require("electron");
 const { z } = require("zod");
 const {

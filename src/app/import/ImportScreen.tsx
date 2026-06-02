@@ -1,5 +1,7 @@
 "use client";
 
+// Screen for collecting raw candidate text and turning it into the first
+// structured CandidateProfile through the AI extraction service.
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";

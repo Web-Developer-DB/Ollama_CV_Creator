@@ -1,3 +1,5 @@
+// Renderer-facing AI client. It chooses the Electron bridge when available and
+// falls back to Next.js API routes in web/dev mode.
 import type {
   AiRuntimeOptions,
   AnalyzeJobRequest,

@@ -1,3 +1,5 @@
+// Central icon registry. Components use semantic icon names instead of inline
+// SVGs so navigation and controls stay visually consistent.
 import type { SVGProps } from "react";
 
 export type IconName =

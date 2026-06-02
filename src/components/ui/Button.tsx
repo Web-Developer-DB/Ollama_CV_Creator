@@ -1,3 +1,5 @@
+// Shared button primitive. It centralizes size/variant styling while keeping
+// native button behavior and attributes available to callers.
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { classNames } from "@/lib/ui/class-names";
 

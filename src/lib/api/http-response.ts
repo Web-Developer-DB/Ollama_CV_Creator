@@ -1,3 +1,5 @@
+// Next.js route helper for turning shared ApiResponse payloads into HTTP
+// responses while keeping status-code mapping centralized.
 import {
   createErrorResponse,
   getApiResponseStatus

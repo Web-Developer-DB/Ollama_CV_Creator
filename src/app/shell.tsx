@@ -1,3 +1,5 @@
+// Shared dashboard shell and placeholder helpers used by top-level app routes.
+// Workflow-specific screens live under their own route folders.
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { DashboardAiStatus } from "@/components/dashboard/DashboardAiStatus";

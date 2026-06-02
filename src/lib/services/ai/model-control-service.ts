@@ -1,3 +1,5 @@
+// Service for loading and unloading Ollama models. Local Ollama uses keep_alive;
+// direct cloud hosts skip local process-control assumptions.
 import { z } from "zod";
 import { getAiConfig } from "@/config/ai-config";
 import { createOllamaHeaders } from "@/lib/ai/ollama-http";

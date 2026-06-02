@@ -1,3 +1,5 @@
+// Desktop project storage service. It owns the local JSON project database and
+// import/export helpers used through the Electron IPC bridge.
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { z } = require("zod");

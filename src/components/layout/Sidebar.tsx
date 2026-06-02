@@ -1,5 +1,7 @@
 "use client";
 
+// Sidebar renders the workflow route model from application-workflow.ts. It is
+// navigation-only; workflow state is owned by the project store and screens.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {

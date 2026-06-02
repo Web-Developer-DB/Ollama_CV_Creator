@@ -4,6 +4,9 @@
 
 The target app is a local-first Electron desktop application.
 
+For a current code-agent onboarding map with concrete file responsibilities,
+see [CODE_AGENT_MAP.md](./CODE_AGENT_MAP.md).
+
 ```txt
 Electron Renderer
   ├─ Dashboard
@@ -43,41 +46,44 @@ src/
     documents/
     templates/
     export/
+    api/ai/
   components/
     layout/
-    forms/
-    ai/
-    preview/
+    dashboard/
     templates/
+    ui/
   lib/
     ai/
-    export/
+    api/
+    services/
     storage/
     validation/
-    templates/
+    workflow/
   stores/
-  hooks/
   types/
   config/
 electron/
-  main/
-  preload/
-  services/
+  main.cjs
+  preload.cjs
+  ipc.cjs
+  project-storage.cjs
+  ollama-shutdown.cjs
 ```
 
 ## Desktop Service Flow
 
 ```txt
 Renderer UI
- → preload bridge
- → main-process service
- → input validation
+ → renderer facade (`src/lib/api` or `src/lib/storage`)
+ → Electron preload bridge when desktop APIs are available
+ → IPC proxy or Next.js API route
+ → framework-independent service
  → prompt builder
  → Ollama client
- → JSON parse
+ → JSON parse and tolerant normalization
  → Zod validation
- → business validation
- → typed result
+ → semantic fact validation
+ → typed result with optional warnings
 ```
 
 ## Forbidden
@@ -88,6 +94,7 @@ Renderer UI
 - unvalidated AI output stored as final data
 - PDF generation in client state logic
 - raw CV data in URL params
+- target-role requirements becoming candidate facts
 
 ## Local Runtime
 

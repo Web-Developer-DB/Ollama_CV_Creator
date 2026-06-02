@@ -1,3 +1,5 @@
+// Thin Next.js adapter for cover-letter generation. All document safety and
+// no-invention rules live in the shared service layer.
 import {
   createHttpJsonResponse,
   readJsonRequestBody

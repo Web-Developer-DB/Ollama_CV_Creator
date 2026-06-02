@@ -1,5 +1,7 @@
 "use client";
 
+// Screen for reviewing and correcting the extracted CandidateProfile. It keeps
+// all profile sections editable before document generation treats them as facts.
 import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";

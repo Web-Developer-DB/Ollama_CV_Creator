@@ -1,3 +1,5 @@
+// Thin Next.js adapter for profile extraction. Business logic lives in the
+// framework-independent AI service so Electron IPC can reuse the same behavior.
 import {
   createHttpJsonResponse,
   readJsonRequestBody

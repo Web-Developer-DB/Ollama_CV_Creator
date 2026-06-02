@@ -1,3 +1,5 @@
+// Declarative workflow/navigation model. Sidebar and dashboard consume this
+// instead of duplicating route labels, grouping, and sequence information.
 export type WorkflowRoute = {
   href: string;
   label: string;

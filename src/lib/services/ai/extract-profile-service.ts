@@ -1,3 +1,5 @@
+// Framework-independent service for converting raw candidate text into the
+// canonical CandidateProfile that later document generation treats as source.
 import { z } from "zod";
 import { buildExtractProfilePrompt } from "@/lib/ai/prompts/extract-profile";
 import {
@@ -422,6 +424,8 @@ export const extractProfile = async (
       prompt,
       generationOptions
     );
+    // The normalizer accepts common local/cloud model aliases before the Zod
+    // schema checks the canonical CandidateProfile shape.
     let parsedProfile = parseAiProfile(aiProfile);
     let profile = parsedProfile.success
       ? backfillProfileFromText(parsedProfile.data, request.text)
@@ -435,6 +439,8 @@ export const extractProfile = async (
     }
 
     if (!profile || !hasMeaningfulCandidateProfile(profile)) {
+      // Recovery uses a stricter prompt only when the first valid response is
+      // empty, preserving latency for normal successful extractions.
       const recoveryPrompt = buildExtractProfilePrompt({
         ...request,
         recovery: true

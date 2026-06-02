@@ -1,3 +1,5 @@
+// Electron main process entrypoint. It owns the BrowserWindow lifecycle,
+// registers IPC handlers, and coordinates Ollama shutdown during app exit.
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("node:path");
 const { registerIpcHandlers } = require("./ipc.cjs");

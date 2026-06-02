@@ -1,3 +1,5 @@
+// Top-level local project model. A project ties raw input, reviewed profile,
+// optional target-role context, generated documents, design, and exports.
 import type { GeneratedDocuments, ExportRecord } from "./documents";
 import type { JobAnalysis, JobTarget } from "./job";
 import type { CandidateProfile } from "./profile";

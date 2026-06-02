@@ -1,3 +1,5 @@
+// Canonical candidate profile model. It is the source of truth for generated CVs
+// and cover letters; job context may not add facts to this shape.
 export type PersonalInfo = {
   fullName?: string;
   email?: string;

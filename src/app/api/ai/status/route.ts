@@ -1,3 +1,5 @@
+// Thin Next.js adapter for Ollama status. It keeps status computation reusable
+// by Electron IPC through the shared service.
 import { createHttpJsonResponse } from "@/lib/api/http-response";
 import { getOllamaStatus } from "@/lib/services/ai/ollama-status-service";
 

@@ -1,3 +1,5 @@
+// Framework-independent service for CV generation. It normalizes LLM output,
+// validates semantic facts, adds missing-data warnings, and returns typed data.
 import { z } from "zod";
 import { buildGenerateCVPrompt } from "@/lib/ai/prompts/generate-cv";
 import {
@@ -499,6 +501,8 @@ export const generateCv = async (
       createOllamaOptions(request.model, request.runtime)
     );
 
+    // Accept exact schema output first, then recover common LLM aliases before
+    // treating the response as invalid. This keeps cloud/local models usable.
     const parsedCV = parseLlmDocumentOutput({
       value: aiCV,
       schema: generatedCVSchema,
@@ -510,6 +514,8 @@ export const generateCv = async (
       return parsedCV.response;
     }
 
+    // Block only unsupported generated facts. Missing source data becomes a
+    // warning below so users can still edit a useful draft.
     const semanticFactValidation = validateGeneratedCvFacts(
       parsedCV.data,
       request.candidateProfile
@@ -523,6 +529,8 @@ export const generateCv = async (
       );
     }
 
+    // Warnings travel with the generated document and are displayed in the
+    // Documents screen without turning the draft into a failed generation.
     const cvWithWarnings = attachDocumentWarnings(
       parsedCV.data,
       collectMissingDataWarnings(

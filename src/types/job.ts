@@ -1,3 +1,5 @@
+// Optional target-role model. Job data guides tailoring and analysis but is not
+// itself candidate evidence.
 export type JobLanguage = "de" | "en";
 
 export type JobTone =

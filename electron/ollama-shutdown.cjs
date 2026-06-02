@@ -1,3 +1,5 @@
+// Ollama cleanup helper. It attempts to unload local models when the desktop app
+// exits so selected models do not keep running in the background.
 const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 10_000;
 

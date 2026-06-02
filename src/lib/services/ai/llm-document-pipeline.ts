@@ -1,3 +1,5 @@
+// Shared document parsing pipeline for LLM responses. It first tries exact Zod
+// validation, then allows service-specific normalization before returning errors.
 import { z } from "zod";
 import { createErrorResponse } from "@/lib/services/api-response";
 import type { ApiResponse } from "@/types/api";

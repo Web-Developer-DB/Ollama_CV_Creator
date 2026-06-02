@@ -1,5 +1,7 @@
 "use client";
 
+// Export landing page. The concrete PDF/JSON export flow is intentionally kept
+// separate from document generation so export can become a desktop service.
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/ui/Panel";
 import { useProjectStore } from "@/stores/project-store";

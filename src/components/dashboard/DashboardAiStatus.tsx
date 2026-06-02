@@ -1,5 +1,7 @@
 "use client";
 
+// Dashboard card that summarizes AI readiness without exposing model control
+// details. Full model management stays on the AI Status screen.
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAiStatus } from "@/lib/api/ai-client";

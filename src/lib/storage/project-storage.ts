@@ -1,3 +1,5 @@
+// Renderer storage facade. It chooses Electron desktop storage when available
+// and IndexedDB when running as a plain web app during development/tests.
 import {
   deleteProject as deleteIndexedDbProject,
   listProjects as listIndexedDbProjects,

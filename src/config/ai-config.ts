@@ -1,3 +1,5 @@
+// Server-side AI configuration. Environment variables are normalized here so
+// Ollama local and direct Ollama Cloud calls use the same downstream services.
 export type AiConfig = {
   baseUrl: string;
   model?: string;

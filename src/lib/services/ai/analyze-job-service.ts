@@ -1,3 +1,5 @@
+// Framework-independent service for extracting target-role guidance from a job
+// description. Its output is tailoring context, not final document content.
 import { z } from "zod";
 import { buildAnalyzeJobPrompt } from "@/lib/ai/prompts/analyze-job";
 import {

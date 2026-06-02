@@ -1,3 +1,5 @@
+// Shared candidate-fact utilities. These helpers decide whether generated text
+// is backed by the profile while allowing faithful translations/simplifications.
 import type { CandidateProfile, WorkExperience } from "@/types/profile";
 
 export const hasText = (value: string | undefined): boolean =>

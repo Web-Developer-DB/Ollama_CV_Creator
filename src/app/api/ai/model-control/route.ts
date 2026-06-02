@@ -1,3 +1,5 @@
+// Thin Next.js adapter for Ollama model control. IPC and web mode share the
+// same service-level validation and response mapping.
 import {
   createHttpJsonResponse,
   readJsonRequestBody

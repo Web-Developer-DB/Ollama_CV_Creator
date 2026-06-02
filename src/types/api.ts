@@ -1,3 +1,5 @@
+// API contracts shared by renderer clients, Next.js route handlers, Electron
+// IPC payloads, and service tests.
 import type {
   GeneratedCoverLetter,
   GeneratedCV

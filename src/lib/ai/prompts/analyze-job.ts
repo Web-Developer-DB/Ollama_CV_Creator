@@ -1,3 +1,5 @@
+// Prompt builder for optional job analysis. The output is guidance for tailoring
+// only; it must never become candidate facts by itself.
 type AnalyzeJobPromptInput = {
   jobDescription: string;
   language: "de" | "en";

@@ -88,6 +88,8 @@ TASK-043 completed. Generated CVs and cover letters can now carry document-level
 
 TASK-044 completed. CV and cover letter prompts now explicitly define the candidate profile as the only candidate fact source, forbid invented personal details, motivations, metrics, dates, employers, education, certificates, projects, tools, skills, and achievements, and explain that job context may only change emphasis, ordering, section choice, and wording. The prompts also tell models to leave `meta.warnings` empty because the app adds warnings after validation.
 
+Ad-hoc architecture and code-clean audit completed. Core modules, screens, services, storage adapters, Electron bridge files, prompt builders, schemas, and canonical type files now have concise English module-boundary comments. Document draft conversion was extracted from `DocumentsScreen.tsx` into `document-drafts.ts`, and `docs/architecture/CODE_AGENT_MAP.md` now gives code agents a structured map of project flows, module responsibilities, rules, and common change paths.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -179,3 +181,5 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 2026-06-02: Completed TASK-041 Tolerant Profile and Document Normalization for wrapped/snake_case profile payloads, broader profile aliases, German language levels, confidence/date coercion, and expanded document wrapper aliases. Next recommended task is TASK-037 Desktop Export Flow.
 
 2026-06-02: Completed TASK-042 Semantic Fact Validation, TASK-043 Missing Data UX and Document Warnings, and TASK-044 Prompt Rewrite for No-Invention Document Generation. Next recommended task is TASK-037 Desktop Export Flow.
+
+2026-06-02: Completed an architecture/code-clean audit with module-boundary comments, a focused Documents screen helper extraction, an updated architecture overview, and the new CODE_AGENT_MAP.md onboarding map. Next recommended task is TASK-037 Desktop Export Flow.

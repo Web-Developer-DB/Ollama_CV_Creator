@@ -1,3 +1,5 @@
+// Canonical generated-document model. Templates, editors, export, and storage
+// all consume these structures after AI output has been normalized and validated.
 import type { TemplateStyle } from "./templates";
 
 export type DocumentLanguage = "de" | "en";

@@ -1,3 +1,5 @@
+// Browser-local selected model state. It is intentionally tiny because runtime
+// readiness is still verified by the server/service layer before generation.
 export const selectedModelStorageKey = "ollama-cv-selected-model";
 
 export const readStoredModel = (): string | undefined => {

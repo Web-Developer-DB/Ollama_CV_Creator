@@ -1,5 +1,7 @@
 "use client";
 
+// Read-only view of saved job analysis. It helps explain tailoring context but
+// is not part of the final CV or cover letter output by itself.
 import { AppShell } from "@/components/layout/AppShell";
 import { useProjectStore } from "@/stores/project-store";
 

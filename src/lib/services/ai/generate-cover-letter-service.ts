@@ -1,3 +1,5 @@
+// Framework-independent service for cover-letter generation. It applies the
+// same no-invention validation as CV generation while enforcing letter length.
 import { z } from "zod";
 import { buildGenerateCoverLetterPrompt } from "@/lib/ai/prompts/generate-cover-letter";
 import {
@@ -261,6 +263,8 @@ export const generateCoverLetter = async (
       createOllamaOptions(request.model, request.runtime)
     );
 
+    // Cover-letter models frequently wrap or flatten paragraphs, so the shared
+    // document pipeline gives normalization a chance before schema failure.
     const parsedCoverLetter = parseLlmDocumentOutput({
       value: aiCoverLetter,
       schema: generatedCoverLetterSchema,
@@ -287,6 +291,8 @@ export const generateCoverLetter = async (
       );
     }
 
+    // Semantic validation catches invented job-skill claims and unknown
+    // companies while still allowing source-backed translations.
     const semanticFactValidation = validateGeneratedCoverLetterFacts(
       parsedCoverLetter.data,
       request.candidateProfile,
@@ -302,6 +308,7 @@ export const generateCoverLetter = async (
       );
     }
 
+    // Missing profile details are user-facing warnings, not generation blockers.
     const coverLetterWithWarnings = attachDocumentWarnings(
       parsedCoverLetter.data,
       collectMissingDataWarnings(

@@ -1,5 +1,7 @@
 "use client";
 
+// Screen for storing optional target-role context. Job data changes emphasis for
+// tailored documents but is never allowed to create candidate facts.
 import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/ui/Panel";

@@ -6,6 +6,8 @@ import type {
 } from "@/types/documents";
 import type { TemplateDefinition, TemplateStyle } from "@/types/templates";
 
+// Template renderer for printable CV and cover-letter previews. It maps the
+// same generated document data into different visual styles without changing it.
 export type DocumentPreviewMode = "both" | "cv" | "cover_letter";
 
 export const templateDefinitions: TemplateDefinition[] = [

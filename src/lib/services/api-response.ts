@@ -1,3 +1,5 @@
+// Shared API response model for services, Next.js routes, and Electron IPC
+// proxy handlers. Services return these instead of throwing across boundaries.
 import type { ApiErrorCode, ApiResponse } from "@/types/api";
 
 export const errorStatusByCode: Record<ApiErrorCode, number> = {

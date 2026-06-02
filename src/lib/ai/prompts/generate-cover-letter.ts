@@ -1,3 +1,5 @@
+// Prompt builder for cover-letter generation. It forbids invented motivation or
+// candidate facts while still allowing source-backed wording improvements.
 import type { GenerateCoverLetterRequest } from "@/types/api";
 
 type GenerateCoverLetterPrompt = {

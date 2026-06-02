@@ -1,3 +1,5 @@
+// Prompt builder for CV generation. It repeats no-invention boundaries close to
+// the model request so job context can only affect emphasis and ordering.
 import type { GenerateCVRequest } from "@/types/api";
 
 type GenerateCVPrompt = {

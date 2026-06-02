@@ -1,3 +1,5 @@
+// Section container used for workflow panels. It keeps panel spacing, border,
+// title, and description conventions consistent across screens.
 import type { ReactNode } from "react";
 import { classNames } from "@/lib/ui/class-names";
 

@@ -1,5 +1,7 @@
 "use client";
 
+// Screen-level workflow for creating, editing, warning about, and saving CV and
+// cover letter drafts. Pure draft transformations live in document-drafts.ts.
 import { FormEvent, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/ui/Panel";
@@ -8,68 +10,20 @@ import {
   generateCoverLetter,
   generateCv
 } from "@/lib/api/ai-client";
+import {
+  collectStoredDocumentWarnings,
+  coverLetterToText,
+  createCoverLetterFromText,
+  createCVFromText,
+  createId,
+  cvToText
+} from "./document-drafts";
 import { useProjectStore } from "@/stores/project-store";
-import type {
-  GeneratedCoverLetter,
-  GeneratedCV,
-  GeneratedDocuments
-} from "@/types/documents";
+import type { GeneratedDocuments } from "@/types/documents";
 import type { JobAnalysis } from "@/types/job";
 import type { ApplicationProject } from "@/types/project";
 import type { ApiError } from "@/types/api";
 import type { TemplateStyle } from "@/types/templates";
-
-const createId = (): string => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
-const splitParagraphs = (value: string): string[] =>
-  value
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
-
-const cvToText = (cv: GeneratedCV | undefined): string => {
-  if (!cv) {
-    return "";
-  }
-
-  const sectionText = cv.sections
-    .flatMap((section) =>
-      section.items.flatMap((item) => [
-        item.title,
-        item.subtitle,
-        item.dateRange,
-        item.body,
-        ...item.bullets
-      ])
-    )
-    .filter(Boolean)
-    .join("\n");
-
-  return [cv.summary, sectionText].filter(Boolean).join("\n\n");
-};
-
-const coverLetterToText = (
-  coverLetter: GeneratedCoverLetter | undefined
-): string => {
-  if (!coverLetter) {
-    return "";
-  }
-
-  return [
-    coverLetter.opening,
-    ...coverLetter.body,
-    coverLetter.closing,
-    coverLetter.signature
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-};
 
 type GenerationApiError = Error & {
   code?: ApiError["code"];
@@ -220,78 +174,6 @@ const hasTargetRole = (project: ApplicationProject | undefined): boolean =>
 
 const hasProfile = (project: ApplicationProject | undefined): boolean =>
   Boolean(project?.candidateProfile);
-
-const collectStoredDocumentWarnings = (
-  documents: GeneratedDocuments | undefined
-): string[] =>
-  Array.from(
-    new Set([
-      ...(documents?.cv?.meta.warnings ?? []),
-      ...(documents?.coverLetter?.meta.warnings ?? [])
-    ])
-  );
-
-const createCVFromText = (
-  text: string,
-  existingCV: GeneratedCV | undefined,
-  now: string
-): GeneratedCV => ({
-  id: existingCV?.id ?? createId(),
-  title: existingCV?.title ?? "Edited CV",
-  language: existingCV?.language ?? "de",
-  summary: text,
-  sections:
-    existingCV?.sections.length === 0 || !existingCV?.sections
-      ? [
-          {
-            id: "draft-section",
-            type: "custom",
-            title: "Draft",
-            items: [
-              {
-                id: "draft-item",
-                body: text,
-                bullets: []
-              }
-            ]
-          }
-        ]
-      : existingCV.sections,
-  meta: {
-    ...existingCV?.meta,
-    generatedAt: existingCV?.meta.generatedAt ?? now
-  }
-});
-
-const createCoverLetterFromText = (
-  text: string,
-  existingCoverLetter: GeneratedCoverLetter | undefined,
-  now: string
-): GeneratedCoverLetter => {
-  const paragraphs = splitParagraphs(text);
-  const opening =
-    paragraphs[0] ?? existingCoverLetter?.opening ?? "Draft cover letter";
-  const closing =
-    paragraphs.length > 1
-      ? paragraphs[paragraphs.length - 1]
-      : existingCoverLetter?.closing ?? "Sincerely,";
-
-  return {
-    id: existingCoverLetter?.id ?? createId(),
-    language: existingCoverLetter?.language ?? "de",
-    recipient: existingCoverLetter?.recipient,
-    subject: existingCoverLetter?.subject,
-    greeting: existingCoverLetter?.greeting,
-    opening,
-    body: paragraphs.slice(1, -1),
-    closing,
-    signature: existingCoverLetter?.signature,
-    meta: {
-      ...existingCoverLetter?.meta,
-      generatedAt: existingCoverLetter?.meta.generatedAt ?? now
-    }
-  };
-};
 
 export function DocumentsScreen() {
   const { error, isLoading, projects, saveProject, selectedProjectId } =

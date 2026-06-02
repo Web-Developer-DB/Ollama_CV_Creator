@@ -1,3 +1,5 @@
+// Low-level Ollama generation client. It performs readiness checks, timeouts,
+// streaming aggregation, and strict JSON extraction before services validate.
 import { getAiConfig, type AiConfig } from "@/config/ai-config";
 import { createOllamaHeaders } from "@/lib/ai/ollama-http";
 import { checkOllamaReadiness } from "@/lib/ai/ollama-readiness";

@@ -1,5 +1,7 @@
 "use client";
 
+// Screen for choosing the visual template and previewing generated documents.
+// Template choice is presentation-only and does not change document facts.
 import { useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";

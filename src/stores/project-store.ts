@@ -1,3 +1,5 @@
+// Zustand store for local project selection and persistence lifecycle. Screens
+// call this store instead of talking to storage adapters directly.
 import { create } from "zustand";
 import {
   deleteProject as deleteStoredProject,
