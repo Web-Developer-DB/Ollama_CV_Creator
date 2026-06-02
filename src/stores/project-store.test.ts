@@ -74,4 +74,27 @@ describe("project store", () => {
     expect(useProjectStore.getState().projects).toEqual([]);
     expect(useProjectStore.getState().selectedProjectId).toBeUndefined();
   });
+
+  it("replaces older projects for single-user candidate imports", async () => {
+    const firstProject = createProject("project-1", "First candidate");
+    const secondProject = createProject("project-2", "Second candidate");
+    const importedProject = createProject("project-3", "Imported candidate");
+
+    await useProjectStore.getState().saveProject(firstProject);
+    await useProjectStore.getState().saveProject(secondProject);
+    await useProjectStore.getState().replaceProject(importedProject);
+
+    expect(useProjectStore.getState().projects).toEqual([importedProject]);
+    expect(useProjectStore.getState().selectedProjectId).toBe("project-3");
+
+    useProjectStore.setState({
+      projects: [],
+      selectedProjectId: undefined,
+      hasLoadedProjects: false
+    });
+
+    await useProjectStore.getState().loadProjects();
+
+    expect(useProjectStore.getState().projects).toEqual([importedProject]);
+  });
 });

@@ -153,7 +153,7 @@ const extractionPhaseDescription: Record<ExtractionPhase, string> = {
 };
 
 export function ImportScreen() {
-  const { error, isLoading, projects, saveProject, selectedProjectId } =
+  const { error, isLoading, projects, replaceProject, selectedProjectId } =
     useProjectStore();
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) ?? projects[0];
@@ -180,27 +180,24 @@ export function ImportScreen() {
     status: ApplicationProject["status"],
     candidateProfile?: CandidateProfile
   ): ApplicationProject => ({
-      id: selectedProject?.id ?? createId(),
-      title: candidateProfile
-        ? createProjectTitle(trimmedText, candidateProfile)
-        : selectedProject?.title ?? createProjectTitle(trimmedText),
-      status,
-      createdAt: selectedProject?.createdAt ?? now,
-      updatedAt: now,
-      rawInput: {
-        id: selectedProject?.rawInput?.id ?? createId(),
-        sourceType,
-        text: trimmedText,
-        language,
-        createdAt: selectedProject?.rawInput?.createdAt ?? now
-      },
-      candidateProfile: candidateProfile ?? selectedProject?.candidateProfile,
-      jobTarget: selectedProject?.jobTarget,
-      jobAnalysis: selectedProject?.jobAnalysis,
-      generatedDocuments: selectedProject?.generatedDocuments,
-      designSettings: selectedProject?.designSettings,
-      exportHistory: selectedProject?.exportHistory
-    });
+    id: selectedProject?.id ?? createId(),
+    title: createProjectTitle(trimmedText, candidateProfile),
+    status,
+    createdAt: selectedProject?.createdAt ?? now,
+    updatedAt: now,
+    rawInput: {
+      id: selectedProject?.rawInput?.id ?? createId(),
+      sourceType,
+      text: trimmedText,
+      language,
+      createdAt: now
+    },
+    candidateProfile,
+    // A new candidate context invalidates role analysis and generated drafts.
+    // Keeping design settings is safe because templates are presentation only.
+    designSettings: selectedProject?.designSettings,
+    exportHistory: []
+  });
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -214,7 +211,7 @@ export function ImportScreen() {
     const now = new Date().toISOString();
     const project = createProject(trimmedText, now, "text_imported");
 
-    await saveProject(project);
+    await replaceProject(project);
     setExtractError(undefined);
     setShowAiStatusLink(false);
     setSavedMessage("Candidate context saved locally");
@@ -241,12 +238,10 @@ export function ImportScreen() {
       const contextProject = createProject(
         trimmedText,
         new Date().toISOString(),
-        selectedProject?.candidateProfile
-          ? selectedProject.status
-          : "text_imported"
+        "text_imported"
       );
 
-      await saveProject(contextProject);
+      await replaceProject(contextProject);
 
       const readiness = await checkAiReadiness();
 
@@ -281,7 +276,7 @@ export function ImportScreen() {
         candidateProfile: payload.data
       };
 
-      await saveProject(project);
+      await replaceProject(project);
       setSavedMessage("Profile extracted and saved locally");
       setShowAiStatusLink(false);
       setExtractionPhase("profile_ready");

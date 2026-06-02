@@ -150,7 +150,7 @@ ImportScreen
   -> normalizeCandidateProfileOutput
   -> candidateProfileSchema
   -> backfill clear facts from raw source text
-  -> save candidateProfile to project
+  -> replace active project with candidateProfile
 ```
 
 ## Storage Flow
@@ -161,6 +161,12 @@ ProjectHydrator
   -> src/lib/storage/project-storage.ts
   -> Electron desktop storage if window.desktopApi exists
   -> IndexedDB fallback in web/dev/test
+
+Candidate import
+  -> useProjectStore.replaceProject()
+  -> save the new workspace project
+  -> delete older stored projects
+  -> keep one active candidate profile for the single-user workflow
 ```
 
 ## Clean-Code Audit Notes

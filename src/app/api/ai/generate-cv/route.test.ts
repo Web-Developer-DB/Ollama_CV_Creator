@@ -376,7 +376,7 @@ describe("POST /api/ai/generate-cv", () => {
               id: "item-skills-2",
               title: "Soft Skills",
               bullets: [
-                "Stakeholder-Kommunikation, strukturierte Problemlösung, Produkt-Thinking, Workshop-Moderation, sorgfältige Dokumentation, bereichsübergreifende Zusammenarbeit"
+                "Stakeholder-Kommunikation, Strukturiertes Problemlösen, Produkt-Denken, Workshop-Moderation, sorgfältige Dokumentation, bereichsübergreifende Zusammenarbeit"
               ]
             }
           ]

@@ -73,9 +73,17 @@ export const includesKnownFact = (
 const skillPhraseReplacements: Array<[RegExp, string]> = [
   [/\bstakeholder kommunikation\b/g, "stakeholder communication"],
   [/\bkommunikation\b/g, "communication"],
+  [
+    /\bstrukturiert(?:e|es|er|en)? problem(?:losung|losen|loesung|loesen)\b/g,
+    "structured problem solving"
+  ],
   [/\bstrukturierte problemlosung\b/g, "structured problem solving"],
   [/\bproblemlosung\b/g, "problem solving"],
+  [/\bproblemlosen\b/g, "problem solving"],
+  [/\bproblemloesung\b/g, "problem solving"],
+  [/\bproblemloesen\b/g, "problem solving"],
   [/\bprodukt thinking\b/g, "product thinking"],
+  [/\bprodukt denken\b/g, "product thinking"],
   [/\bproduktdenken\b/g, "product thinking"],
   [/\bworkshop moderation\b/g, "workshop facilitation"],
   [/\bmoderation\b/g, "facilitation"],

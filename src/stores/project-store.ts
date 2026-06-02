@@ -19,6 +19,7 @@ type ProjectStoreState = {
 type ProjectStoreActions = {
   loadProjects: () => Promise<void>;
   saveProject: (project: ApplicationProject) => Promise<void>;
+  replaceProject: (project: ApplicationProject) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   selectProject: (id: string | undefined) => void;
 };
@@ -89,6 +90,35 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
           selectedProjectId: savedProject.id,
           isLoading: false
         };
+      });
+    } catch (error) {
+      set({ error: toErrorMessage(error), isLoading: false });
+      throw error;
+    }
+  },
+
+  replaceProject: async (project) => {
+    set({ isLoading: true, error: undefined });
+
+    try {
+      const existingProjects = get().hasLoadedProjects
+        ? get().projects
+        : await listProjects();
+      const savedProject = await saveStoredProject(project);
+
+      // Candidate import is a single-user workflow: a new extraction replaces
+      // older workspace projects so downstream screens never mix profiles.
+      await Promise.all(
+        existingProjects
+          .filter((currentProject) => currentProject.id !== savedProject.id)
+          .map((currentProject) => deleteStoredProject(currentProject.id))
+      );
+
+      set({
+        projects: [savedProject],
+        selectedProjectId: savedProject.id,
+        isLoading: false,
+        hasLoadedProjects: true
       });
     } catch (error) {
       set({ error: toErrorMessage(error), isLoading: false });

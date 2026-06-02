@@ -2,8 +2,74 @@ import { deleteDB } from "idb";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  listProjects as listIndexedProjects,
+  saveProject as saveIndexedProject
+} from "@/lib/storage/indexeddb";
 import { useProjectStore } from "@/stores/project-store";
+import type { CandidateProfile } from "@/types/profile";
+import type { ApplicationProject } from "@/types/project";
 import { ImportScreen } from "./ImportScreen";
+
+const createCandidateProfile = (fullName: string): CandidateProfile => ({
+  personalInfo: {
+    fullName
+  },
+  experiences: [],
+  education: [],
+  skills: {
+    technical: [],
+    soft: [],
+    tools: [],
+    languages: [],
+    methods: []
+  },
+  projects: [],
+  languages: [],
+  certificates: []
+});
+
+const createProject = (
+  id: string,
+  title: string,
+  candidateProfile?: CandidateProfile
+): ApplicationProject => ({
+  id,
+  title,
+  status: candidateProfile ? "profile_extracted" : "text_imported",
+  createdAt: "2026-05-25T10:00:00.000Z",
+  updatedAt: "2026-05-25T10:00:00.000Z",
+  rawInput: {
+    id: `${id}-raw`,
+    sourceType: "manual_text",
+    text: `${title} raw context`,
+    language: "de",
+    createdAt: "2026-05-25T10:00:00.000Z"
+  },
+  candidateProfile,
+  jobTarget: candidateProfile
+    ? {
+        id: `${id}-job`,
+        title: "Frontend Engineer",
+        company: "Old Company",
+        jobDescription: "Old target role",
+        language: "de",
+        tone: "professional"
+      }
+    : undefined,
+  generatedDocuments: candidateProfile
+    ? {
+        cv: {
+          id: `${id}-cv`,
+          language: "de",
+          sections: [],
+          meta: {
+            generatedAt: "2026-05-25T10:00:00.000Z"
+          }
+        }
+      }
+    : undefined
+});
 
 const createReadyAiStatusResponse = (): Response =>
   new Response(
@@ -168,6 +234,78 @@ describe("ImportScreen", () => {
       });
     });
     expect(screen.getByText(/Profile extracted/)).toBeInTheDocument();
+  });
+
+  it("overwrites older candidate projects when extracting a new profile", async () => {
+    const user = userEvent.setup();
+    const oldProject = createProject(
+      "project-old",
+      "Nora Stein",
+      createCandidateProfile("Nora Stein")
+    );
+    const staleProject = createProject(
+      "project-stale",
+      "Max Mustermann",
+      createCandidateProfile("Max Mustermann")
+    );
+
+    await saveIndexedProject(oldProject);
+    await saveIndexedProject(staleProject);
+    useProjectStore.setState({
+      projects: [oldProject, staleProject],
+      selectedProjectId: oldProject.id,
+      hasLoadedProjects: true
+    });
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(createReadyAiStatusResponse())
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: createCandidateProfile("Ada Lovelace")
+          }),
+          { status: 200 }
+        )
+      );
+
+    render(<ImportScreen />);
+
+    await user.clear(screen.getByLabelText("Candidate context"));
+    await user.type(
+      screen.getByLabelText("Candidate context"),
+      "Ada Lovelace, Software Engineer, TypeScript, London"
+    );
+    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+
+    await waitFor(() => {
+      const projects = useProjectStore.getState().projects;
+
+      expect(projects).toHaveLength(1);
+      expect(projects[0]).toMatchObject({
+        id: oldProject.id,
+        status: "profile_extracted",
+        rawInput: {
+          text: "Ada Lovelace, Software Engineer, TypeScript, London"
+        },
+        candidateProfile: {
+          personalInfo: {
+            fullName: "Ada Lovelace"
+          }
+        }
+      });
+      expect(projects[0].jobTarget).toBeUndefined();
+      expect(projects[0].generatedDocuments).toBeUndefined();
+    });
+
+    await waitFor(async () => {
+      const storedProjects = await listIndexedProjects();
+
+      expect(storedProjects).toHaveLength(1);
+      expect(storedProjects[0].candidateProfile?.personalInfo.fullName).toBe(
+        "Ada Lovelace"
+      );
+    });
   });
 
   it("saves the current context before checking the model during extraction", async () => {
