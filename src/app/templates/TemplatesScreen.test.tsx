@@ -1,7 +1,7 @@
 import { deleteDB } from "idb";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useProjectStore } from "@/stores/project-store";
 import type { ApplicationProject } from "@/types/project";
 import { TemplatesScreen } from "./TemplatesScreen";
@@ -46,8 +46,20 @@ const projectWithDocuments: ApplicationProject = {
 };
 
 describe("TemplatesScreen", () => {
+  let printMock: ReturnType<typeof vi.fn>;
+
   beforeEach(async () => {
     await deleteDB("ollama-cv-creator");
+    window.history.replaceState(null, "", "/templates");
+    printMock = vi.fn();
+    Object.assign(window, {
+      print: printMock,
+      requestAnimationFrame: (callback: FrameRequestCallback) => {
+        callback(0);
+
+        return 1;
+      }
+    });
     useProjectStore.setState({
       projects: [projectWithDocuments],
       selectedProjectId: projectWithDocuments.id,
@@ -68,6 +80,12 @@ describe("TemplatesScreen", () => {
     expect(screen.getByTestId("document-page-cv")).toBeInTheDocument();
     expect(
       screen.getByTestId("document-page-cover-letter")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "CV als PDF drucken" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Anschreiben drucken" })
     ).toBeInTheDocument();
   });
 
@@ -128,6 +146,33 @@ describe("TemplatesScreen", () => {
     ).not.toBeInTheDocument();
     expect(screen.getAllByText("Frontend Engineer").length).toBeGreaterThan(0);
     expect(screen.getByText("ada@example.com")).toBeInTheDocument();
+  });
+
+  it("opens a requested preview mode from the document workflow", () => {
+    window.history.replaceState(null, "", "/templates?preview=cover_letter");
+
+    render(<TemplatesScreen />);
+
+    expect(screen.queryByTestId("document-page-cv")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("document-page-cover-letter")
+    ).toBeInTheDocument();
+  });
+
+  it("prints the selected CV preview through the browser print dialog", async () => {
+    const user = userEvent.setup();
+
+    render(<TemplatesScreen />);
+
+    await user.click(screen.getByRole("button", { name: "CV als PDF drucken" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("document-page-cv")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("document-page-cover-letter")
+      ).not.toBeInTheDocument();
+      expect(printMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("filters templates by category", async () => {

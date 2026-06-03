@@ -37,11 +37,11 @@ and wording.
 Route screens and thin API adapters.
 
 - `src/app/shell.tsx`: dashboard shell and reusable placeholder frame.
-- `src/app/import/ImportScreen.tsx`: raw candidate text import and profile extraction.
+- `src/app/import/ImportScreen.tsx`: "Profil erstellen" screen for raw profile source data and profile extraction.
 - `src/app/profile/ProfileScreen.tsx`: profile review and correction before documents are generated.
 - `src/app/job/JobScreen.tsx`: optional target-role context.
 - `src/app/analysis/AnalysisScreen.tsx`: read-only view of saved job analysis.
-- `src/app/documents/DocumentsScreen.tsx`: document generation workflow, warnings, text editing, and save actions.
+- `src/app/documents/DocumentsScreen.tsx`: document generation workflow, warnings, text editing, save actions, and design-preview handoff.
 - `src/app/documents/document-drafts.ts`: pure helpers for converting structured documents to editable drafts and back.
 - `src/app/templates/TemplatesScreen.tsx`: template selection and live preview.
 - `src/app/ai/AiSettingsScreen.tsx`: Ollama status, selected model, context window, and timeout presets.

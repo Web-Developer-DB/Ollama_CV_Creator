@@ -108,14 +108,14 @@ describe("ImportScreen", () => {
     window.localStorage.clear();
   });
 
-  it("starts with demo candidate context for first-time users", () => {
+  it("starts with demo profile source for first-time users", () => {
     render(<ImportScreen />);
 
     expect(
-      (screen.getByLabelText("Candidate context") as HTMLTextAreaElement).value
+      (screen.getByLabelText("Rohdaten") as HTMLTextAreaElement).value
     ).toContain("Nora Stein");
     expect(
-      screen.getByRole("button", { name: "Extract profile" })
+      screen.getByRole("button", { name: "Profil erstellen" })
     ).toBeEnabled();
   });
 
@@ -124,7 +124,7 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    const textArea = screen.getByLabelText("Candidate context");
+    const textArea = screen.getByLabelText("Rohdaten");
     await user.clear(textArea);
     await user.type(textArea, "Ada writes TypeScript and React applications.");
 
@@ -136,7 +136,7 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    const languageSelect = screen.getByLabelText("Language");
+    const languageSelect = screen.getByLabelText("Sprache");
     await user.selectOptions(languageSelect, "en");
 
     expect(languageSelect).toHaveValue("en");
@@ -147,13 +147,13 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    await user.clear(screen.getByLabelText("Candidate context"));
+    await user.clear(screen.getByLabelText("Rohdaten"));
     await user.type(
-      screen.getByLabelText("Candidate context"),
+      screen.getByLabelText("Rohdaten"),
       "Ada Lovelace, Software Engineer, TypeScript, Berlin"
     );
-    await user.selectOptions(screen.getByLabelText("Language"), "en");
-    await user.click(screen.getByRole("button", { name: "Save context" }));
+    await user.selectOptions(screen.getByLabelText("Sprache"), "en");
+    await user.click(screen.getByRole("button", { name: "Rohdaten speichern" }));
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;
@@ -217,7 +217,7 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+    await user.click(screen.getByRole("button", { name: "Profil erstellen" }));
 
     await waitFor(() => {
       const projects = useProjectStore.getState().projects;
@@ -233,7 +233,7 @@ describe("ImportScreen", () => {
         }
       });
     });
-    expect(screen.getByText(/Profile extracted/)).toBeInTheDocument();
+    expect(screen.getByText(/Profil erstellt/)).toBeInTheDocument();
   });
 
   it("overwrites older candidate projects when extracting a new profile", async () => {
@@ -271,12 +271,12 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    await user.clear(screen.getByLabelText("Candidate context"));
+    await user.clear(screen.getByLabelText("Rohdaten"));
     await user.type(
-      screen.getByLabelText("Candidate context"),
+      screen.getByLabelText("Rohdaten"),
       "Ada Lovelace, Software Engineer, TypeScript, London"
     );
-    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+    await user.click(screen.getByRole("button", { name: "Profil erstellen" }));
 
     await waitFor(() => {
       const projects = useProjectStore.getState().projects;
@@ -331,12 +331,12 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    await user.clear(screen.getByLabelText("Candidate context"));
+    await user.clear(screen.getByLabelText("Rohdaten"));
     await user.type(
-      screen.getByLabelText("Candidate context"),
+      screen.getByLabelText("Rohdaten"),
       "Saved before extraction"
     );
-    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+    await user.click(screen.getByRole("button", { name: "Profil erstellen" }));
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;
@@ -410,7 +410,7 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+    await user.click(screen.getByRole("button", { name: "Profil erstellen" }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -451,7 +451,7 @@ describe("ImportScreen", () => {
 
     render(<ImportScreen />);
 
-    await user.click(screen.getByRole("button", { name: "Extract profile" }));
+    await user.click(screen.getByRole("button", { name: "Profil erstellen" }));
 
     expect(await screen.findByText(/is not ready/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open AI Status" })).toHaveAttribute(

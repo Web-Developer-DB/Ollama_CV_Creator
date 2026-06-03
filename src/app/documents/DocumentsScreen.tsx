@@ -3,8 +3,10 @@
 // Screen-level workflow for creating, editing, warning about, and saving CV and
 // cover letter drafts. Pure draft transformations live in document-drafts.ts.
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Panel } from "@/components/ui/Panel";
+import { Icon } from "@/components/ui/Icon";
 import {
   analyzeJob,
   generateCoverLetter,
@@ -176,6 +178,7 @@ const hasProfile = (project: ApplicationProject | undefined): boolean =>
   Boolean(project?.candidateProfile);
 
 export function DocumentsScreen() {
+  const router = useRouter();
   const { error, isLoading, projects, saveProject, selectedProjectId } =
     useProjectStore();
   const selectedProject =
@@ -444,9 +447,7 @@ export function DocumentsScreen() {
     }
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const saveDraftEdits = async (message = "Entwürfe lokal gespeichert") => {
     const now = new Date().toISOString();
     const existingDocuments = selectedProject?.generatedDocuments;
     const nextDocuments: GeneratedDocuments = {
@@ -474,8 +475,23 @@ export function DocumentsScreen() {
         };
 
     await saveProject(project);
-    setSavedMessage("Documents saved locally");
+    setSavedMessage(message);
     setGenerationError(undefined);
+
+    return project;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    await saveDraftEdits();
+  };
+
+  const handleContinueToDesign = async (
+    previewMode: "cv" | "cover_letter"
+  ) => {
+    await saveDraftEdits("Entwurf gespeichert. Design wird geöffnet.");
+    router.push(`/templates?preview=${previewMode}`);
   };
 
   const isGenerating = Boolean(activeGeneration);
@@ -504,6 +520,8 @@ export function DocumentsScreen() {
   const documentWarnings = collectStoredDocumentWarnings(
     selectedProject?.generatedDocuments
   );
+  const hasCvDraft = Boolean(cvDraft.trim());
+  const hasCoverLetterDraft = Boolean(coverLetterDraft.trim());
 
   return (
     <AppShell
@@ -712,36 +730,77 @@ export function DocumentsScreen() {
         </Panel>
 
         <div className="grid grid-cols-2 gap-6">
-          <label className="grid gap-2 rounded-md border border-slate-200 bg-white p-5 text-sm font-medium text-slate-700">
-            CV draft
-            <textarea
-              className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
-              onChange={(event) => setCvDraft(event.target.value)}
-              value={cvDraft}
-            />
-          </label>
+          <section className="grid gap-4 rounded-md border border-slate-200 bg-white p-5">
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              CV draft
+              <textarea
+                className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+                onChange={(event) => setCvDraft(event.target.value)}
+                value={cvDraft}
+              />
+            </label>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+              <p className="text-sm leading-6 text-slate-600">
+                Prüfe den Text, speichere Änderungen und wähle danach das
+                visuelle DIN-A4-Design.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
+                  disabled={isLoading}
+                  type="submit"
+                >
+                  <Icon className="size-4" name="check" />
+                  CV-Entwurf speichern
+                </button>
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-action px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                  disabled={isLoading || !hasCvDraft}
+                  onClick={() => void handleContinueToDesign("cv")}
+                  type="button"
+                >
+                  <Icon className="size-4" name="palette" />
+                  CV im Design ansehen
+                </button>
+              </div>
+            </div>
+          </section>
 
-          <label className="grid gap-2 rounded-md border border-slate-200 bg-white p-5 text-sm font-medium text-slate-700">
-            Cover letter draft
-            <textarea
-              className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
-              onChange={(event) => setCoverLetterDraft(event.target.value)}
-              value={coverLetterDraft}
-            />
-          </label>
-        </div>
-
-        <div className="flex flex-row items-center justify-between gap-3 rounded-md border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-600">
-            Draft edits are saved to the selected local project.
-          </p>
-          <button
-            className="h-10 rounded-md bg-action px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-            disabled={isLoading}
-            type="submit"
-          >
-            Save documents
-          </button>
+          <section className="grid gap-4 rounded-md border border-slate-200 bg-white p-5">
+            <label className="grid gap-2 text-sm font-medium text-slate-700">
+              Cover letter draft
+              <textarea
+                className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
+                onChange={(event) => setCoverLetterDraft(event.target.value)}
+                value={coverLetterDraft}
+              />
+            </label>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+              <p className="text-sm leading-6 text-slate-600">
+                Prüfe das Anschreiben, speichere Änderungen und öffne die
+                passende Vorschau im Designer.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
+                  disabled={isLoading}
+                  type="submit"
+                >
+                  <Icon className="size-4" name="check" />
+                  Anschreiben speichern
+                </button>
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-action px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                  disabled={isLoading || !hasCoverLetterDraft}
+                  onClick={() => void handleContinueToDesign("cover_letter")}
+                  type="button"
+                >
+                  <Icon className="size-4" name="palette" />
+                  Anschreiben im Design ansehen
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
 
         {savedMessage ? (

@@ -25,18 +25,18 @@ export const overviewRoute: WorkflowRoute = {
 export const cvWorkflowSteps: WorkflowRoute[] = [
   {
     href: "/import",
-    label: "Kandidat",
+    label: "Profil erstellen",
     step: "1",
-    title: "Erfahrung sammeln",
+    title: "Profil erstellen",
     dependency: "Start hier",
-    outcome: "Rohdaten gespeichert"
+    outcome: "Rohdaten extrahieren"
   },
   {
     href: "/profile",
     label: "Profile",
     step: "2",
     title: "Profil überprüfen",
-    dependency: "Erfordert Kandidatentext",
+    dependency: "Erfordert Rohdaten",
     outcome: "Verifizierte Profildaten"
   },
   {

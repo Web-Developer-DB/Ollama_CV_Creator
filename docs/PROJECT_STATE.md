@@ -92,6 +92,10 @@ Ad-hoc architecture and code-clean audit completed. Core modules, screens, servi
 
 Ad-hoc persistent LLM settings completed. AI Status now stores the selected model, inferred model kind, context window, and timeout in one combined browser-local settings record while preserving legacy selected-model/runtime keys. The renderer AI client reads this combined record before every LLM request, so profile extraction, job analysis, CV generation, and cover-letter generation reuse the last configured settings after an app restart until the user changes them.
 
+Ad-hoc document handoff UX completed. The Write Documents screen now gives CV and cover-letter drafts their own save and "open in design" actions, saves draft edits before navigating to the corresponding design preview, and the Design screen now exposes visible print/PDF actions for CV, cover letter, or both documents while printing only the A4 document pages.
+
+Ad-hoc profile-source naming completed. The former Candidate/Import entry is now presented to users as "Profil erstellen" with "Rohdaten extrahieren" navigation copy, German screen labels, and clearer wording that this step turns raw notes or existing documents into an editable profile.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -159,7 +163,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 199 tests
+- npm run test: passed, 202 tests
 - npm run build: passed
 - electron Ollama shutdown cleanup tests: passed
 - electron desktop storage tests: passed
@@ -191,3 +195,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 2026-06-02: Completed TASK-045 A4 CV Page Renderer and TASK-046 Modern CV Visual Components. CV previews now render as DIN A4 pages with source-backed contact data, section icons, timeline styling for experience/education, skill chips, two-page preview support, and print-oriented A4 CSS. Next recommended task is TASK-047 CV Template Design Pack, followed by TASK-048 One-Page / Two-Page Fit Logic.
 
 2026-06-03: Completed persistent LLM settings. Model selection, model kind, context-window preset, and timeout preset are now saved as a combined local settings object and automatically applied by all renderer AI requests after restarting the app.
+
+2026-06-03: Completed document handoff UX from editable drafts to design preview and browser print/PDF output. Draft sections now have document-specific save/design actions, `/templates?preview=...` opens the matching preview, and print CSS hides the app shell so only A4 pages are printed.
+
+2026-06-03: Renamed the visible candidate import step to "Profil erstellen" and updated the import screen copy around raw profile source data.

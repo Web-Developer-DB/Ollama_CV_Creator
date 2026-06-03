@@ -6,10 +6,19 @@ import { useProjectStore } from "@/stores/project-store";
 import type { ApplicationProject } from "@/types/project";
 import { DocumentsScreen } from "./DocumentsScreen";
 
+const router = vi.hoisted(() => ({
+  push: vi.fn()
+}));
+
 vi.mock("@/lib/api/ai-client", () => ({
   analyzeJob: vi.fn(),
   generateCoverLetter: vi.fn(),
   generateCv: vi.fn()
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/documents",
+  useRouter: () => router
 }));
 
 const { analyzeJob, generateCoverLetter, generateCv } = vi.mocked(
@@ -156,6 +165,7 @@ describe("DocumentsScreen", () => {
     analyzeJob.mockReset();
     generateCoverLetter.mockReset();
     generateCv.mockReset();
+    router.push.mockReset();
     useProjectStore.setState({
       projects: [projectWithDocuments],
       selectedProjectId: projectWithDocuments.id,
@@ -201,7 +211,9 @@ describe("DocumentsScreen", () => {
     await user.clear(coverLetterDraft);
     await user.type(coverLetterDraft, "Persisted cover letter draft.");
 
-    await user.click(screen.getByRole("button", { name: "Save documents" }));
+    await user.click(
+      screen.getByRole("button", { name: "CV-Entwurf speichern" })
+    );
 
     await waitFor(() => {
       const [project] = useProjectStore.getState().projects;
@@ -212,6 +224,27 @@ describe("DocumentsScreen", () => {
       expect(project.generatedDocuments?.coverLetter?.opening).toBe(
         "Persisted cover letter draft."
       );
+    });
+  });
+
+  it("saves the CV draft before opening the design preview", async () => {
+    const user = userEvent.setup();
+
+    render(<DocumentsScreen />);
+
+    const cvDraft = screen.getByLabelText("CV draft");
+    await user.clear(cvDraft);
+    await user.type(cvDraft, "Design-ready CV draft.");
+
+    await user.click(
+      screen.getByRole("button", { name: "CV im Design ansehen" })
+    );
+
+    await waitFor(() => {
+      expect(router.push).toHaveBeenCalledWith("/templates?preview=cv");
+      expect(
+        useProjectStore.getState().projects[0].generatedDocuments?.cv?.summary
+      ).toBe("Design-ready CV draft.");
     });
   });
 

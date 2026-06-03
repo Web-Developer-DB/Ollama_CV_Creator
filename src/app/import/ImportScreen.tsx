@@ -1,6 +1,6 @@
 "use client";
 
-// Screen for collecting raw candidate text and turning it into the first
+// Screen for collecting raw candidate material and turning it into the first
 // structured CandidateProfile through the AI extraction service.
 import { FormEvent, useState } from "react";
 import Link from "next/link";
@@ -135,21 +135,21 @@ const createProjectTitle = (
 };
 
 const extractionPhaseLabel: Record<ExtractionPhase, string> = {
-  idle: "Ready for candidate context",
-  saved: "Context saved",
-  checking_model: "Checking local model",
-  extracting_profile: "Model is structuring the profile",
-  profile_ready: "Structured profile ready",
-  error: "Action needed"
+  idle: "Bereit für Rohdaten",
+  saved: "Rohdaten gespeichert",
+  checking_model: "Lokales Modell wird geprüft",
+  extracting_profile: "Profil wird erstellt",
+  profile_ready: "Profil ist bereit",
+  error: "Aktion erforderlich"
 };
 
 const extractionPhaseDescription: Record<ExtractionPhase, string> = {
-  idle: "Paste CV notes, work history, education, skills, projects, certificates, or other candidate material.",
-  saved: "The raw candidate context is stored locally and can be extracted when the model is ready.",
-  checking_model: "Ollama readiness is being checked before profile extraction starts.",
-  extracting_profile: "The selected model is turning the unstructured context into editable profile data.",
-  profile_ready: "The structured candidate profile was saved and can be reviewed on the Profile page.",
-  error: "Resolve the message below, then run extraction again."
+  idle: "Füge Notizen, vorhandene Lebensläufe, LinkedIn-Text, Berufserfahrung, Ausbildung, Skills, Projekte oder Zertifikate ein.",
+  saved: "Die Rohdaten sind lokal gespeichert und können extrahiert werden, sobald das Modell bereit ist.",
+  checking_model: "Ollama wird geprüft, bevor die Profilerstellung startet.",
+  extracting_profile: "Das ausgewählte Modell erstellt aus den Rohdaten ein bearbeitbares Profil.",
+  profile_ready: "Das Profil wurde gespeichert und kann auf der Profilseite überprüft werden.",
+  error: "Behebe die Meldung unten und starte die Profilerstellung erneut."
 };
 
 export function ImportScreen() {
@@ -193,7 +193,7 @@ export function ImportScreen() {
       createdAt: now
     },
     candidateProfile,
-    // A new candidate context invalidates role analysis and generated drafts.
+    // A new profile source invalidates role analysis and generated drafts.
     // Keeping design settings is safe because templates are presentation only.
     designSettings: selectedProject?.designSettings,
     exportHistory: []
@@ -214,7 +214,7 @@ export function ImportScreen() {
     await replaceProject(project);
     setExtractError(undefined);
     setShowAiStatusLink(false);
-    setSavedMessage("Candidate context saved locally");
+    setSavedMessage("Rohdaten lokal gespeichert");
     setExtractionPhase("saved");
   };
 
@@ -222,7 +222,7 @@ export function ImportScreen() {
     const trimmedText = rawText.trim();
     if (!trimmedText) {
       setSavedMessage(undefined);
-      setExtractError("Candidate context is required");
+      setExtractError("Rohdaten sind erforderlich");
       setShowAiStatusLink(false);
       setExtractionPhase("error");
       return;
@@ -277,7 +277,7 @@ export function ImportScreen() {
       };
 
       await replaceProject(project);
-      setSavedMessage("Profile extracted and saved locally");
+      setSavedMessage("Profil erstellt und lokal gespeichert");
       setShowAiStatusLink(false);
       setExtractionPhase("profile_ready");
     } catch (extractProfileError) {
@@ -307,26 +307,26 @@ export function ImportScreen() {
   return (
     <AppShell
       metrics={[
-        { label: "Project status", value: "Candidate intake" },
-        { label: "Next step", value: "Extract profile" },
-        { label: "Storage", value: "Local first" }
+        { label: "Projektstatus", value: "Profil erstellen" },
+        { label: "Nächster Schritt", value: "Profil prüfen" },
+        { label: "Speicher", value: "Lokal" }
       ]}
-      title="Candidate Intake"
+      title="Profil erstellen"
     >
       <form className="grid gap-6" onSubmit={handleSubmit}>
         <Panel
           actions={
             <Button onClick={handleResetDemoContext} variant="secondary">
-              Load demo
+              Demo laden
             </Button>
           }
-          description="Unstructured candidate material becomes an editable profile dataset for CV and cover letter generation. Role tailoring stays separate."
-          title="Candidate context"
+          description="Füge Rohdaten, Notizen oder vorhandene Unterlagen ein. Daraus wird ein bearbeitbares Profil für CV und Anschreiben erstellt."
+          title="Rohdaten für das Profil"
         >
           <div className="mb-5 grid grid-cols-[minmax(0,1fr)_260px] gap-4 border-b border-slate-200 pb-5">
             <div>
               <p className="text-sm font-semibold text-slate-950">
-                Candidate profile extraction
+                Profilerstellung aus Rohdaten
               </p>
               <p className="mt-1 text-sm leading-6 text-slate-600">
                 {extractionPhaseDescription[extractionPhase]}
@@ -343,7 +343,7 @@ export function ImportScreen() {
               }`}
             >
               <p className="text-xs font-semibold uppercase text-slate-500">
-                Extraction status
+                Status
               </p>
               <p className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-slate-950">
                 {isExtracting ? (
@@ -356,7 +356,7 @@ export function ImportScreen() {
 
           <div className="grid grid-cols-2 gap-4">
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Language
+              Sprache
               <select
                 className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
@@ -370,7 +370,7 @@ export function ImportScreen() {
             </label>
 
             <label className="grid gap-2 text-sm font-medium text-slate-700">
-              Source
+              Quelle
               <select
                 className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-action"
                 onChange={(event) =>
@@ -378,16 +378,16 @@ export function ImportScreen() {
                 }
                 value={sourceType}
               >
-                <option value="manual_text">Candidate notes</option>
-                <option value="old_cv">Existing CV</option>
-                <option value="linkedin_text">LinkedIn profile</option>
-                <option value="project_notes">Project notes</option>
+                <option value="manual_text">Notizen</option>
+                <option value="old_cv">Vorhandener Lebenslauf</option>
+                <option value="linkedin_text">LinkedIn-Profil</option>
+                <option value="project_notes">Projektunterlagen</option>
               </select>
             </label>
           </div>
 
           <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">
-            Candidate context
+            Rohdaten
             <textarea
               className="min-h-96 resize-none rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-action"
               onChange={(event) => setRawText(event.target.value)}
@@ -397,11 +397,11 @@ export function ImportScreen() {
 
           <div className="mt-5 flex flex-row items-center justify-between gap-3 border-t border-slate-200 pt-4">
             <p className="text-sm leading-6 text-slate-600">
-              Output: candidate profile for CV and cover letter generation.
+              Ergebnis: bearbeitbares Profil für CV und Anschreiben.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button disabled={actionDisabled} type="submit" variant="secondary">
-                Save context
+                Rohdaten speichern
               </Button>
               <Button
                 disabled={actionDisabled}
@@ -411,10 +411,10 @@ export function ImportScreen() {
                 {isExtracting ? (
                   <span className="inline-flex items-center gap-2">
                     <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                    Extracting
+                    Wird erstellt
                   </span>
                 ) : (
-                  "Extract profile"
+                  "Profil erstellen"
                 )}
               </Button>
             </div>
@@ -430,7 +430,7 @@ export function ImportScreen() {
               className="mt-3 inline-flex text-sm font-semibold text-action underline underline-offset-4"
               href="/profile"
             >
-              Open Profile
+              Profil prüfen
             </Link>
           ) : null}
           {extractError ? (

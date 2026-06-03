@@ -5,6 +5,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { Icon } from "@/components/ui/Icon";
 import {
   DocumentTemplate,
   type DocumentPreviewMode,
@@ -91,6 +92,21 @@ const createId = (): string => {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
+const isPreviewMode = (value: string | null): value is DocumentPreviewMode =>
+  value === "both" || value === "cv" || value === "cover_letter";
+
+const readInitialPreviewMode = (): DocumentPreviewMode => {
+  if (typeof window === "undefined") {
+    return "both";
+  }
+
+  const requestedPreviewMode = new URLSearchParams(window.location.search).get(
+    "preview"
+  );
+
+  return isPreviewMode(requestedPreviewMode) ? requestedPreviewMode : "both";
+};
+
 function TemplateMiniPreview({
   template,
   selected
@@ -131,11 +147,15 @@ export function TemplatesScreen() {
     selectedProject?.generatedDocuments?.cv ||
       selectedProject?.generatedDocuments?.coverLetter
   );
+  const hasCvDocument = Boolean(selectedProject?.generatedDocuments?.cv);
+  const hasCoverLetterDocument = Boolean(
+    selectedProject?.generatedDocuments?.coverLetter
+  );
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateStyle>(
     selectedProject?.designSettings?.template ?? "modern"
   );
   const [previewMode, setPreviewMode] =
-    useState<DocumentPreviewMode>("both");
+    useState<DocumentPreviewMode>(() => readInitialPreviewMode());
   const [selectedCategory, setSelectedCategory] =
     useState<TemplateCategoryFilter>("all");
   const [savedMessage, setSavedMessage] = useState<string | undefined>();
@@ -171,6 +191,18 @@ export function TemplatesScreen() {
 
     await saveProject(project);
     setSavedMessage("Template saved locally");
+  };
+
+  const handlePrint = (mode: DocumentPreviewMode) => {
+    setPreviewMode(mode);
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      window.print();
+    });
   };
 
   return (
@@ -257,7 +289,7 @@ export function TemplatesScreen() {
             })}
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap gap-2" data-print-hidden>
             {previewModes.map((mode) => {
               const isSelected = mode.id === previewMode;
 
@@ -279,7 +311,51 @@ export function TemplatesScreen() {
             })}
           </div>
 
-          <div className="mt-4 flex flex-row items-center justify-between gap-3">
+          {hasGeneratedDocuments ? (
+            <div
+              className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
+              data-print-hidden
+            >
+              <p className="text-sm leading-6 text-slate-600">
+                Drucke die aktuelle A4-Vorschau oder speichere sie im
+                Druckdialog als PDF.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
+                  disabled={!hasCvDocument}
+                  onClick={() => handlePrint("cv")}
+                  type="button"
+                >
+                  <Icon className="size-4" name="download" />
+                  CV als PDF drucken
+                </button>
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:border-slate-400 disabled:cursor-not-allowed disabled:text-slate-400"
+                  disabled={!hasCoverLetterDocument}
+                  onClick={() => handlePrint("cover_letter")}
+                  type="button"
+                >
+                  <Icon className="size-4" name="download" />
+                  Anschreiben drucken
+                </button>
+                <button
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-action px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                  disabled={!hasGeneratedDocuments}
+                  onClick={() => handlePrint("both")}
+                  type="button"
+                >
+                  <Icon className="size-4" name="file" />
+                  Alles drucken
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <div
+            className="mt-4 flex flex-row items-center justify-between gap-3"
+            data-print-hidden
+          >
             <p className="text-sm text-slate-600">
               Selection is stored with the current local project.
             </p>
@@ -306,12 +382,14 @@ export function TemplatesScreen() {
         </section>
 
         {hasGeneratedDocuments ? (
-          <DocumentTemplate
-            coverLetter={selectedProject?.generatedDocuments?.coverLetter}
-            cv={selectedProject?.generatedDocuments?.cv}
-            previewMode={previewMode}
-            template={selectedTemplate}
-          />
+          <div data-print-root>
+            <DocumentTemplate
+              coverLetter={selectedProject?.generatedDocuments?.coverLetter}
+              cv={selectedProject?.generatedDocuments?.cv}
+              previewMode={previewMode}
+              template={selectedTemplate}
+            />
+          </div>
         ) : (
           <section className="rounded-lg border border-blue-200 bg-blue-50 p-5 shadow-panel">
             <p className="text-xs font-semibold uppercase text-blue-700">
