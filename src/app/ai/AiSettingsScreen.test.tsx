@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { llmSettingsStorageKey } from "@/lib/ai/llm-settings";
 import { selectedModelStorageKey } from "@/lib/ai/selected-model";
 import { runtimeSettingsStorageKey } from "@/lib/ai/runtime-settings";
 import { AiSettingsScreen } from "./AiSettingsScreen";
@@ -271,10 +272,49 @@ describe("AiSettingsScreen", () => {
 
     expect(screen.getByText("Lange Profile")).toBeInTheDocument();
     expect(screen.getByText("5 Minuten")).toBeInTheDocument();
-    expect(JSON.parse(window.localStorage.getItem(runtimeSettingsStorageKey)!)).toEqual({
+    expect(
+      JSON.parse(window.localStorage.getItem(runtimeSettingsStorageKey)!)
+    ).toEqual({
       contextWindow: 16384,
       timeoutMs: 300000
     });
+    expect(
+      JSON.parse(window.localStorage.getItem(llmSettingsStorageKey)!)
+    ).toMatchObject({
+      model: "qwen3.5:4b",
+      modelKind: "local",
+      runtime: {
+        contextWindow: 16384,
+        timeoutMs: 300000
+      }
+    });
+  });
+
+  it("hydrates the last selected LLM settings after reopening the screen", async () => {
+    window.localStorage.setItem(
+      llmSettingsStorageKey,
+      JSON.stringify({
+        model: "llama3.2:3b",
+        modelKind: "local",
+        runtime: {
+          contextWindow: 32768,
+          timeoutMs: 600000
+        },
+        updatedAt: "2026-06-03T10:00:00.000Z"
+      })
+    );
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(reachableStatus), { status: 200 })
+    );
+
+    render(<AiSettingsScreen />);
+
+    expect(
+      await screen.findByText("Selected model not loaded")
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Model")).toHaveValue("llama3.2:3b");
+    expect(screen.getByLabelText("Context window")).toHaveValue("32768");
+    expect(screen.getByLabelText("AI timeout")).toHaveValue("600000");
   });
 
   it("marks cloud models when selected through local Ollama", async () => {
@@ -291,8 +331,8 @@ describe("AiSettingsScreen", () => {
     expect(screen.getByText(/Cloud model via local Ollama/)).toBeInTheDocument();
   });
 
-  it("stores the loaded model when local selection is stale", async () => {
-    window.localStorage.setItem(selectedModelStorageKey, "qwen3.5:4b");
+  it("stores the loaded model when the saved selection is unavailable", async () => {
+    window.localStorage.setItem(selectedModelStorageKey, "missing-model:latest");
     global.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(reachableWithDifferentLoadedModelStatus), {
         status: 200
@@ -306,6 +346,12 @@ describe("AiSettingsScreen", () => {
     expect(window.localStorage.getItem(selectedModelStorageKey)).toBe(
       "llama3.2:3b"
     );
+    expect(
+      JSON.parse(window.localStorage.getItem(llmSettingsStorageKey)!)
+    ).toMatchObject({
+      model: "llama3.2:3b",
+      modelKind: "local"
+    });
   });
 
   it("does not show connected when Ollama is reachable but no model is loaded", async () => {

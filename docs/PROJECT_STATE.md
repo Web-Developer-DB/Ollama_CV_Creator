@@ -90,6 +90,8 @@ TASK-044 completed. CV and cover letter prompts now explicitly define the candid
 
 Ad-hoc architecture and code-clean audit completed. Core modules, screens, services, storage adapters, Electron bridge files, prompt builders, schemas, and canonical type files now have concise English module-boundary comments. Document draft conversion was extracted from `DocumentsScreen.tsx` into `document-drafts.ts`, and `docs/architecture/CODE_AGENT_MAP.md` now gives code agents a structured map of project flows, module responsibilities, rules, and common change paths.
 
+Ad-hoc persistent LLM settings completed. AI Status now stores the selected model, inferred model kind, context window, and timeout in one combined browser-local settings record while preserving legacy selected-model/runtime keys. The renderer AI client reads this combined record before every LLM request, so profile extraction, job analysis, CV generation, and cover-letter generation reuse the last configured settings after an app restart until the user changes them.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -157,7 +159,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 184 tests
+- npm run test: passed, 199 tests
 - npm run build: passed
 - electron Ollama shutdown cleanup tests: passed
 - electron desktop storage tests: passed
@@ -187,3 +189,5 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 2026-06-02: Started TASK-045 A4 CV Page Renderer and TASK-046 Modern CV Visual Components. Follow-up document-design tasks are recorded as TASK-047 CV Template Design Pack, TASK-048 One-Page / Two-Page Fit Logic, and TASK-049 Print-Perfect Preview and Export.
 
 2026-06-02: Completed TASK-045 A4 CV Page Renderer and TASK-046 Modern CV Visual Components. CV previews now render as DIN A4 pages with source-backed contact data, section icons, timeline styling for experience/education, skill chips, two-page preview support, and print-oriented A4 CSS. Next recommended task is TASK-047 CV Template Design Pack, followed by TASK-048 One-Page / Two-Page Fit Logic.
+
+2026-06-03: Completed persistent LLM settings. Model selection, model kind, context-window preset, and timeout preset are now saved as a combined local settings object and automatically applied by all renderer AI requests after restarting the app.

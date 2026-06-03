@@ -4,11 +4,14 @@
 // presets. The selected model/runtime is injected into all AI client requests.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { readStoredModel, storeSelectedModel } from "@/lib/ai/selected-model";
+import {
+  inferLlmModelKind,
+  readStoredLlmSettings,
+  storeSelectedLlmModel,
+  updateStoredLlmSettings
+} from "@/lib/ai/llm-settings";
 import {
   contextWindowPresets,
-  readStoredRuntimeSettings,
-  storeRuntimeSettings,
   timeoutPresets
 } from "@/lib/ai/runtime-settings";
 import { controlAiModel, getAiStatus } from "@/lib/api/ai-client";
@@ -52,12 +55,19 @@ const formatLoadedUntil = (value: string | undefined): string => {
     : date.toLocaleString();
 };
 
-const pickSelectedModel = (status: OllamaStatus): string => {
-  const storedModel = readStoredModel();
+const pickSelectedModel = (
+  status: OllamaStatus,
+  storedModel: string | undefined
+): string => {
   const modelNames = new Set(status.models.map((model) => model.name));
-  const loadedModelNames = new Set(status.loadedModels.map((model) => model.name));
+  const loadedModelNames = new Set(
+    status.loadedModels.map((model) => model.name)
+  );
 
-  if (storedModel && loadedModelNames.has(storedModel)) {
+  if (
+    storedModel &&
+    (modelNames.has(storedModel) || loadedModelNames.has(storedModel))
+  ) {
     return storedModel;
   }
 
@@ -82,16 +92,15 @@ const pickSelectedModel = (status: OllamaStatus): string => {
 };
 
 export function AiSettingsScreen() {
+  const [llmSettings, setLlmSettings] = useState(() => readStoredLlmSettings());
   const [status, setStatus] = useState<OllamaStatus>();
-  const [selectedModel, setSelectedModel] = useState("");
-  const [runtimeSettings, setRuntimeSettings] = useState(() =>
-    readStoredRuntimeSettings()
-  );
   const [isChecking, setIsChecking] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [requestError, setRequestError] = useState<string>();
   const [controlAction, setControlAction] = useState<ModelControlAction>();
   const [controlMessage, setControlMessage] = useState<string>();
+  const selectedModel = llmSettings.model ?? "";
+  const runtimeSettings = llmSettings.runtime;
 
   const refreshStatus = useCallback(async () => {
     setIsChecking(true);
@@ -104,12 +113,19 @@ export function AiSettingsScreen() {
         throw new Error(payload.error?.message ?? "Status check failed");
       }
 
-      const nextSelectedModel = pickSelectedModel(payload.data);
+      const storedSettings = readStoredLlmSettings();
+      const nextSelectedModel =
+        pickSelectedModel(payload.data, storedSettings.model) ||
+        storedSettings.model ||
+        "";
 
       setStatus(payload.data);
-      setSelectedModel(nextSelectedModel);
       if (nextSelectedModel) {
-        storeSelectedModel(nextSelectedModel);
+        setLlmSettings(
+          storeSelectedLlmModel(nextSelectedModel, {
+            baseUrl: payload.data.baseUrl
+          })
+        );
       }
       setIsConnected(payload.data.reachable);
     } catch (error) {
@@ -160,30 +176,34 @@ export function AiSettingsScreen() {
   const selectedTimeoutPreset = timeoutPresets.find(
     (preset) => preset.value === runtimeSettings.timeoutMs
   );
-  const isCloudModel =
-    /(?:^|[:_-])cloud(?:$|[:_-])/.test(selectedModel) ||
-    Boolean(status?.baseUrl.includes("ollama.com"));
+  const modelKind = inferLlmModelKind(selectedModel, status?.baseUrl);
+  const isCloudModel = modelKind === "cloud";
 
   const handleSelectModel = (model: string) => {
-    setSelectedModel(model);
-    storeSelectedModel(model);
+    setLlmSettings(storeSelectedLlmModel(model, { baseUrl: status?.baseUrl }));
     setControlMessage(undefined);
   };
 
   const handleContextWindowChange = (value: string) => {
-    setRuntimeSettings(
-      storeRuntimeSettings({
-        ...runtimeSettings,
-        contextWindow: Number(value)
+    setLlmSettings(
+      updateStoredLlmSettings({
+        model: selectedModel,
+        modelKind,
+        runtime: {
+          contextWindow: Number(value)
+        }
       })
     );
   };
 
   const handleTimeoutChange = (value: string) => {
-    setRuntimeSettings(
-      storeRuntimeSettings({
-        ...runtimeSettings,
-        timeoutMs: Number(value)
+    setLlmSettings(
+      updateStoredLlmSettings({
+        model: selectedModel,
+        modelKind,
+        runtime: {
+          timeoutMs: Number(value)
+        }
       })
     );
   };
@@ -424,6 +444,9 @@ export function AiSettingsScreen() {
               default for cloud models.
             </p>
           ) : null}
+          <p className="mt-5 text-sm text-slate-500">
+            Changes are saved locally and reused after restarting the app.
+          </p>
         </section>
 
         <section className="rounded-md border border-slate-200 bg-white p-5">

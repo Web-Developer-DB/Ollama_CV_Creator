@@ -63,6 +63,8 @@ Low-level Ollama and prompt infrastructure.
 - `ollama-client.ts`: generation calls, timeouts, streaming aggregation, JSON extraction.
 - `ollama-readiness.ts`: checks host reachability and selected/loaded model state.
 - `ollama-http.ts`: local/cloud host header handling.
+- `llm-settings.ts`: combined browser-local LLM settings record for selected model,
+  model kind, context window, timeout, and legacy key synchronization.
 - `runtime-settings.ts`: browser-local context-window and timeout presets.
 - `selected-model.ts`: browser-local selected model key.
 - `prompts/*`: prompt builders. They must repeat no-invention boundaries close to the model call.
@@ -231,5 +233,6 @@ Candidate import
   `src/types/electron.d.ts`, and storage tests.
 
 - Change model/runtime behavior:
-  update `src/lib/ai/*`, `src/lib/services/ai/ollama-status-service.ts`, and
+  update `src/lib/ai/llm-settings.ts`, `src/lib/api/ai-client.ts`,
+  `src/lib/services/ai/ollama-status-service.ts`, and
   `src/app/ai/AiSettingsScreen.tsx`.

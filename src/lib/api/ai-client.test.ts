@@ -5,6 +5,7 @@ import {
   getAiStatus
 } from "@/lib/api/ai-client";
 import { defaultRuntimeSettings } from "@/lib/ai/runtime-settings";
+import { llmSettingsStorageKey } from "@/lib/ai/llm-settings";
 import type { DesktopApi } from "@/types/electron";
 import type { OllamaStatus } from "@/types/api";
 
@@ -133,6 +134,60 @@ describe("AI client", () => {
       runtime: defaultRuntimeSettings
     });
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("adds the persisted model and runtime settings to AI requests", async () => {
+    window.localStorage.setItem(
+      llmSettingsStorageKey,
+      JSON.stringify({
+        model: "gpt-oss:120b",
+        modelKind: "cloud",
+        runtime: {
+          contextWindow: 32768,
+          timeoutMs: 600000
+        }
+      })
+    );
+    const request = {
+      text: "Candidate notes",
+      language: "en" as const
+    };
+    const profileResponse = {
+      success: true,
+      data: {
+        personalInfo: {},
+        experiences: [],
+        education: [],
+        skills: {
+          technical: [],
+          soft: [],
+          tools: [],
+          languages: [],
+          methods: []
+        },
+        projects: [],
+        languages: [],
+        certificates: []
+      }
+    };
+    const extractProfileMock = vi.fn().mockResolvedValue(profileResponse);
+    window.desktopApi = createDesktopApi({
+      ai: {
+        extractProfile: extractProfileMock
+      }
+    });
+    global.fetch = vi.fn();
+
+    await expect(extractProfile(request)).resolves.toEqual(profileResponse);
+
+    expect(extractProfileMock).toHaveBeenCalledWith({
+      ...request,
+      model: "gpt-oss:120b",
+      runtime: {
+        contextWindow: 32768,
+        timeoutMs: 600000
+      }
+    });
   });
 
   it("returns a readable API error when a response body is not JSON", async () => {

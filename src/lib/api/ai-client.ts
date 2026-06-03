@@ -16,8 +16,7 @@ import type {
   ModelControlResponse,
   OllamaStatus
 } from "@/types/api";
-import { readStoredModel } from "@/lib/ai/selected-model";
-import { readStoredRuntimeSettings } from "@/lib/ai/runtime-settings";
+import { readStoredLlmSettings } from "@/lib/ai/llm-settings";
 
 const desktopApi = () =>
   typeof window === "undefined" ? undefined : window.desktopApi;
@@ -103,7 +102,7 @@ export const getAiStatus = async (
   model?: string
 ): Promise<ApiResponse<OllamaStatus>> => {
   const api = desktopApi();
-  const selectedModel = model?.trim() || readStoredModel();
+  const selectedModel = model?.trim() || readStoredLlmSettings().model;
 
   if (api?.ai) {
     return api.ai.status(selectedModel ? { model: selectedModel } : undefined);
@@ -124,8 +123,9 @@ const withAiDefaults = <
 >(
   request: TRequest
 ): TRequest => {
-  const selectedModel = request.model?.trim() || readStoredModel();
-  const runtime = request.runtime ?? readStoredRuntimeSettings();
+  const storedSettings = readStoredLlmSettings();
+  const selectedModel = request.model?.trim() || storedSettings.model;
+  const runtime = request.runtime ?? storedSettings.runtime;
 
   return {
     ...request,
