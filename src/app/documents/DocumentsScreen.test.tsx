@@ -272,7 +272,9 @@ describe("DocumentsScreen", () => {
         style: "modern"
       }
     });
-    expect(screen.getByLabelText("CV draft")).toHaveValue("Generated CV summary.\n\nGenerated CV summary.");
+    expect(screen.getByLabelText("CV draft")).toHaveValue(
+      "Generated CV summary."
+    );
   });
 
   it("shows generation API errors next to the document actions", async () => {

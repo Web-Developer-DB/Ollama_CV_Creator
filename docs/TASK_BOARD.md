@@ -66,6 +66,7 @@ _None_
 - TASK-044: Prompt Rewrite for No-Invention Document Generation
 - TASK-045: A4 CV Page Renderer
 - TASK-046: Modern CV Visual Components
+- TASK-050: Delete Current Profile Project
 
 ## BLOCKED
 

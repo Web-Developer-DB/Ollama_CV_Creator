@@ -448,3 +448,21 @@ Requirements:
 - print stylesheet and page sizing
 - desktop PDF export uses the shared document renderer
 - visual smoke checks for page boundaries and overflow
+
+## TASK-050: Delete Current Profile Project
+
+Goal:
+Let the user delete the current single-user profile project when they want to
+start over.
+
+Requirements:
+- profile page shows a clearly separated danger area
+- deletion requires an explicit confirmation step
+- confirmed deletion removes the active local project, including raw input,
+  profile, target role, generated documents, design settings, and export history
+- after deletion the app returns to the profile creation screen
+
+Acceptance:
+- canceling the confirmation keeps the project unchanged
+- confirming deletion clears the selected project from the store
+- navigation continues to `/import`

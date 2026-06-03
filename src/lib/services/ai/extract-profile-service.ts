@@ -12,6 +12,7 @@ import {
 } from "@/lib/services/api-response";
 import { resolveContextWindow } from "@/lib/services/ai/context-window";
 import { normalizeCandidateProfileOutput } from "@/lib/services/ai/profile-normalization";
+import { normalizeCandidateProfileStructure } from "@/lib/profile/profile-structure";
 import { candidateProfileSchema } from "@/lib/validation/schemas";
 import type {
   AiRuntimeOptions,
@@ -728,14 +729,26 @@ const createOllamaOptions = (
   timeoutMs: runtime?.timeoutMs ?? EXTRACTION_TIMEOUT_MS
 });
 
-const parseAiProfile = (aiProfile: unknown) =>
-  candidateProfileSchema.safeParse(normalizeCandidateProfileOutput(aiProfile));
+const parseAiProfile = (aiProfile: unknown, sourceText: string) => {
+  const parsedProfile = candidateProfileSchema.safeParse(
+    normalizeCandidateProfileOutput(aiProfile)
+  );
+
+  return parsedProfile.success
+    ? candidateProfileSchema.safeParse(
+        normalizeCandidateProfileStructure(parsedProfile.data, sourceText)
+      )
+    : parsedProfile;
+};
 
 const backfillValidatedProfile = (
   profile: CandidateProfile,
   text: string
 ): CandidateProfile | undefined => {
-  const backfilledProfile = backfillProfileFromText(profile, text);
+  const backfilledProfile = normalizeCandidateProfileStructure(
+    backfillProfileFromText(profile, text),
+    text
+  );
   const parsedBackfilledProfile = candidateProfileSchema.safeParse(backfilledProfile);
 
   return parsedBackfilledProfile.success
@@ -803,7 +816,7 @@ export const extractProfile = async (
     );
     // The normalizer accepts common local/cloud model aliases before the Zod
     // schema checks the canonical CandidateProfile shape.
-    let parsedProfile = parseAiProfile(aiProfile);
+    let parsedProfile = parseAiProfile(aiProfile, request.text);
     let profile = parsedProfile.success
       ? backfillValidatedProfile(parsedProfile.data, request.text)
       : undefined;
@@ -837,7 +850,7 @@ export const extractProfile = async (
         generationOptions
       );
 
-      parsedProfile = parseAiProfile(recoveryAiProfile);
+      parsedProfile = parseAiProfile(recoveryAiProfile, request.text);
       profile = parsedProfile.success
         ? backfillValidatedProfile(parsedProfile.data, request.text)
         : undefined;

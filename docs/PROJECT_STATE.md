@@ -96,6 +96,12 @@ Ad-hoc document handoff UX completed. The Write Documents screen now gives CV an
 
 Ad-hoc profile-source naming completed. The former Candidate/Import entry is now presented to users as "Profil erstellen" with "Rohdaten extrahieren" navigation copy, German screen labels, and clearer wording that this step turns raw notes or existing documents into an editable profile.
 
+TASK-050 completed. The profile page now has a clearly separated danger area for deleting the current profile project. Deletion requires an explicit confirmation, removes the active local project through the project store, and routes the user back to "Profil erstellen" so they can start over.
+
+Ad-hoc profile experience ordering fix completed. Profile extraction and the profile review screen now apply source-backed structure repair for ordered work-experience and education blocks, including empty-string LLM fields, headings placed inside responsibilities, company-first headings, and `Technologies:` lines.
+
+Ad-hoc CV draft summary fix completed. Saving or opening a CV draft in the design preview now stores only the first CV draft paragraph as `cv.summary` and no longer places the entire editable draft into the rendered Profile box.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -163,7 +169,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 202 tests
+- npm run test: passed, 213 tests
 - npm run build: passed
 - electron Ollama shutdown cleanup tests: passed
 - electron desktop storage tests: passed
@@ -199,3 +205,9 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 2026-06-03: Completed document handoff UX from editable drafts to design preview and browser print/PDF output. Draft sections now have document-specific save/design actions, `/templates?preview=...` opens the matching preview, and print CSS hides the app shell so only A4 pages are printed.
 
 2026-06-03: Renamed the visible candidate import step to "Profil erstellen" and updated the import screen copy around raw profile source data.
+
+2026-06-03: Completed TASK-050 Delete Current Profile Project with confirmation, full active-project removal, and redirect to `/import`.
+
+2026-06-03: Completed source-backed experience ordering repair so incomplete extracted experience cards are filled from the saved raw profile text while preserving already extracted responsibility details.
+
+2026-06-03: Fixed CV draft persistence so the design preview keeps the Profile box short instead of rendering the full CV draft as summary text.

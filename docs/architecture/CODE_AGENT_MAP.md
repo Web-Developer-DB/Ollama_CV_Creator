@@ -38,11 +38,11 @@ Route screens and thin API adapters.
 
 - `src/app/shell.tsx`: dashboard shell and reusable placeholder frame.
 - `src/app/import/ImportScreen.tsx`: "Profil erstellen" screen for raw profile source data and profile extraction.
-- `src/app/profile/ProfileScreen.tsx`: profile review and correction before documents are generated.
+- `src/app/profile/ProfileScreen.tsx`: profile review/correction before documents are generated, applies source-backed profile structure repair on load, plus current project deletion.
 - `src/app/job/JobScreen.tsx`: optional target-role context.
 - `src/app/analysis/AnalysisScreen.tsx`: read-only view of saved job analysis.
 - `src/app/documents/DocumentsScreen.tsx`: document generation workflow, warnings, text editing, save actions, and design-preview handoff.
-- `src/app/documents/document-drafts.ts`: pure helpers for converting structured documents to editable drafts and back.
+- `src/app/documents/document-drafts.ts`: pure helpers for converting structured documents to editable drafts and back; keep CV summary separate from the rest of the draft text.
 - `src/app/templates/TemplatesScreen.tsx`: template selection and live preview.
 - `src/app/ai/AiSettingsScreen.tsx`: Ollama status, selected model, context window, and timeout presets.
 - `src/app/api/ai/*/route.ts`: thin HTTP adapters. They should not contain business logic.
@@ -76,6 +76,7 @@ Framework-independent AI service layer. This is where business logic belongs.
 - `extract-profile-service.ts`: raw text -> `CandidateProfile`.
 - `context-window.ts`: automatic Ollama context-window estimation per request.
 - `profile-normalization.ts`: tolerant LLM profile output normalization.
+- `src/lib/profile/profile-structure.ts`: source-backed repair for ordered work and education blocks when an LLM placed headings into free-text fields or returned empty strings.
 - `analyze-job-service.ts`: job description -> tailoring guidance.
 - `generate-cv-service.ts`: profile -> generated CV with validation and warnings.
 - `generate-cover-letter-service.ts`: profile -> generated cover letter with validation and warnings.

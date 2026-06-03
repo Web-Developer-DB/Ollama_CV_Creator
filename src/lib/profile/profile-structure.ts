@@ -4,15 +4,31 @@ import type { CandidateProfile, Education, WorkExperience } from "@/types/profil
 // free-text detail fields. It only moves facts already present in the source.
 const lineBreakPattern = /\r?\n/;
 const dateRangePattern =
-  /^(\d{4})\s*[-–]\s*(\d{4}|present|current|heute|aktuell)\s*:?\s*(.+)$/i;
+  /^(\d{4})\s*(?:[-–—]|bis|to)\s*(\d{4}|present|current|heute|aktuell|now|ongoing|laufend)\s*:?\s*(.+)$/i;
+const companyCuePattern =
+  /\b(GmbH|AG|KG|UG|mbH|SE|e\.V\.|LLC|Ltd|Inc|Corp|Company|Solutions|Systems|Studio|Academy|Logistics|Health|Tech)\b/i;
 
 const hasText = (value: string | undefined): value is string =>
   typeof value === "string" && value.trim().length > 0;
+
+const firstText = (
+  current: string | undefined,
+  fallback: string | undefined
+): string | undefined => (hasText(current) ? current.trim() : fallback);
+
+const hasTextList = (items: string[] | undefined): boolean =>
+  items?.some(hasText) ?? false;
 
 const splitLines = (values: Array<string | undefined>): string[] =>
   values
     .flatMap((value) => value?.split(lineBreakPattern) ?? [])
     .map((line) => line.trim().replace(/^[-•]\s*/, ""))
+    .filter(Boolean);
+
+const splitList = (value: string): string[] =>
+  value
+    .split(/[,;\n•]+/)
+    .map((item) => item.trim())
     .filter(Boolean);
 
 const normalizeHeading = (value: string): string =>
@@ -49,13 +65,49 @@ const extractSectionLines = (text: string, headings: string[]): string[] => {
   return sectionLines;
 };
 
+const isLikelyCompany = (value: string | undefined): boolean =>
+  Boolean(value && companyCuePattern.test(value));
+
+const splitStructuredParts = (value: string): string[] => {
+  const commaOrPipeParts = value
+    .split(/[,|]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (commaOrPipeParts.length > 1) {
+    return commaOrPipeParts;
+  }
+
+  return value
+    .split(/\s+-\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+};
+
 const parseRoleCompanyLocation = (
   value: string
 ): Pick<WorkExperience, "role" | "company" | "location"> => {
-  const parts = value
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
+  const roleAtCompany = value.match(
+    /^(.+?)\s+(?:at|bei)\s+(.+?)(?:,\s*(.+))?$/i
+  );
+
+  if (roleAtCompany) {
+    return {
+      role: roleAtCompany[1].trim(),
+      company: roleAtCompany[2].trim(),
+      location: roleAtCompany[3]?.trim()
+    };
+  }
+
+  const parts = splitStructuredParts(value);
+
+  if (parts.length >= 2 && isLikelyCompany(parts[0]) && !isLikelyCompany(parts[1])) {
+    return {
+      company: parts[0],
+      role: parts[1],
+      location: parts.slice(2).join(", ") || undefined
+    };
+  }
 
   return {
     role: parts[0],
@@ -94,7 +146,8 @@ const parseEducationContent = (
 
 const isLikelyLocation = (value: string): boolean =>
   /^[A-ZÄÖÜ][A-Za-zÄÖÜäöüß .-]{2,40}$/.test(value) &&
-  !/(reife|abschluss|bachelor|master|diplom|abitur|schwerpunkt|degree)/i.test(
+  value.split(/\s+/).length <= 3 &&
+  !/(reife|abschluss|bachelor|master|diplom|abitur|schwerpunkt|degree|engineering|interaction|mathematics|mathematik|english|computer|science|course|module|project|advanced|web)/i.test(
     value
   );
 
@@ -156,12 +209,6 @@ const parseEducationDetailLines = (
       continue;
     }
 
-    if (!result.degree) {
-      result.degree = line;
-      consumedIndexes.add(index);
-      continue;
-    }
-
     if (!result.field && /^Schwerpunkt\s+/i.test(line)) {
       result.field = line.replace(/^Schwerpunkt\s*/i, "").trim();
       consumedIndexes.add(index);
@@ -183,12 +230,12 @@ const normalizeEducationEntry = (education: Education): Education => {
 
   return {
     ...education,
-    institution: education.institution ?? parsed.institution,
-    degree: education.degree ?? parsed.degree,
-    field: education.field ?? parsed.field,
-    location: education.location ?? parsed.location,
-    startDate: education.startDate ?? parsed.startDate,
-    endDate: education.endDate ?? parsed.endDate,
+    institution: firstText(education.institution, parsed.institution),
+    degree: firstText(education.degree, parsed.degree),
+    field: firstText(education.field, parsed.field),
+    location: firstText(education.location, parsed.location),
+    startDate: firstText(education.startDate, parsed.startDate),
+    endDate: firstText(education.endDate, parsed.endDate),
     details: remainingDetails.length > 0 ? remainingDetails : []
   };
 };
@@ -205,6 +252,9 @@ const parseExperienceDetailLines = (
     const company = line.match(/^(?:Company|Unternehmen|Arbeitgeber):\s*(.+)$/i);
     const location = line.match(/^(?:Location|Ort):\s*(.+)$/i);
     const description = line.match(/^(?:Description|Beschreibung):\s*(.+)$/i);
+    const technologies = line.match(
+      /^(?:Technologies|Technologien|Tech Stack|Tools):\s*(.+)$/i
+    );
 
     if (dateMatch) {
       result.startDate = result.startDate ?? dateMatch[1];
@@ -235,6 +285,12 @@ const parseExperienceDetailLines = (
     if (description && !result.description) {
       result.description = description[1].trim();
       consumedIndexes.add(index);
+      continue;
+    }
+
+    if (technologies && !hasTextList(result.technologies)) {
+      result.technologies = splitList(technologies[1]);
+      consumedIndexes.add(index);
     }
   }
 
@@ -256,22 +312,25 @@ const normalizeExperienceEntry = (experience: WorkExperience): WorkExperience =>
 
   return {
     ...experience,
-    company: experience.company ?? parsed.company,
-    role: experience.role ?? parsed.role,
-    location: experience.location ?? parsed.location,
-    startDate: experience.startDate ?? parsed.startDate,
-    endDate: experience.endDate ?? parsed.endDate,
-    description: experience.description ?? parsed.description,
+    company: firstText(experience.company, parsed.company),
+    role: firstText(experience.role, parsed.role),
+    location: firstText(experience.location, parsed.location),
+    startDate: firstText(experience.startDate, parsed.startDate),
+    endDate: firstText(experience.endDate, parsed.endDate),
+    description: firstText(experience.description, parsed.description),
     responsibilities:
       remainingResponsibilities.length > 0
         ? remainingResponsibilities
         : experience.responsibilities,
-    achievements: experience.achievements
+    achievements: experience.achievements,
+    technologies: hasTextList(experience.technologies)
+      ? experience.technologies
+      : parsed.technologies
   };
 };
 
 const extractEducationFromSource = (text: string): Education[] => {
-  const lines = extractSectionLines(text, [
+  const educationHeadings = [
     "School education",
     "College and preparatory education",
     "Vocational education",
@@ -284,31 +343,35 @@ const extractEducationFromSource = (text: string): Education[] => {
     "Studium",
     "Universität",
     "Hochschule"
-  ]);
+  ];
   const entries: Education[] = [];
-  let currentLines: string[] = [];
 
-  for (const line of lines) {
-    const trimmedLine = line.trim();
+  for (const heading of educationHeadings) {
+    const lines = extractSectionLines(text, [heading]);
+    let currentLines: string[] = [];
 
-    if (dateRangePattern.test(trimmedLine) && currentLines.length > 0) {
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      if (dateRangePattern.test(trimmedLine) && currentLines.length > 0) {
+        entries.push(normalizeEducationEntry({
+          id: `education-source-${entries.length + 1}`,
+          details: currentLines
+        }));
+        currentLines = [];
+      }
+
+      if (trimmedLine) {
+        currentLines.push(trimmedLine);
+      }
+    }
+
+    if (currentLines.length > 0) {
       entries.push(normalizeEducationEntry({
         id: `education-source-${entries.length + 1}`,
         details: currentLines
       }));
-      currentLines = [];
     }
-
-    if (trimmedLine) {
-      currentLines.push(trimmedLine);
-    }
-  }
-
-  if (currentLines.length > 0) {
-    entries.push(normalizeEducationEntry({
-      id: `education-source-${entries.length + 1}`,
-      details: currentLines
-    }));
   }
 
   return entries;
@@ -359,21 +422,23 @@ const mergeExperience = (
   source: WorkExperience | undefined
 ): WorkExperience => ({
   ...current,
-  company: current.company ?? source?.company,
-  role: current.role ?? source?.role,
-  location: current.location ?? source?.location,
-  startDate: current.startDate ?? source?.startDate,
-  endDate: current.endDate ?? source?.endDate,
-  description: current.description ?? source?.description,
+  company: firstText(current.company, source?.company),
+  role: firstText(current.role, source?.role),
+  location: firstText(current.location, source?.location),
+  startDate: firstText(current.startDate, source?.startDate),
+  endDate: firstText(current.endDate, source?.endDate),
+  description: firstText(current.description, source?.description),
   responsibilities:
-    current.responsibilities.length > 0
+    hasTextList(current.responsibilities)
       ? current.responsibilities
       : source?.responsibilities ?? current.responsibilities,
   achievements:
-    current.achievements.length > 0
+    hasTextList(current.achievements)
       ? current.achievements
       : source?.achievements ?? current.achievements,
-  technologies: current.technologies ?? source?.technologies
+  technologies: hasTextList(current.technologies)
+    ? current.technologies
+    : source?.technologies
 });
 
 const mergeEducation = (
@@ -381,17 +446,40 @@ const mergeEducation = (
   source: Education | undefined
 ): Education => ({
   ...current,
-  institution: current.institution ?? source?.institution,
-  degree: current.degree ?? source?.degree,
-  field: current.field ?? source?.field,
-  location: current.location ?? source?.location,
-  startDate: current.startDate ?? source?.startDate,
-  endDate: current.endDate ?? source?.endDate,
+  institution: firstText(current.institution, source?.institution),
+  degree: firstText(current.degree, source?.degree),
+  field: firstText(current.field, source?.field),
+  location: firstText(current.location, source?.location),
+  startDate: firstText(current.startDate, source?.startDate),
+  endDate: firstText(current.endDate, source?.endDate),
   details:
-    current.details && current.details.length > 0
+    hasTextList(current.details)
       ? current.details
       : source?.details ?? current.details
 });
+
+const hasMeaningfulExperience = (experience: WorkExperience): boolean =>
+  [
+    experience.company,
+    experience.role,
+    experience.location,
+    experience.startDate,
+    experience.endDate,
+    experience.description
+  ].some(hasText) ||
+  hasTextList(experience.responsibilities) ||
+  hasTextList(experience.achievements) ||
+  hasTextList(experience.technologies);
+
+const hasMeaningfulEducation = (education: Education): boolean =>
+  [
+    education.institution,
+    education.degree,
+    education.field,
+    education.location,
+    education.startDate,
+    education.endDate
+  ].some(hasText) || hasTextList(education.details);
 
 export const normalizeCandidateProfileStructure = (
   profile: CandidateProfile,
@@ -399,16 +487,28 @@ export const normalizeCandidateProfileStructure = (
 ): CandidateProfile => {
   const sourceExperiences = sourceText ? extractExperiencesFromSource(sourceText) : [];
   const sourceEducation = sourceText ? extractEducationFromSource(sourceText) : [];
-  const experiences = profile.experiences.map((experience, index) =>
+  const repairedExperiences = profile.experiences.map((experience, index) =>
     mergeExperience(normalizeExperienceEntry(experience), sourceExperiences[index])
   );
-  const education = profile.education.map((educationEntry, index) =>
+  const repairedEducation = profile.education.map((educationEntry, index) =>
     mergeEducation(normalizeEducationEntry(educationEntry), sourceEducation[index])
   );
+  const shouldUseSourceExperiences =
+    sourceExperiences.length > 0 && !profile.experiences.some(hasMeaningfulExperience);
+  const shouldUseSourceEducation =
+    sourceEducation.length > 0 && !profile.education.some(hasMeaningfulEducation);
 
   return {
     ...profile,
-    experiences: experiences.length > 0 ? experiences : sourceExperiences,
-    education: education.length > 0 ? education : sourceEducation
+    experiences: shouldUseSourceExperiences
+      ? sourceExperiences
+      : repairedExperiences.length > 0
+        ? repairedExperiences
+        : sourceExperiences,
+    education: shouldUseSourceEducation
+      ? sourceEducation
+      : repairedEducation.length > 0
+        ? repairedEducation
+        : sourceEducation
   };
 };

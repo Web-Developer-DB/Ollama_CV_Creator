@@ -414,6 +414,73 @@ Nora builds accessible TypeScript applications.`
     expect(generateOllamaJson).toHaveBeenCalledTimes(1);
   });
 
+  it("repairs incomplete model experience entries from ordered source text", async () => {
+    generateOllamaJson.mockResolvedValue({
+      personalInfo: {
+        fullName: "Nora Stein"
+      },
+      experiences: [
+        {
+          id: "exp-1",
+          role: "",
+          company: "",
+          responsibilities: ["Leitung der Frontend-Entwicklung."],
+          achievements: []
+        },
+        {
+          id: "exp-2",
+          responsibilities: ["Dispatch-Planung gebaut."],
+          achievements: []
+        }
+      ],
+      education: [],
+      skills: {
+        technical: ["TypeScript"],
+        soft: [],
+        tools: [],
+        languages: [],
+        methods: []
+      },
+      projects: [],
+      languages: [],
+      certificates: []
+    });
+
+    const response = await POST(
+      createRequest({
+        text: `Demo candidate context: Nora Stein
+
+Professional experience:
+2023-2026 Senior Frontend Engineer, Acme Health GmbH, Berlin
+- Led frontend delivery.
+
+2021-2023 Frontend Engineer, Northstar Logistics AG, Hamburg and remote
+- Built dispatch planning tools.`,
+        language: "de"
+      })
+    );
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.data.experiences[0]).toMatchObject({
+      role: "Senior Frontend Engineer",
+      company: "Acme Health GmbH",
+      location: "Berlin",
+      startDate: "2023",
+      endDate: "2026"
+    });
+    expect(payload.data.experiences[1]).toMatchObject({
+      role: "Frontend Engineer",
+      company: "Northstar Logistics AG",
+      location: "Hamburg and remote",
+      startDate: "2021",
+      endDate: "2023"
+    });
+    expect(payload.data.experiences[0].responsibilities).toEqual([
+      "Leitung der Frontend-Entwicklung."
+    ]);
+  });
+
   it("automatically raises the Ollama context window for long candidate text", async () => {
     generateOllamaJson.mockResolvedValue(validProfile);
 

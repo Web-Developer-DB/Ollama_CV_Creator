@@ -1,10 +1,19 @@
 import { deleteDB } from "idb";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useProjectStore } from "@/stores/project-store";
 import type { ApplicationProject } from "@/types/project";
 import { ProfileScreen } from "./ProfileScreen";
+
+const router = vi.hoisted(() => ({
+  push: vi.fn()
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/profile",
+  useRouter: () => router
+}));
 
 const projectWithProfile: ApplicationProject = {
   id: "project-1",
@@ -52,6 +61,7 @@ const projectWithProfile: ApplicationProject = {
 describe("ProfileScreen", () => {
   beforeEach(async () => {
     await deleteDB("ollama-cv-creator");
+    router.push.mockReset();
     useProjectStore.setState({
       projects: [projectWithProfile],
       selectedProjectId: projectWithProfile.id,
@@ -135,6 +145,53 @@ describe("ProfileScreen", () => {
     expect(roleInput).toHaveValue("Principal Engineer");
   });
 
+  it("repairs incomplete experience headings from the saved raw input", async () => {
+    const user = userEvent.setup();
+    const incompleteProject: ApplicationProject = {
+      ...projectWithProfile,
+      rawInput: {
+        id: "raw-1",
+        sourceType: "manual_text",
+        text: `Professional experience:
+2023-2026 Senior Frontend Engineer, Acme Health GmbH, Berlin
+- Led frontend delivery.`,
+        language: "en",
+        createdAt: "2026-05-24T00:00:00.000Z"
+      },
+      candidateProfile: {
+        ...projectWithProfile.candidateProfile!,
+        experiences: [
+          {
+            id: "exp-empty",
+            company: "",
+            role: "",
+            responsibilities: ["Leitung der Frontend-Entwicklung."],
+            achievements: []
+          }
+        ]
+      }
+    };
+
+    useProjectStore.setState({
+      projects: [incompleteProject],
+      selectedProjectId: incompleteProject.id
+    });
+
+    render(<ProfileScreen />);
+
+    await user.click(screen.getByRole("tab", { name: /Erfahrung/ }));
+
+    expect(screen.getByLabelText("Rolle")).toHaveValue(
+      "Senior Frontend Engineer"
+    );
+    expect(screen.getByLabelText("Unternehmen")).toHaveValue("Acme Health GmbH");
+    expect(screen.getByLabelText("Start")).toHaveValue("2023");
+    expect(screen.getByLabelText("Ende")).toHaveValue("2026");
+    expect(screen.getByLabelText("Aufgaben")).toHaveValue(
+      "Leitung der Frontend-Entwicklung."
+    );
+  });
+
   it("makes skills editable", async () => {
     const user = userEvent.setup();
 
@@ -198,5 +255,38 @@ describe("ProfileScreen", () => {
     const statusSection = neutralStatus.closest("section");
 
     expect(statusSection).not.toHaveClass("bg-amber-50");
+  });
+
+  it("cancels deleting the current profile project", async () => {
+    const user = userEvent.setup();
+
+    render(<ProfileScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Profil löschen" }));
+
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(
+      "Wirklich endgültig löschen?"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Abbrechen" }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(useProjectStore.getState().projects).toHaveLength(1);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("deletes the current profile project and returns to profile creation", async () => {
+    const user = userEvent.setup();
+
+    render(<ProfileScreen />);
+
+    await user.click(screen.getByRole("button", { name: "Profil löschen" }));
+    await user.click(screen.getByRole("button", { name: "Endgültig löschen" }));
+
+    await waitFor(() => {
+      expect(useProjectStore.getState().projects).toHaveLength(0);
+      expect(useProjectStore.getState().selectedProjectId).toBeUndefined();
+      expect(router.push).toHaveBeenCalledWith("/import");
+    });
   });
 });

@@ -20,12 +20,35 @@ const splitParagraphs = (value: string): string[] =>
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
+const hasText = (value: string | undefined): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
+const normalizeText = (value: string | undefined): string =>
+  value?.replace(/\s+/g, " ").trim() ?? "";
+
+const splitCvDraft = (text: string): { rest: string; summary?: string } => {
+  const paragraphs = splitParagraphs(text);
+
+  return {
+    summary: paragraphs[0],
+    rest: paragraphs.slice(1).join("\n\n")
+  };
+};
+
 export const cvToText = (cv: GeneratedCV | undefined): string => {
   if (!cv) {
     return "";
   }
 
   const sectionText = cv.sections
+    .filter(
+      (section) =>
+        section.type !== "summary" ||
+        !hasText(cv.summary) ||
+        section.items.some(
+          (item) => normalizeText(item.body) !== normalizeText(cv.summary)
+        )
+    )
     .flatMap((section) =>
       section.items.flatMap((item) => [
         item.title,
@@ -62,34 +85,42 @@ export const createCVFromText = (
   text: string,
   existingCV: GeneratedCV | undefined,
   now: string
-): GeneratedCV => ({
-  id: existingCV?.id ?? createId(),
-  title: existingCV?.title ?? "Edited CV",
-  language: existingCV?.language ?? "de",
-  contact: existingCV?.contact,
-  summary: text,
-  sections:
-    existingCV?.sections.length === 0 || !existingCV?.sections
-      ? [
-          {
-            id: "draft-section",
-            type: "custom",
-            title: "Draft",
-            items: [
-              {
-                id: "draft-item",
-                body: text,
-                bullets: []
-              }
-            ]
-          }
-        ]
-      : existingCV.sections,
-  meta: {
-    ...existingCV?.meta,
-    generatedAt: existingCV?.meta.generatedAt ?? now
-  }
-});
+): GeneratedCV => {
+  const { rest, summary } = splitCvDraft(text);
+  const existingSections = existingCV?.sections ?? [];
+  const draftSection =
+    !existingCV || existingSections.length === 0
+      ? rest
+        ? [
+            {
+              id: "draft-section",
+              type: "custom" as const,
+              title: "Draft",
+              items: [
+                {
+                  id: "draft-item",
+                  body: rest,
+                  bullets: []
+                }
+              ]
+            }
+          ]
+        : []
+      : existingSections;
+
+  return {
+    id: existingCV?.id ?? createId(),
+    title: existingCV?.title ?? "Edited CV",
+    language: existingCV?.language ?? "de",
+    contact: existingCV?.contact,
+    summary,
+    sections: draftSection,
+    meta: {
+      ...existingCV?.meta,
+      generatedAt: existingCV?.meta.generatedAt ?? now
+    }
+  };
+};
 
 export const createCoverLetterFromText = (
   text: string,

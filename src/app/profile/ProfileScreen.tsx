@@ -4,10 +4,12 @@
 // all profile sections editable before document generation treats them as facts.
 import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Panel } from "@/components/ui/Panel";
+import { normalizeCandidateProfileStructure } from "@/lib/profile/profile-structure";
 import { classNames } from "@/lib/ui/class-names";
 import { useProjectStore } from "@/stores/project-store";
 import type {
@@ -173,6 +175,14 @@ const createEmptyProfile = (): CandidateProfile => ({
   languages: [],
   certificates: []
 });
+
+const getProfileFromProject = (
+  project: ApplicationProject | undefined
+): CandidateProfile =>
+  normalizeCandidateProfileStructure(
+    project?.candidateProfile ?? createEmptyProfile(),
+    project?.rawInput?.text
+  );
 
 const splitList = (value: string): string[] =>
   value
@@ -425,11 +435,19 @@ function SkillEditor({
 }
 
 export function ProfileScreen() {
-  const { error, isLoading, projects, saveProject, selectedProjectId } =
+  const router = useRouter();
+  const {
+    deleteProject,
+    error,
+    isLoading,
+    projects,
+    saveProject,
+    selectedProjectId
+  } =
     useProjectStore();
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) ?? projects[0];
-  const initialProfile = selectedProject?.candidateProfile ?? createEmptyProfile();
+  const initialProfile = getProfileFromProject(selectedProject);
 
   const [profile, setProfile] = useState<CandidateProfile>(initialProfile);
   const [activeSection, setActiveSection] =
@@ -440,6 +458,8 @@ export function ProfileScreen() {
   const [skillDrafts, setSkillDrafts] =
     useState<SkillDrafts>(emptySkillDrafts);
   const [savedMessage, setSavedMessage] = useState<string | undefined>();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | undefined>();
 
   const editableExperience = getEditableExperience(
     profile.experiences,
@@ -454,13 +474,18 @@ export function ProfileScreen() {
   const skillCount = countSkills(profile.skills);
 
   useEffect(() => {
-    const nextProfile =
-      selectedProject?.candidateProfile ?? createEmptyProfile();
+    const nextProfile = getProfileFromProject(selectedProject);
 
     setProfile(nextProfile);
     setActiveExperienceId(nextProfile.experiences[0]?.id);
     setSkillDrafts(emptySkillDrafts);
-  }, [selectedProject?.candidateProfile, selectedProject?.id]);
+    setShowDeleteConfirm(false);
+    setDeleteError(undefined);
+  }, [
+    selectedProject?.candidateProfile,
+    selectedProject?.id,
+    selectedProject?.rawInput?.text
+  ]);
 
   const updatePersonalInfo = (field: PersonalInfoField, value: string) => {
     setProfile((currentProfile) => ({
@@ -712,6 +737,19 @@ export function ProfileScreen() {
 
     await saveProject(project);
     setSavedMessage("Profil lokal gespeichert");
+  };
+
+  const handleDeleteProject = async () => {
+    if (!selectedProject) {
+      return;
+    }
+
+    try {
+      await deleteProject(selectedProject.id);
+      router.push("/import");
+    } catch {
+      setDeleteError("Profil und Projekt konnten nicht gelöscht werden.");
+    }
   };
 
   return (
@@ -1370,6 +1408,76 @@ export function ProfileScreen() {
             ) : null}
           </Panel>
         ) : null}
+
+        <Panel
+          className="border-red-200 bg-red-50/70"
+          description="Löscht das aktuelle lokale Projekt vollständig: Rohdaten, Profil, Zielrolle, Dokumente, Designauswahl und Exporthistorie."
+          title="Gefahrenbereich"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-red-950">
+                Profil und Projekt löschen
+              </p>
+              <p className="mt-1 text-sm leading-6 text-red-900">
+                Diese Aktion kann nicht rückgängig gemacht werden.
+              </p>
+            </div>
+            {!showDeleteConfirm ? (
+              <Button
+                disabled={!selectedProject || isLoading}
+                onClick={() => setShowDeleteConfirm(true)}
+                type="button"
+                variant="danger"
+              >
+                <Icon className="size-4" name="trash" />
+                Profil löschen
+              </Button>
+            ) : null}
+          </div>
+
+          {showDeleteConfirm ? (
+            <div
+              className="mt-4 rounded-md border border-red-200 bg-white px-3 py-3"
+              role="alertdialog"
+            >
+              <p className="text-sm font-semibold text-red-950">
+                Wirklich endgültig löschen?
+              </p>
+              <p className="mt-1 text-sm leading-6 text-red-900">
+                Das Profil und alle zugehörigen Bewerbungsunterlagen werden aus
+                dem lokalen Projekt entfernt.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeleteError(undefined);
+                  }}
+                  type="button"
+                  variant="secondary"
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  disabled={isLoading}
+                  onClick={() => void handleDeleteProject()}
+                  type="button"
+                  variant="danger"
+                >
+                  <Icon className="size-4" name="trash" />
+                  Endgültig löschen
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {deleteError ? (
+            <p className="mt-3 rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-900">
+              {deleteError}
+            </p>
+          ) : null}
+        </Panel>
 
         <div className="sticky bottom-4 z-10 flex flex-row items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white/95 p-4 shadow-panel backdrop-blur">
           <p className="text-sm text-slate-600">
