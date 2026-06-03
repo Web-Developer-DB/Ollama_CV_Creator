@@ -116,6 +116,40 @@ describe("DocumentTemplate", () => {
     expect(screen.getByText("Application for Frontend Engineer")).toBeInTheDocument();
   });
 
+  it("keeps oversized legacy CV summaries short in the profile box", () => {
+    render(
+      <DocumentTemplate
+        cv={{
+          ...cv,
+          summary:
+            "Kurzes Profil.\n\nBerufserfahrung\nSenior Frontend Engineer\nAcme Health GmbH\n2023 - 2026"
+        }}
+        previewMode="cv"
+        template="minimal"
+      />
+    );
+
+    expect(screen.getByText("Kurzes Profil.")).toBeInTheDocument();
+    expect(screen.queryByText(/Berufserfahrung/)).not.toBeInTheDocument();
+  });
+
+  it("marks template chrome and document pages for print-only output", () => {
+    render(
+      <DocumentTemplate
+        coverLetter={coverLetter}
+        cv={cv}
+        previewMode="cv"
+        template="minimal"
+      />
+    );
+
+    const template = screen.getByTestId("template-minimal");
+
+    expect(template.querySelector("[data-print-hidden]")).not.toBeNull();
+    expect(template.querySelector("[data-print-pages]")).not.toBeNull();
+    expect(screen.getByTestId("document-page-cv")).toBeInTheDocument();
+  });
+
   it("renders long CVs as two A4 preview pages", () => {
     const longCv: GeneratedCV = {
       ...cv,

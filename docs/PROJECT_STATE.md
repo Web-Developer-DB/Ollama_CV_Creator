@@ -102,6 +102,8 @@ Ad-hoc profile experience ordering fix completed. Profile extraction and the pro
 
 Ad-hoc CV draft summary fix completed. Saving or opening a CV draft in the design preview now stores only the first CV draft paragraph as `cv.summary` and no longer places the entire editable draft into the rendered Profile box.
 
+Ad-hoc A4 print preview fix completed. The CV Profile component no longer stretches to fill spare page height, oversized legacy summaries are shortened for preview, and print CSS now hides template chrome so the browser/PDF dialog prints only the DIN-A4 document pages.
+
 ## Architecture Summary
 
 - Electron desktop app target
@@ -169,7 +171,7 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 ## Last Test Results
 
 - npm run typecheck: passed
-- npm run test: passed, 213 tests
+- npm run test: passed, 215 tests
 - npm run build: passed
 - electron Ollama shutdown cleanup tests: passed
 - electron desktop storage tests: passed
@@ -211,3 +213,5 @@ Build a minimal frontend shell early at TASK-005 so the user can manually test p
 2026-06-03: Completed source-backed experience ordering repair so incomplete extracted experience cards are filled from the saved raw profile text while preserving already extracted responsibility details.
 
 2026-06-03: Fixed CV draft persistence so the design preview keeps the Profile box short instead of rendering the full CV draft as summary text.
+
+2026-06-03: Fixed A4 preview/profile sizing and print-only output so browser print/PDF targets the document pages instead of the surrounding template UI.

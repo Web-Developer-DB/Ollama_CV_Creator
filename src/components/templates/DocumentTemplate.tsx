@@ -254,6 +254,42 @@ const hasText = (value: string | undefined): value is string =>
 const joinPresent = (values: Array<string | undefined>, separator: string) =>
   values.filter(hasText).join(separator);
 
+const SUMMARY_PREVIEW_LIMIT = 520;
+
+const trimPreviewSummary = (value: string | undefined): string | undefined => {
+  if (!hasText(value)) {
+    return undefined;
+  }
+
+  const firstParagraph = value
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .find(Boolean);
+
+  if (!firstParagraph) {
+    return undefined;
+  }
+
+  if (firstParagraph.length <= SUMMARY_PREVIEW_LIMIT) {
+    return firstParagraph;
+  }
+
+  const words = firstParagraph.split(/\s+/);
+  let nextSummary = "";
+
+  for (const word of words) {
+    const candidate = nextSummary ? `${nextSummary} ${word}` : word;
+
+    if (candidate.length > SUMMARY_PREVIEW_LIMIT) {
+      break;
+    }
+
+    nextSummary = candidate;
+  }
+
+  return `${nextSummary.replace(/[,.!?;:]+$/, "")}...`;
+};
+
 const formatGeneratedAt = (value: string | undefined): string | undefined => {
   if (!value) {
     return undefined;
@@ -380,12 +416,13 @@ const buildCvPages = (
     return [[]];
   }
 
+  const summary = trimPreviewSummary(cv.summary);
   const visibleSections = cv.sections
-    .filter((section) => section.type !== "summary" || !hasText(cv.summary))
+    .filter((section) => section.type !== "summary" || !hasText(summary))
     .map((section) => trimSectionForPage(section, template));
   const pages: CVSection[][] = [[]];
   let currentBudget = pageBudgets[template].first;
-  let usedUnits = hasText(cv.summary) ? 8 : 0;
+  let usedUnits = hasText(summary) ? Math.min(8, 3 + estimateTextUnits(summary, 88)) : 0;
 
   for (const section of visibleSections) {
     const sectionUnits = estimateSectionUnits(section);
@@ -679,9 +716,13 @@ function CVSummary({
   cv,
   classes
 }: Readonly<{ cv?: GeneratedCV; classes: TemplateClasses }>) {
-  if (!hasText(cv?.summary)) {
+  const summary = trimPreviewSummary(cv?.summary);
+
+  if (!hasText(summary)) {
     return null;
   }
+  const textClassName =
+    summary.length > 380 ? "text-[11px] leading-[1.45]" : "text-xs leading-5";
 
   return (
     <section className={`rounded-md border px-4 py-3 ${classes.accentBorder} ${classes.accentBg}`}>
@@ -691,7 +732,7 @@ function CVSummary({
           Profile
         </h3>
       </div>
-      <p className={`mt-2 text-xs leading-5 ${classes.bodyText}`}>{cv.summary}</p>
+      <p className={`mt-2 ${textClassName} ${classes.bodyText}`}>{summary}</p>
     </section>
   );
 }
@@ -737,7 +778,7 @@ function CVPage({
           pageNumber={pageNumber}
           totalPages={totalPages}
         />
-        <div className="mt-5 grid min-h-0 flex-1 gap-5 overflow-hidden">
+        <div className="mt-5 grid min-h-0 flex-1 content-start gap-5 overflow-hidden">
           {isFirstPage ? <CVSummary classes={classes} cv={cv} /> : null}
           <div
             className={classNames(
@@ -927,7 +968,7 @@ export function DocumentTemplate({
       className={`grid gap-5 rounded-md border p-5 ${classes.shell}`}
       data-testid={`template-${definition.id}`}
     >
-      <div className="flex flex-row items-end justify-between gap-3">
+      <div className="flex flex-row items-end justify-between gap-3" data-print-hidden>
         <div>
           <p className={`text-xs font-semibold uppercase ${classes.accentText}`}>
             Template
@@ -948,6 +989,7 @@ export function DocumentTemplate({
       </div>
 
       <div
+        data-print-pages
         className={`grid min-w-0 gap-5 ${
           previewMode === "both" ? "2xl:grid-cols-2" : ""
         }`}
